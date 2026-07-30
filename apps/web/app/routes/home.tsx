@@ -75,6 +75,7 @@ export default function Home() {
   return (
     <main
       id="main-content"
+      tabIndex={-1}
       className="page-width pt-10 pb-16 md:pt-16 md:pb-24"
     >
       <section className="search-stage" aria-labelledby="search-heading">

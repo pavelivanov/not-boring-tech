@@ -18,6 +18,7 @@ export default function NotFound() {
   return (
     <main
       id="main-content"
+      tabIndex={-1}
       className="page-width flex min-h-[65svh] flex-col justify-center py-16"
     >
       <p className="font-mono text-sm text-muted-foreground">404 / no signal</p>

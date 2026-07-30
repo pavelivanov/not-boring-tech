@@ -18,7 +18,7 @@ export function meta() {
 
 export default function About() {
   return (
-    <main id="main-content" className="page-width py-12 md:py-20">
+    <main id="main-content" tabIndex={-1} className="page-width py-12 md:py-20">
       <Link
         to="/"
         className="inline-flex items-center gap-1.5 text-sm font-medium underline decoration-border underline-offset-4 hover:decoration-primary"

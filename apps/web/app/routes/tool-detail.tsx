@@ -54,6 +54,7 @@ export default function ToolDetail() {
     return (
       <main
         id="main-content"
+        tabIndex={-1}
         className="page-width flex min-h-[65svh] flex-col justify-center py-16"
       >
         <p className="font-mono text-sm text-muted-foreground">
@@ -78,7 +79,7 @@ export default function ToolDetail() {
   const mentions = newestMentionsFirst(tool.mentions)
 
   return (
-    <main id="main-content" className="page-width py-12 md:py-20">
+    <main id="main-content" tabIndex={-1} className="page-width py-12 md:py-20">
       <Link
         to={backTarget}
         className="inline-flex items-center gap-1.5 text-sm font-medium underline decoration-border underline-offset-4 hover:decoration-primary"

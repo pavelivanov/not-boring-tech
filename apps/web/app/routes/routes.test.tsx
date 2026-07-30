@@ -85,6 +85,7 @@ describe("home route", () => {
   it("renders the unfiltered corpus as a single result list", () => {
     renderAt()
 
+    expect(screen.getByRole("main")).toHaveAttribute("tabindex", "-1")
     expect(
       screen.getByRole("heading", { name: "40 tools" })
     ).toBeInTheDocument()
