@@ -1,2 +1,31 @@
 .idea
 .DS_Store
+
+# Dependencies and task caches
+node_modules/
+.turbo/
+
+# Build and test output
+dist/
+build/
+coverage/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Generated Prisma clients
+**/generated/prisma/
+
+# Telegram session material
+*.session
+*.session-journal
+*.session-shm
+*.session-wal
+telegram-session*
+
+# Editor and platform noise
+.vscode/
+*.swp
+Thumbs.db
