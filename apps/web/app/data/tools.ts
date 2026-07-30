@@ -1,7 +1,7 @@
 import type { Mention, Tool } from "@techdex/contracts"
 
 const initialVerifiedCollectionTime = "2026-07-30T14:36:40.000Z"
-const secondVerifiedCollectionTime = "2026-07-30T14:57:24.000Z"
+const latestVerifiedCollectionTime = "2026-07-30T15:02:17.000Z"
 
 function notBoringMention(
   postId: number,
@@ -21,7 +21,7 @@ function ctoDailyMention(postId: number, publishedAt: string): Mention {
     channelId: "ctodaily",
     sourceUrl: `https://t.me/ctodaily/${postId}`,
     publishedAt,
-    collectedAt: secondVerifiedCollectionTime,
+    collectedAt: latestVerifiedCollectionTime,
   }
 }
 
@@ -137,16 +137,14 @@ export const tools = [
       notBoringMention(
         3456,
         "2025-01-18T21:10:04.000Z",
-        secondVerifiedCollectionTime
+        latestVerifiedCollectionTime
       ),
       notBoringMention(
         3780,
         "2025-09-08T22:10:29.000Z",
-        secondVerifiedCollectionTime
+        latestVerifiedCollectionTime
       ),
       ctoDailyMention(1897, "2025-09-09T10:31:53.000Z"),
-      mention("temporary-ai", 105, "2026-01-30T11:25:00.000Z"),
-      mention("temporary-devtools", 205, "2026-03-04T09:40:00.000Z"),
     ],
   },
   {
@@ -167,10 +165,7 @@ export const tools = [
       "Open platform for composing, evaluating, and operating generative AI applications.",
     category: "AI development",
     tags: ["low-code", "LLM", "workflow"],
-    mentions: [
-      ctoDailyMention(1897, "2025-09-09T10:31:53.000Z"),
-      mention("temporary-ai", 107, "2026-02-02T16:00:00.000Z"),
-    ],
+    mentions: [ctoDailyMention(1897, "2025-09-09T10:31:53.000Z")],
   },
   {
     slug: "vllm",
@@ -194,8 +189,16 @@ export const tools = [
     category: "Developer tools",
     tags: ["browser automation", "testing", "TypeScript"],
     mentions: [
-      mention("temporary-devtools", 206, "2025-10-11T12:00:00.000Z"),
-      mention("temporary-frontend", 401, "2026-02-14T09:20:00.000Z"),
+      notBoringMention(
+        3832,
+        "2025-09-25T06:15:19.000Z",
+        latestVerifiedCollectionTime
+      ),
+      notBoringMention(
+        4176,
+        "2026-05-12T09:34:33.000Z",
+        latestVerifiedCollectionTime
+      ),
     ],
   },
   {
@@ -266,7 +269,7 @@ export const tools = [
       "Secure public endpoints and traffic inspection for local development services.",
     category: "Developer tools",
     tags: ["tunneling", "local development", "networking"],
-    mentions: [mention("temporary-devtools", 213, "2025-10-29T08:45:00.000Z")],
+    mentions: [ctoDailyMention(5, "2016-08-16T16:21:42.000Z")],
   },
   {
     slug: "bruno",
@@ -296,7 +299,7 @@ export const tools = [
       "Extensible relational database with strong SQL support and a mature ecosystem.",
     category: "Data systems",
     tags: ["database", "SQL", "open source"],
-    mentions: [mention("temporary-data", 301, "2025-07-12T09:00:00.000Z")],
+    mentions: [ctoDailyMention(1998, "2026-02-04T22:07:06.000Z")],
   },
   {
     slug: "duckdb",
@@ -323,7 +326,6 @@ export const tools = [
       ctoDailyMention(1530, "2022-04-01T13:17:12.000Z"),
       ctoDailyMention(1683, "2023-05-19T12:02:03.000Z"),
       ctoDailyMention(1690, "2023-06-29T05:41:15.000Z"),
-      mention("temporary-data", 303, "2025-09-15T06:40:00.000Z"),
     ],
   },
   {
@@ -347,7 +349,10 @@ export const tools = [
       "Hosted Postgres platform with authentication, storage, realtime, and edge functions.",
     category: "Data systems",
     tags: ["Postgres", "backend as a service", "serverless"],
-    mentions: [mention("temporary-data", 305, "2025-08-26T14:25:00.000Z")],
+    mentions: [
+      ctoDailyMention(1670, "2023-02-06T07:13:02.000Z"),
+      ctoDailyMention(1770, "2024-08-14T10:38:26.000Z"),
+    ],
   },
   {
     slug: "neon",
@@ -423,7 +428,7 @@ export const tools = [
       "Fast frontend development server and optimized production build tool.",
     category: "Frontend",
     tags: ["build system", "frontend", "JavaScript"],
-    mentions: [mention("temporary-frontend", 405, "2025-08-05T15:20:00.000Z")],
+    mentions: [ctoDailyMention(2022, "2026-02-25T14:00:42.000Z")],
   },
   {
     slug: "astro",
@@ -528,7 +533,18 @@ export const tools = [
       "Local-first Markdown notes with links, plugins, and a visual knowledge graph.",
     category: "Productivity",
     tags: ["notes", "local-first", "Markdown"],
-    mentions: [mention("temporary-devtools", 218, "2025-08-31T10:25:00.000Z")],
+    mentions: [
+      notBoringMention(
+        3797,
+        "2025-09-13T22:37:46.000Z",
+        latestVerifiedCollectionTime
+      ),
+      notBoringMention(
+        4031,
+        "2026-01-05T23:01:18.000Z",
+        latestVerifiedCollectionTime
+      ),
+    ],
   },
 ] as const satisfies readonly Tool[]
 

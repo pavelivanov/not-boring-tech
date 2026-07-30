@@ -90,8 +90,14 @@ describe("temporary fixture invariants", () => {
       "ollama",
       "langgraph",
       "dify",
+      "playwright",
+      "ngrok",
+      "postgresql",
       "clickhouse",
+      "supabase",
+      "vite",
       "docker",
+      "obsidian",
     ]
     const crossChannelSlugs = [
       "cursor",
@@ -124,6 +130,7 @@ describe("temporary fixture invariants", () => {
 
       expect(tool, slug).toBeDefined()
       expect(approvedMentions?.length, slug).toBeGreaterThan(0)
+      expect(approvedMentions, slug).toHaveLength(tool!.mentions.length)
 
       for (const mention of approvedMentions ?? []) {
         expect(
