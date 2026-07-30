@@ -1,5 +1,5 @@
 import { CheckIcon, ChevronsUpDownIcon, SearchIcon, XIcon } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { Button } from "~/components/ui/button"
 import {
@@ -48,6 +48,16 @@ export function SearchControls({
   onChange,
 }: SearchControlsProps) {
   const [tagPickerOpen, setTagPickerOpen] = useState(false)
+  const [queryDraft, setQueryDraft] = useState(filters.query)
+
+  useEffect(() => {
+    setQueryDraft(filters.query)
+  }, [filters.query])
+
+  function updateQuery(query: string) {
+    setQueryDraft(query)
+    onChange({ ...filters, query }, true)
+  }
 
   function toggleTag(tag: string) {
     const nextTags = filters.tags.includes(tag)
@@ -66,10 +76,8 @@ export function SearchControls({
         <InputGroup className="h-14 rounded-xl bg-background shadow-sm">
           <InputGroupInput
             id="tool-search"
-            value={filters.query}
-            onChange={(event) =>
-              onChange({ ...filters, query: event.target.value }, true)
-            }
+            value={queryDraft}
+            onChange={(event) => updateQuery(event.target.value)}
             placeholder="What was that tool for…"
             autoComplete="off"
             className="text-base md:text-base"
@@ -82,7 +90,7 @@ export function SearchControls({
               <InputGroupButton
                 size="icon-sm"
                 aria-label="Clear search"
-                onClick={() => onChange({ ...filters, query: "" })}
+                onClick={() => updateQuery("")}
               >
                 <XIcon />
               </InputGroupButton>

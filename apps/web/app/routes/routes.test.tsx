@@ -1,11 +1,14 @@
-import { render, screen, waitFor, within } from "@testing-library/react"
+import { act, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import { hydrateRoot } from "react-dom/client"
+import { renderToString } from "react-dom/server"
 import {
   createMemoryRouter,
+  MemoryRouter,
   RouterProvider,
   type InitialEntry,
 } from "react-router"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import { toolsBySlug } from "~/data/tools"
 import { newestMentionsFirst } from "~/domain/tools"
@@ -40,6 +43,44 @@ function renderAt(initialEntry: InitialEntry = "/") {
 }
 
 describe("home route", () => {
+  it("hydrates a shared filtered URL from the unfiltered prerender", async () => {
+    const prerenderedMarkup = renderToString(
+      <MemoryRouter initialEntries={["/"]}>
+        <Home />
+      </MemoryRouter>
+    )
+    const container = document.createElement("div")
+    container.innerHTML = prerenderedMarkup
+    document.body.append(container)
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {})
+    let root: ReturnType<typeof hydrateRoot> | undefined
+
+    try {
+      await act(async () => {
+        root = hydrateRoot(
+          container,
+          <MemoryRouter initialEntries={["/?q=vector+database"]}>
+            <Home />
+          </MemoryRouter>
+        )
+      })
+
+      await waitFor(() => {
+        expect(
+          within(container).getByRole("heading", { name: "1 tool" })
+        ).toBeInTheDocument()
+      })
+      expect(consoleError).not.toHaveBeenCalled()
+    } finally {
+      if (root) {
+        await act(async () => root?.unmount())
+      }
+
+      consoleError.mockRestore()
+      container.remove()
+    }
+  })
+
   it("renders the unfiltered corpus as a single result list", () => {
     renderAt()
 
@@ -88,6 +129,25 @@ describe("home route", () => {
       expect(router.state.location.search).toBe(
         "?category=Security&tag=static+analysis&tag=terminal"
       )
+    })
+  })
+
+  it("accepts multi-word queries typed one key at a time", async () => {
+    const user = userEvent.setup()
+    const router = renderAt()
+    const searchInput = screen.getByRole("textbox", {
+      name: "Search tools",
+    })
+
+    await user.type(searchInput, "vector database")
+
+    await waitFor(() => {
+      expect(searchInput).toHaveValue("vector database")
+      expect(
+        screen.getByRole("heading", { name: "1 tool" })
+      ).toBeInTheDocument()
+      expect(screen.getByRole("link", { name: "Qdrant" })).toBeInTheDocument()
+      expect(router.state.location.search).toBe("?q=vector+database")
     })
   })
 

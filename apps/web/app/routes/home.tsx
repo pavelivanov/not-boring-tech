@@ -1,4 +1,5 @@
 import { FlaskConicalIcon, XIcon } from "lucide-react"
+import { useSyncExternalStore } from "react"
 import { useLocation, useSearchParams } from "react-router"
 
 import { SearchControls } from "~/components/search-controls"
@@ -28,11 +29,36 @@ export function meta() {
 }
 
 const searchOptions = { categories, tags } as const
+const emptySearchParams = new URLSearchParams()
+
+function subscribeToHydration() {
+  return () => {}
+}
+
+function getClientHydrationState() {
+  return true
+}
+
+function getServerHydrationState() {
+  return false
+}
+
+function useHydrated() {
+  return useSyncExternalStore(
+    subscribeToHydration,
+    getClientHydrationState,
+    getServerHydrationState
+  )
+}
 
 export default function Home() {
   const [searchParams, setSearchParams] = useSearchParams()
   const location = useLocation()
-  const filters = parseSearchParams(searchParams, searchOptions)
+  const hydrated = useHydrated()
+  const filters = parseSearchParams(
+    hydrated ? searchParams : emptySearchParams,
+    searchOptions
+  )
   const results = searchTools(tools, filters)
   const hasFilters = Boolean(
     filters.query || filters.category || filters.tags.length
@@ -131,7 +157,7 @@ export default function Home() {
 
         <ToolList
           tools={results}
-          search={location.search}
+          search={hydrated ? location.search : ""}
           onClear={clearFilters}
         />
       </section>
