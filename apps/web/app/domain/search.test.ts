@@ -32,7 +32,7 @@ describe("deterministic retrieval", () => {
   it("matches name prefixes and complete name tokens", () => {
     const results = searchTools(tools, { ...emptyFilters, query: "post" })
 
-    expect(results[0]?.slug).toBe("postgresql")
+    expect(results[0]?.slug).toBe("postgres-new")
   })
 
   it("matches tags, categories, and description tokens", () => {
@@ -75,7 +75,7 @@ describe("deterministic retrieval", () => {
         ...emptyFilters,
         category: "Security",
       }).map((tool) => tool.slug)
-    ).toEqual(["1password-cli", "semgrep"])
+    ).toEqual(["1password"])
   })
 
   it("breaks equal scores by channel count and then name", () => {

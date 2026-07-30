@@ -89,14 +89,24 @@ describe("temporary fixture invariants", () => {
       "github-copilot",
       "ollama",
       "langgraph",
+      "mem-agent",
       "dify",
       "playwright",
+      "q",
+      "tableplus",
+      "postico",
       "ngrok",
+      "postgres-new",
       "postgresql",
       "clickhouse",
       "supabase",
+      "vinext",
+      "artbreeder-collage",
       "vite",
+      "sloplobster",
       "docker",
+      "pyspur",
+      "1password",
       "obsidian",
     ]
     const crossChannelSlugs = [
@@ -121,6 +131,7 @@ describe("temporary fixture invariants", () => {
       name: "запуск завтра",
       publicUrl: "https://t.me/ctodaily",
     })
+    expect(verifiedSlugs).toHaveLength(24)
 
     for (const slug of verifiedSlugs) {
       const tool = tools.find((candidate) => candidate.slug === slug)
@@ -141,6 +152,14 @@ describe("temporary fixture invariants", () => {
         ).toBe(true)
       }
     }
+
+    expect(
+      tools.filter((tool) =>
+        tool.mentions.every((mention) =>
+          approvedChannels.has(mention.channelId)
+        )
+      )
+    ).toHaveLength(verifiedSlugs.length)
 
     for (const slug of crossChannelSlugs) {
       const tool = tools.find((candidate) => candidate.slug === slug)

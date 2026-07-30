@@ -100,35 +100,35 @@ describe("home route", () => {
     const router = renderAt()
 
     await user.click(screen.getByRole("combobox", { name: "Category" }))
-    await user.click(screen.getByRole("option", { name: "Security" }))
+    await user.click(screen.getByRole("option", { name: "Data systems" }))
 
     await waitFor(() => {
       expect(
-        screen.getByRole("heading", { name: "2 tools" })
+        screen.getByRole("heading", { name: "9 tools" })
       ).toBeInTheDocument()
-      expect(router.state.location.search).toBe("?category=Security")
+      expect(router.state.location.search).toBe("?category=Data+systems")
     })
 
     await user.click(screen.getByRole("combobox", { name: "Tags" }))
-    await user.click(screen.getByRole("option", { name: "terminal" }))
+    await user.click(screen.getByRole("option", { name: "browser" }))
 
     await waitFor(() => {
       expect(
         screen.getByRole("heading", { name: "1 tool" })
       ).toBeInTheDocument()
       expect(router.state.location.search).toBe(
-        "?category=Security&tag=terminal"
+        "?category=Data+systems&tag=browser"
       )
     })
 
-    await user.click(screen.getByRole("option", { name: "static analysis" }))
+    await user.click(screen.getByRole("option", { name: "serverless" }))
 
     await waitFor(() => {
       expect(
-        screen.getByRole("heading", { name: "2 tools" })
+        screen.getByRole("heading", { name: "3 tools" })
       ).toBeInTheDocument()
       expect(router.state.location.search).toBe(
-        "?category=Security&tag=static+analysis&tag=terminal"
+        "?category=Data+systems&tag=browser&tag=serverless"
       )
     })
   })

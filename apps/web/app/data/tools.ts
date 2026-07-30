@@ -2,6 +2,7 @@ import type { Mention, Tool } from "@techdex/contracts"
 
 const initialVerifiedCollectionTime = "2026-07-30T14:36:40.000Z"
 const latestVerifiedCollectionTime = "2026-07-30T15:02:17.000Z"
+const replacementVerifiedCollectionTime = "2026-07-30T15:23:42.000Z"
 
 function notBoringMention(
   postId: number,
@@ -16,12 +17,16 @@ function notBoringMention(
   }
 }
 
-function ctoDailyMention(postId: number, publishedAt: string): Mention {
+function ctoDailyMention(
+  postId: number,
+  publishedAt: string,
+  collectedAt = latestVerifiedCollectionTime
+): Mention {
   return {
     channelId: "ctodaily",
     sourceUrl: `https://t.me/ctodaily/${postId}`,
     publishedAt,
-    collectedAt: latestVerifiedCollectionTime,
+    collectedAt,
   }
 }
 
@@ -148,14 +153,20 @@ export const tools = [
     ],
   },
   {
-    slug: "openai-agents-sdk",
-    name: "OpenAI Agents SDK",
-    canonicalUrl: "https://openai.github.io/openai-agents-python/",
+    slug: "mem-agent",
+    name: "mem-agent",
+    canonicalUrl: "https://github.com/firstbatchxyz/mem-agent-mcp",
     description:
-      "SDK for tool-using agents with handoffs, guardrails, tracing, and sessions.",
+      "Local memory agent and MCP server that connects conversations and documents into editable Markdown memory.",
     category: "AI development",
-    tags: ["agents", "SDK", "Python"],
-    mentions: [mention("temporary-ai", 106, "2026-03-13T13:15:00.000Z")],
+    tags: ["memory", "MCP", "local AI"],
+    mentions: [
+      notBoringMention(
+        3797,
+        "2025-09-13T22:37:46.000Z",
+        replacementVerifiedCollectionTime
+      ),
+    ],
   },
   {
     slug: "dify",
@@ -222,24 +233,36 @@ export const tools = [
     mentions: [mention("temporary-devtools", 208, "2025-09-21T14:10:00.000Z")],
   },
   {
-    slug: "pnpm",
-    name: "pnpm",
-    canonicalUrl: "https://pnpm.io/",
+    slug: "q",
+    name: "q",
+    canonicalUrl: "https://github.com/harelba/q",
     description:
-      "Disk-efficient JavaScript package manager with strict dependency isolation.",
+      "Command-line tool for running SQL directly against CSV and other delimited files.",
     category: "Developer tools",
-    tags: ["JavaScript", "package manager", "monorepo"],
-    mentions: [mention("temporary-devtools", 209, "2025-08-18T07:30:00.000Z")],
+    tags: ["SQL", "CSV", "terminal"],
+    mentions: [
+      ctoDailyMention(
+        434,
+        "2017-12-11T17:05:58.000Z",
+        replacementVerifiedCollectionTime
+      ),
+    ],
   },
   {
-    slug: "turborepo",
-    name: "Turborepo",
-    canonicalUrl: "https://turborepo.com/",
+    slug: "tableplus",
+    name: "TablePlus",
+    canonicalUrl: "https://tableplus.com/",
     description:
-      "High-performance build system for JavaScript and TypeScript monorepositories.",
+      "Native desktop database client with a query editor and support for multiple relational databases.",
     category: "Developer tools",
-    tags: ["monorepo", "build system", "TypeScript"],
-    mentions: [mention("temporary-devtools", 210, "2025-12-03T10:40:00.000Z")],
+    tags: ["database client", "SQL", "desktop"],
+    mentions: [
+      ctoDailyMention(
+        524,
+        "2018-02-12T08:41:28.000Z",
+        replacementVerifiedCollectionTime
+      ),
+    ],
   },
   {
     slug: "zed",
@@ -252,14 +275,20 @@ export const tools = [
     mentions: [mention("temporary-devtools", 211, "2026-02-11T15:50:00.000Z")],
   },
   {
-    slug: "mise",
-    name: "mise",
-    canonicalUrl: "https://mise.jdx.dev/",
+    slug: "postico",
+    name: "Postico 2",
+    canonicalUrl: "https://eggerapps.at/postico2/",
     description:
-      "Polyglot tool-version manager and task runner for reproducible development environments.",
+      "Native macOS client for browsing, querying, and editing PostgreSQL databases.",
     category: "Developer tools",
-    tags: ["terminal", "version manager", "developer workflow"],
-    mentions: [mention("temporary-devtools", 212, "2025-11-05T11:00:00.000Z")],
+    tags: ["database client", "Postgres", "macOS"],
+    mentions: [
+      ctoDailyMention(
+        525,
+        "2018-02-12T16:38:01.000Z",
+        replacementVerifiedCollectionTime
+      ),
+    ],
   },
   {
     slug: "ngrok",
@@ -282,14 +311,20 @@ export const tools = [
     mentions: [mention("temporary-devtools", 214, "2026-01-25T13:05:00.000Z")],
   },
   {
-    slug: "hoppscotch",
-    name: "Hoppscotch",
-    canonicalUrl: "https://hoppscotch.io/",
+    slug: "postgres-new",
+    name: "Postgres.new",
+    canonicalUrl: "https://postgres.new/",
     description:
-      "Open-source web API client for REST, GraphQL, realtime, and collaboration.",
-    category: "Developer tools",
-    tags: ["API client", "open source", "GraphQL"],
-    mentions: [mention("temporary-devtools", 215, "2025-12-28T16:20:00.000Z")],
+      "In-browser PostgreSQL workspace for loading data, asking questions, and learning SQL.",
+    category: "Data systems",
+    tags: ["Postgres", "browser", "SQL"],
+    mentions: [
+      ctoDailyMention(
+        1770,
+        "2024-08-14T10:38:26.000Z",
+        replacementVerifiedCollectionTime
+      ),
+    ],
   },
   {
     slug: "postgresql",
@@ -388,14 +423,20 @@ export const tools = [
     mentions: [mention("temporary-data", 308, "2025-11-14T07:50:00.000Z")],
   },
   {
-    slug: "tailwind-css",
-    name: "Tailwind CSS",
-    canonicalUrl: "https://tailwindcss.com/",
+    slug: "vinext",
+    name: "vinext",
+    canonicalUrl: "https://github.com/cloudflare/vinext",
     description:
-      "Utility-first CSS framework that generates styles from application source files.",
+      "Vite plugin that reimplements the Next.js API surface for deployment across runtimes.",
     category: "Frontend",
-    tags: ["CSS", "design system", "frontend"],
-    mentions: [mention("temporary-frontend", 402, "2025-07-28T13:00:00.000Z")],
+    tags: ["Vite", "Next.js", "deployment"],
+    mentions: [
+      ctoDailyMention(
+        2022,
+        "2026-02-25T14:00:42.000Z",
+        replacementVerifiedCollectionTime
+      ),
+    ],
   },
   {
     slug: "shadcn-ui",
@@ -411,14 +452,20 @@ export const tools = [
     ],
   },
   {
-    slug: "storybook",
-    name: "Storybook",
-    canonicalUrl: "https://storybook.js.org/",
+    slug: "artbreeder-collage",
+    name: "Artbreeder Collage",
+    canonicalUrl: "https://collage.artbreeder.com/",
     description:
-      "Workshop for developing and documenting UI components in isolation.",
-    category: "Frontend",
-    tags: ["UI components", "documentation", "testing"],
-    mentions: [mention("temporary-frontend", 404, "2025-09-08T08:30:00.000Z")],
+      "Creative AI canvas that turns assembled image collages and text prompts into generated scenes.",
+    category: "Creative AI",
+    tags: ["image generation", "collage", "creative tool"],
+    mentions: [
+      notBoringMention(
+        2338,
+        "2022-07-17T08:16:04.000Z",
+        replacementVerifiedCollectionTime
+      ),
+    ],
   },
   {
     slug: "vite",
@@ -441,14 +488,20 @@ export const tools = [
     mentions: [mention("temporary-frontend", 406, "2025-12-19T11:45:00.000Z")],
   },
   {
-    slug: "react-router",
-    name: "React Router",
-    canonicalUrl: "https://reactrouter.com/",
+    slug: "sloplobster",
+    name: "SlopLobster",
+    canonicalUrl: "https://github.com/PasiKoodaa/SlopLobster",
     description:
-      "Routing library and full-stack framework for building React applications.",
-    category: "Frontend",
-    tags: ["React", "routing", "web framework"],
-    mentions: [mention("temporary-frontend", 407, "2026-01-10T10:15:00.000Z")],
+      "Local browser-based AI coding agent with file, shell, web, and browser automation tools.",
+    category: "AI development",
+    tags: ["coding agent", "local AI", "browser"],
+    mentions: [
+      notBoringMention(
+        4176,
+        "2026-05-12T09:34:33.000Z",
+        replacementVerifiedCollectionTime
+      ),
+    ],
   },
   {
     slug: "docker",
@@ -506,24 +559,36 @@ export const tools = [
     mentions: [mention("temporary-infra", 507, "2025-09-30T16:05:00.000Z")],
   },
   {
-    slug: "semgrep",
-    name: "Semgrep",
-    canonicalUrl: "https://semgrep.dev/",
+    slug: "pyspur",
+    name: "PySpur",
+    canonicalUrl: "https://www.pyspur.com/",
     description:
-      "Static analysis for finding security issues and enforcing code rules.",
-    category: "Security",
-    tags: ["static analysis", "security", "developer workflow"],
-    mentions: [mention("temporary-infra", 508, "2026-02-18T08:55:00.000Z")],
+      "Visual AI agent builder for graph workflows, debugging, evaluation, and self-hosting.",
+    category: "AI development",
+    tags: ["agents", "low-code", "workflow"],
+    mentions: [
+      ctoDailyMention(
+        1897,
+        "2025-09-09T10:31:53.000Z",
+        replacementVerifiedCollectionTime
+      ),
+    ],
   },
   {
-    slug: "1password-cli",
-    name: "1Password CLI",
-    canonicalUrl: "https://developer.1password.com/docs/cli/",
+    slug: "1password",
+    name: "1Password",
+    canonicalUrl: "https://1password.com/",
     description:
-      "Command-line access to secrets, vault items, and secure development workflows.",
+      "Password and secrets manager for storing credentials, passkeys, and secure access.",
     category: "Security",
-    tags: ["secrets", "terminal", "security"],
-    mentions: [mention("temporary-infra", 509, "2025-11-02T13:30:00.000Z")],
+    tags: ["password manager", "secrets", "security"],
+    mentions: [
+      ctoDailyMention(
+        570,
+        "2018-03-02T12:29:04.000Z",
+        replacementVerifiedCollectionTime
+      ),
+    ],
   },
   {
     slug: "obsidian",

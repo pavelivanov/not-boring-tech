@@ -71,10 +71,10 @@ TypeScript fixtures and runs deterministic local search over them.
 The current 40 tool identities and canonical tool URLs are real. The corpus now
 includes owner-approved public mentions from `@notboring_tech` and `@ctodaily`.
 Cursor, Claude Code, GitHub Copilot, LangGraph, and Docker have verified
-mentions from both channels. Ollama, Dify, Playwright, ngrok, PostgreSQL,
-ClickHouse, Supabase, Vite, and Obsidian have verified single-channel coverage.
-All other Telegram channel identities, source-post URLs, presentation dates,
-and collection dates remain explicit interface-development placeholders. The
+mentions from both channels. Another 19 tools have verified single-channel
+coverage, bringing the verified subset to 24 of 40 tools. The remaining 16
+tools still use explicit interface-development placeholders for their Telegram
+channel identity, source-post URL, publication date, and collection date. The
 current retrieval evaluation cases are also temporary behavior checks, not
 owner-written acceptance queries.
 
