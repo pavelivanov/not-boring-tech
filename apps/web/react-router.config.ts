@@ -10,6 +10,9 @@ if (new Set(toolPaths).size !== toolPaths.length) {
 }
 
 export default {
+  future: {
+    v8_viteEnvironmentApi: true,
+  },
   ssr: false,
   prerender,
 } satisfies Config
