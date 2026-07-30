@@ -69,11 +69,13 @@ The website has no backend or network data source. It reads checked-in
 TypeScript fixtures and runs deterministic local search over them.
 
 The current 40 tool identities and canonical tool URLs are real. The corpus now
-includes owner-approved public mentions from `@notboring_tech` for Cursor,
-Claude Code, GitHub Copilot, Ollama, and Docker. All other Telegram channel
-identities, source-post URLs, presentation dates, and collection dates remain
-explicit interface-development placeholders. The current retrieval evaluation
-cases are also temporary behavior checks, not owner-written acceptance queries.
+includes owner-approved public mentions from `@notboring_tech` and `@ctodaily`.
+Cursor, Claude Code, GitHub Copilot, LangGraph, and Docker have verified
+mentions from both channels; Ollama, Dify, and ClickHouse have verified
+single-channel coverage. All other Telegram channel identities, source-post
+URLs, presentation dates, and collection dates remain explicit
+interface-development placeholders. The current retrieval evaluation cases are
+also temporary behavior checks, not owner-written acceptance queries.
 
 Do not:
 

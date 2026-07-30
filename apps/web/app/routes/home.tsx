@@ -106,9 +106,10 @@ export default function Home() {
         <FlaskConicalIcon aria-hidden="true" />
         <AlertTitle>Prototype corpus</AlertTitle>
         <AlertDescription>
-          Verified public mentions from @notboring_tech are included for part of
-          the index. Remaining Telegram channels, post links, and dates are
-          explicit placeholders until the owner approves enough corpus.
+          Verified public mentions from @notboring_tech and @ctodaily are
+          included for part of the index. Remaining Telegram channels, post
+          links, and dates are explicit placeholders until the owner approves
+          enough corpus.
         </AlertDescription>
       </Alert>
 

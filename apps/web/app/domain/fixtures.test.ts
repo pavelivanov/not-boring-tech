@@ -75,40 +75,77 @@ describe("temporary fixture invariants", () => {
 
     expect(cursor).toBeDefined()
     expect(firstPresentation(cursor!).publishedAt).toBe(
-      "2025-03-11T08:01:07.000Z"
+      "2024-10-30T14:49:48.000Z"
     )
-    expect(distinctChannelCount(cursor!)).toBe(1)
+    expect(distinctChannelCount(cursor!)).toBe(2)
     expect("firstPresentedAt" in cursor!).toBe(false)
     expect("channelCount" in cursor!).toBe(false)
   })
 
-  it("keeps verified Not Boring Tech provenance explicit", () => {
+  it("keeps owner-approved provenance explicit", () => {
     const verifiedSlugs = [
       "cursor",
       "claude-code",
       "github-copilot",
       "ollama",
+      "langgraph",
+      "dify",
+      "clickhouse",
       "docker",
     ]
+    const crossChannelSlugs = [
+      "cursor",
+      "claude-code",
+      "github-copilot",
+      "langgraph",
+      "docker",
+    ]
+    const approvedChannels = new Map([
+      ["notboring-tech", "https://t.me/notboring_tech/"],
+      ["ctodaily", "https://t.me/ctodaily/"],
+    ])
 
     expect(channels).toContainEqual({
       id: "notboring-tech",
       name: "Not Boring Tech",
       publicUrl: "https://t.me/notboring_tech",
     })
+    expect(channels).toContainEqual({
+      id: "ctodaily",
+      name: "запуск завтра",
+      publicUrl: "https://t.me/ctodaily",
+    })
 
     for (const slug of verifiedSlugs) {
       const tool = tools.find((candidate) => candidate.slug === slug)
+      const approvedMentions = tool?.mentions.filter((mention) =>
+        approvedChannels.has(mention.channelId)
+      )
 
       expect(tool, slug).toBeDefined()
-      expect(
-        tool!.mentions.every(
-          (mention) =>
-            mention.channelId === "notboring-tech" &&
-            mention.sourceUrl.startsWith("https://t.me/notboring_tech/")
-        ),
-        slug
-      ).toBe(true)
+      expect(approvedMentions?.length, slug).toBeGreaterThan(0)
+
+      for (const mention of approvedMentions ?? []) {
+        expect(
+          mention.sourceUrl.startsWith(
+            approvedChannels.get(mention.channelId)!
+          ),
+          slug
+        ).toBe(true)
+      }
+    }
+
+    for (const slug of crossChannelSlugs) {
+      const tool = tools.find((candidate) => candidate.slug === slug)
+      const approvedChannelIds = new Set(
+        tool?.mentions
+          .filter((mention) => approvedChannels.has(mention.channelId))
+          .map((mention) => mention.channelId)
+      )
+
+      expect(approvedChannelIds, slug).toEqual(
+        new Set(["notboring-tech", "ctodaily"])
+      )
     }
   })
 })

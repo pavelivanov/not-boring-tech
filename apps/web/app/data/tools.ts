@@ -1,13 +1,27 @@
 import type { Mention, Tool } from "@techdex/contracts"
 
-const verifiedCollectionTime = "2026-07-30T14:36:40.000Z"
+const initialVerifiedCollectionTime = "2026-07-30T14:36:40.000Z"
+const secondVerifiedCollectionTime = "2026-07-30T14:57:24.000Z"
 
-function notBoringMention(postId: number, publishedAt: string): Mention {
+function notBoringMention(
+  postId: number,
+  publishedAt: string,
+  collectedAt = initialVerifiedCollectionTime
+): Mention {
   return {
     channelId: "notboring-tech",
     sourceUrl: `https://t.me/notboring_tech/${postId}`,
     publishedAt,
-    collectedAt: verifiedCollectionTime,
+    collectedAt,
+  }
+}
+
+function ctoDailyMention(postId: number, publishedAt: string): Mention {
+  return {
+    channelId: "ctodaily",
+    sourceUrl: `https://t.me/ctodaily/${postId}`,
+    publishedAt,
+    collectedAt: secondVerifiedCollectionTime,
   }
 }
 
@@ -32,10 +46,10 @@ function mention(
  * Mixed verification corpus.
  *
  * Tool identities and canonical URLs are real. Mentions using
- * `notBoringMention` were verified against the owner-approved public channel.
- * All mentions created with `mention` remain explicit placeholders. This
- * module must not be treated as a complete provenance corpus or used to mark
- * Plan 002 complete.
+ * `notBoringMention` or `ctoDailyMention` were verified against their
+ * owner-approved public channels. All mentions created with `mention` remain
+ * explicit placeholders. This module must not be treated as a complete
+ * provenance corpus or used to mark Plan 002 complete.
  */
 export const tools = [
   {
@@ -47,8 +61,10 @@ export const tools = [
     category: "AI development",
     tags: ["code editor", "AI assistant", "developer workflow"],
     mentions: [
+      ctoDailyMention(1784, "2024-10-30T14:49:48.000Z"),
       notBoringMention(3492, "2025-03-11T08:01:07.000Z"),
       notBoringMention(3500, "2025-03-18T21:55:16.000Z"),
+      ctoDailyMention(1848, "2025-06-04T20:43:40.000Z"),
       notBoringMention(3988, "2025-12-12T23:07:00.000Z"),
       notBoringMention(4001, "2025-12-18T22:57:32.000Z"),
       notBoringMention(4082, "2026-02-17T22:15:04.000Z"),
@@ -67,13 +83,22 @@ export const tools = [
     mentions: [
       notBoringMention(3700, "2025-08-04T23:01:41.000Z"),
       notBoringMention(4008, "2025-12-21T22:30:27.000Z"),
+      ctoDailyMention(1963, "2025-12-29T19:26:49.000Z"),
+      ctoDailyMention(1966, "2026-01-03T10:28:26.000Z"),
+      ctoDailyMention(1972, "2026-01-09T06:15:33.000Z"),
+      ctoDailyMention(1974, "2026-01-09T07:50:42.000Z"),
+      ctoDailyMention(1977, "2026-01-12T21:01:57.000Z"),
+      ctoDailyMention(2008, "2026-02-07T09:41:05.000Z"),
       notBoringMention(4082, "2026-02-17T22:15:04.000Z"),
       notBoringMention(4085, "2026-02-23T22:55:09.000Z"),
       notBoringMention(4097, "2026-03-02T22:50:11.000Z"),
       notBoringMention(4102, "2026-03-06T23:16:09.000Z"),
+      ctoDailyMention(2028, "2026-03-12T11:22:35.000Z"),
       notBoringMention(4107, "2026-03-14T22:42:00.000Z"),
+      ctoDailyMention(2032, "2026-03-19T06:41:24.000Z"),
       notBoringMention(4111, "2026-03-20T06:53:54.000Z"),
       notBoringMention(4114, "2026-03-25T07:05:05.000Z"),
+      ctoDailyMention(2054, "2026-04-24T06:54:54.000Z"),
     ],
   },
   {
@@ -84,7 +109,11 @@ export const tools = [
       "AI pair programmer for code completion, chat, review, and agentic changes.",
     category: "AI development",
     tags: ["code completion", "AI assistant", "GitHub"],
-    mentions: [notBoringMention(4082, "2026-02-17T22:15:04.000Z")],
+    mentions: [
+      ctoDailyMention(1707, "2023-11-17T07:26:00.000Z"),
+      notBoringMention(4082, "2026-02-17T22:15:04.000Z"),
+      ctoDailyMention(2085, "2026-06-25T13:24:49.000Z"),
+    ],
   },
   {
     slug: "ollama",
@@ -105,6 +134,17 @@ export const tools = [
     category: "AI development",
     tags: ["agents", "workflow", "Python"],
     mentions: [
+      notBoringMention(
+        3456,
+        "2025-01-18T21:10:04.000Z",
+        secondVerifiedCollectionTime
+      ),
+      notBoringMention(
+        3780,
+        "2025-09-08T22:10:29.000Z",
+        secondVerifiedCollectionTime
+      ),
+      ctoDailyMention(1897, "2025-09-09T10:31:53.000Z"),
       mention("temporary-ai", 105, "2026-01-30T11:25:00.000Z"),
       mention("temporary-devtools", 205, "2026-03-04T09:40:00.000Z"),
     ],
@@ -127,7 +167,10 @@ export const tools = [
       "Open platform for composing, evaluating, and operating generative AI applications.",
     category: "AI development",
     tags: ["low-code", "LLM", "workflow"],
-    mentions: [mention("temporary-ai", 107, "2026-02-02T16:00:00.000Z")],
+    mentions: [
+      ctoDailyMention(1897, "2025-09-09T10:31:53.000Z"),
+      mention("temporary-ai", 107, "2026-02-02T16:00:00.000Z"),
+    ],
   },
   {
     slug: "vllm",
@@ -276,7 +319,12 @@ export const tools = [
       "Column-oriented SQL database for real-time analytics at high ingest volumes.",
     category: "Data systems",
     tags: ["analytics", "columnar", "SQL"],
-    mentions: [mention("temporary-data", 303, "2025-09-15T06:40:00.000Z")],
+    mentions: [
+      ctoDailyMention(1530, "2022-04-01T13:17:12.000Z"),
+      ctoDailyMention(1683, "2023-05-19T12:02:03.000Z"),
+      ctoDailyMention(1690, "2023-06-29T05:41:15.000Z"),
+      mention("temporary-data", 303, "2025-09-15T06:40:00.000Z"),
+    ],
   },
   {
     slug: "qdrant",
@@ -405,7 +453,12 @@ export const tools = [
       "Container tooling for packaging and running applications consistently.",
     category: "Infrastructure",
     tags: ["containers", "deployment", "developer workflow"],
-    mentions: [notBoringMention(3620, "2025-06-13T22:01:16.000Z")],
+    mentions: [
+      ctoDailyMention(1303, "2021-04-16T10:43:25.000Z"),
+      ctoDailyMention(1745, "2024-05-30T08:26:05.000Z"),
+      ctoDailyMention(1783, "2024-10-25T14:02:21.000Z"),
+      notBoringMention(3620, "2025-06-13T22:01:16.000Z"),
+    ],
   },
   {
     slug: "railway",

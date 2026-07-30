@@ -9,6 +9,11 @@ export const channels = [
     publicUrl: "https://t.me/notboring_tech",
   },
   {
+    id: "ctodaily",
+    name: "запуск завтра",
+    publicUrl: "https://t.me/ctodaily",
+  },
+  {
     id: "temporary-devtools",
     name: "Temporary · Dev Tools Digest",
     publicUrl: "https://t.me/techdex_demo_devtools",
