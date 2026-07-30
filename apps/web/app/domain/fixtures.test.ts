@@ -1,3 +1,4 @@
+import type { Channel } from "@techdex/contracts"
 import { describe, expect, it } from "vitest"
 
 import { channels, isTemporaryCorpus } from "../data/channels"
@@ -29,21 +30,30 @@ describe("temporary fixture invariants", () => {
     expectUnique(channels.map((channel) => channel.publicUrl))
     expectUnique(tools.map((tool) => tool.slug))
     expectUnique(tools.map((tool) => tool.canonicalUrl))
-    expectUnique(
-      tools.flatMap((tool) => tool.mentions.map((mention) => mention.sourceUrl))
-    )
+
+    for (const tool of tools) {
+      expectUnique(tool.mentions.map((mention) => mention.sourceUrl))
+    }
   })
 
   it("uses known channels, parseable UTC dates, and at least one mention", () => {
-    const channelIds = new Set<string>(channels.map((channel) => channel.id))
+    const channelsById = new Map<string, Channel>(
+      channels.map((channel) => [channel.id, channel])
+    )
 
     for (const tool of tools) {
       expect(tool.mentions.length, tool.slug).toBeGreaterThan(0)
       expect(() => new URL(tool.canonicalUrl), tool.slug).not.toThrow()
 
       for (const mention of tool.mentions) {
-        expect(channelIds.has(mention.channelId), tool.slug).toBe(true)
+        const channel = channelsById.get(mention.channelId)
+
+        expect(channel, tool.slug).toBeDefined()
         expect(() => new URL(mention.sourceUrl), tool.slug).not.toThrow()
+        expect(
+          mention.sourceUrl.startsWith(`${channel!.publicUrl}/`),
+          tool.slug
+        ).toBe(true)
         expect(mention.publishedAt.endsWith("Z"), tool.slug).toBe(true)
         expect(mention.collectedAt.endsWith("Z"), tool.slug).toBe(true)
         expect(Number.isNaN(Date.parse(mention.publishedAt)), tool.slug).toBe(
@@ -65,10 +75,40 @@ describe("temporary fixture invariants", () => {
 
     expect(cursor).toBeDefined()
     expect(firstPresentation(cursor!).publishedAt).toBe(
-      "2026-01-14T09:00:00.000Z"
+      "2025-03-11T08:01:07.000Z"
     )
-    expect(distinctChannelCount(cursor!)).toBe(2)
+    expect(distinctChannelCount(cursor!)).toBe(1)
     expect("firstPresentedAt" in cursor!).toBe(false)
     expect("channelCount" in cursor!).toBe(false)
+  })
+
+  it("keeps verified Not Boring Tech provenance explicit", () => {
+    const verifiedSlugs = [
+      "cursor",
+      "claude-code",
+      "github-copilot",
+      "ollama",
+      "docker",
+    ]
+
+    expect(channels).toContainEqual({
+      id: "notboring-tech",
+      name: "Not Boring Tech",
+      publicUrl: "https://t.me/notboring_tech",
+    })
+
+    for (const slug of verifiedSlugs) {
+      const tool = tools.find((candidate) => candidate.slug === slug)
+
+      expect(tool, slug).toBeDefined()
+      expect(
+        tool!.mentions.every(
+          (mention) =>
+            mention.channelId === "notboring-tech" &&
+            mention.sourceUrl.startsWith("https://t.me/notboring_tech/")
+        ),
+        slug
+      ).toBe(true)
+    }
   })
 })

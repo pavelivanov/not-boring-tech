@@ -11,7 +11,8 @@ import {
 import { describe, expect, it, vi } from "vitest"
 
 import { toolsBySlug } from "~/data/tools"
-import { newestMentionsFirst } from "~/domain/tools"
+import { formatAbsoluteDate } from "~/domain/dates"
+import { firstPresentation, newestMentionsFirst } from "~/domain/tools"
 
 import Home from "./home"
 import NotFound from "./not-found"
@@ -203,7 +204,15 @@ describe("tool detail route", () => {
       screen.getByRole("heading", { level: 1, name: "Cursor" })
     ).toBeInTheDocument()
     expect(sourceLinks).toHaveLength(cursor!.mentions.length)
-    expect(screen.getByText(/First presented Jan 14, 2026/)).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        new RegExp(
+          `First presented ${formatAbsoluteDate(
+            firstPresentation(cursor!).publishedAt
+          )}`
+        )
+      )
+    ).toBeInTheDocument()
     const expectedMentions = newestMentionsFirst(cursor!.mentions)
 
     for (const [index, link] of sourceLinks.entries()) {

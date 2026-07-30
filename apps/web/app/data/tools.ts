@@ -1,5 +1,16 @@
 import type { Mention, Tool } from "@techdex/contracts"
 
+const verifiedCollectionTime = "2026-07-30T14:36:40.000Z"
+
+function notBoringMention(postId: number, publishedAt: string): Mention {
+  return {
+    channelId: "notboring-tech",
+    sourceUrl: `https://t.me/notboring_tech/${postId}`,
+    publishedAt,
+    collectedAt: verifiedCollectionTime,
+  }
+}
+
 function mention(
   channelId: string,
   postId: number,
@@ -18,12 +29,13 @@ function mention(
 }
 
 /**
- * Temporary interface-development corpus.
+ * Mixed verification corpus.
  *
- * Tool identities and canonical URLs are real. Telegram channels, post URLs,
- * and presentation dates are explicit placeholders until the owner supplies or
- * approves the intended public-channel corpus. This module must not be treated
- * as provenance data or used to mark Plan 002 complete.
+ * Tool identities and canonical URLs are real. Mentions using
+ * `notBoringMention` were verified against the owner-approved public channel.
+ * All mentions created with `mention` remain explicit placeholders. This
+ * module must not be treated as a complete provenance corpus or used to mark
+ * Plan 002 complete.
  */
 export const tools = [
   {
@@ -35,8 +47,13 @@ export const tools = [
     category: "AI development",
     tags: ["code editor", "AI assistant", "developer workflow"],
     mentions: [
-      mention("temporary-ai", 101, "2026-01-14T09:00:00.000Z"),
-      mention("temporary-devtools", 201, "2026-02-05T11:30:00.000Z"),
+      notBoringMention(3492, "2025-03-11T08:01:07.000Z"),
+      notBoringMention(3500, "2025-03-18T21:55:16.000Z"),
+      notBoringMention(3988, "2025-12-12T23:07:00.000Z"),
+      notBoringMention(4001, "2025-12-18T22:57:32.000Z"),
+      notBoringMention(4082, "2026-02-17T22:15:04.000Z"),
+      notBoringMention(4085, "2026-02-23T22:55:09.000Z"),
+      notBoringMention(4089, "2026-02-25T23:15:20.000Z"),
     ],
   },
   {
@@ -48,8 +65,15 @@ export const tools = [
     category: "AI development",
     tags: ["terminal", "AI assistant", "coding agent"],
     mentions: [
-      mention("temporary-ai", 102, "2026-02-20T08:15:00.000Z"),
-      mention("temporary-devtools", 202, "2026-03-02T15:10:00.000Z"),
+      notBoringMention(3700, "2025-08-04T23:01:41.000Z"),
+      notBoringMention(4008, "2025-12-21T22:30:27.000Z"),
+      notBoringMention(4082, "2026-02-17T22:15:04.000Z"),
+      notBoringMention(4085, "2026-02-23T22:55:09.000Z"),
+      notBoringMention(4097, "2026-03-02T22:50:11.000Z"),
+      notBoringMention(4102, "2026-03-06T23:16:09.000Z"),
+      notBoringMention(4107, "2026-03-14T22:42:00.000Z"),
+      notBoringMention(4111, "2026-03-20T06:53:54.000Z"),
+      notBoringMention(4114, "2026-03-25T07:05:05.000Z"),
     ],
   },
   {
@@ -60,10 +84,7 @@ export const tools = [
       "AI pair programmer for code completion, chat, review, and agentic changes.",
     category: "AI development",
     tags: ["code completion", "AI assistant", "GitHub"],
-    mentions: [
-      mention("temporary-ai", 103, "2025-12-17T10:00:00.000Z"),
-      mention("temporary-devtools", 203, "2026-01-11T12:30:00.000Z"),
-    ],
+    mentions: [notBoringMention(4082, "2026-02-17T22:15:04.000Z")],
   },
   {
     slug: "ollama",
@@ -73,10 +94,7 @@ export const tools = [
       "Run open language models locally through a small command-line runtime and API.",
     category: "AI development",
     tags: ["local AI", "LLM", "terminal"],
-    mentions: [
-      mention("temporary-ai", 104, "2025-11-23T07:45:00.000Z"),
-      mention("temporary-devtools", 204, "2026-01-19T14:00:00.000Z"),
-    ],
+    mentions: [notBoringMention(4099, "2026-03-03T23:53:33.000Z")],
   },
   {
     slug: "langgraph",
@@ -387,7 +405,7 @@ export const tools = [
       "Container tooling for packaging and running applications consistently.",
     category: "Infrastructure",
     tags: ["containers", "deployment", "developer workflow"],
-    mentions: [mention("temporary-infra", 503, "2025-06-21T09:50:00.000Z")],
+    mentions: [notBoringMention(3620, "2025-06-13T22:01:16.000Z")],
   },
   {
     slug: "railway",

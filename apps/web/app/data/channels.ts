@@ -4,6 +4,11 @@ export const isTemporaryCorpus = true
 
 export const channels = [
   {
+    id: "notboring-tech",
+    name: "Not Boring Tech",
+    publicUrl: "https://t.me/notboring_tech",
+  },
+  {
     id: "temporary-devtools",
     name: "Temporary · Dev Tools Digest",
     publicUrl: "https://t.me/techdex_demo_devtools",

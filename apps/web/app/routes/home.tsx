@@ -106,9 +106,9 @@ export default function Home() {
         <FlaskConicalIcon aria-hidden="true" />
         <AlertTitle>Prototype corpus</AlertTitle>
         <AlertDescription>
-          Tool identities are real; Telegram channels, post links, and dates are
-          explicit placeholders until the owner approves the intended public
-          corpus. Search behavior is ready for review, but provenance is not.
+          Verified public mentions from @notboring_tech are included for part of
+          the index. Remaining Telegram channels, post links, and dates are
+          explicit placeholders until the owner approves enough corpus.
         </AlertDescription>
       </Alert>
 
