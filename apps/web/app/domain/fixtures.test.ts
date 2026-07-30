@@ -10,8 +10,8 @@ function expectUnique(values: readonly string[]): void {
   expect(new Set(values).size).toBe(values.length)
 }
 
-describe("temporary fixture invariants", () => {
-  it("is visibly marked as temporary until the owner approves a corpus", () => {
+describe("provisional fixture invariants", () => {
+  it("is visibly marked as temporary until the owner approves the final corpus", () => {
     expect(isTemporaryCorpus).toBe(true)
   })
 
@@ -91,20 +91,36 @@ describe("temporary fixture invariants", () => {
       "langgraph",
       "mem-agent",
       "dify",
+      "lm-studio",
       "playwright",
+      "nano-banana",
+      "stable-diffusion",
       "q",
       "tableplus",
+      "crewai",
       "postico",
       "ngrok",
+      "autogen",
       "postgres-new",
       "postgresql",
+      "langchain",
       "clickhouse",
+      "puppeteer",
       "supabase",
+      "figma",
+      "lovable",
+      "datagrip",
       "vinext",
+      "navicat",
       "artbreeder-collage",
       "vite",
+      "tuple",
       "sloplobster",
       "docker",
+      "open-interpreter",
+      "pglite",
+      "datadog",
+      "bugsnag",
       "pyspur",
       "1password",
       "obsidian",
@@ -131,7 +147,8 @@ describe("temporary fixture invariants", () => {
       name: "запуск завтра",
       publicUrl: "https://t.me/ctodaily",
     })
-    expect(verifiedSlugs).toHaveLength(24)
+    expect(channels).toHaveLength(2)
+    expect(verifiedSlugs).toHaveLength(40)
 
     for (const slug of verifiedSlugs) {
       const tool = tools.find((candidate) => candidate.slug === slug)

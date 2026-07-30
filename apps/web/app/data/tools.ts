@@ -3,6 +3,7 @@ import type { Mention, Tool } from "@techdex/contracts"
 const initialVerifiedCollectionTime = "2026-07-30T14:36:40.000Z"
 const latestVerifiedCollectionTime = "2026-07-30T15:02:17.000Z"
 const replacementVerifiedCollectionTime = "2026-07-30T15:23:42.000Z"
+const finalVerifiedCollectionTime = "2026-07-30T15:31:48.000Z"
 
 function notBoringMention(
   postId: number,
@@ -30,31 +31,13 @@ function ctoDailyMention(
   }
 }
 
-function mention(
-  channelId: string,
-  postId: number,
-  publishedAt: string
-): Mention {
-  const collectedAt = new Date(
-    new Date(publishedAt).getTime() + 6 * 60 * 60 * 1000
-  ).toISOString()
-
-  return {
-    channelId,
-    sourceUrl: `https://t.me/${channelId.replace("temporary-", "techdex_demo_")}/${postId}`,
-    publishedAt,
-    collectedAt,
-  }
-}
-
 /**
- * Mixed verification corpus.
+ * Verified provisional corpus.
  *
  * Tool identities and canonical URLs are real. Mentions using
  * `notBoringMention` or `ctoDailyMention` were verified against their
- * owner-approved public channels. All mentions created with `mention` remain
- * explicit placeholders. This module must not be treated as a complete
- * provenance corpus or used to mark Plan 002 complete.
+ * owner-approved public channels. The final tool selection and retrieval
+ * expectations still require owner approval before Plan 002 can be complete.
  */
 export const tools = [
   {
@@ -179,16 +162,24 @@ export const tools = [
     mentions: [ctoDailyMention(1897, "2025-09-09T10:31:53.000Z")],
   },
   {
-    slug: "vllm",
-    name: "vLLM",
-    canonicalUrl: "https://vllm.ai/",
+    slug: "lm-studio",
+    name: "LM Studio",
+    canonicalUrl: "https://lmstudio.ai/",
     description:
-      "High-throughput inference and serving engine for open large language models.",
+      "Desktop runtime and agent environment for downloading and using open models locally.",
     category: "AI development",
-    tags: ["inference", "LLM", "Python"],
+    tags: ["local AI", "LLM", "desktop"],
     mentions: [
-      mention("temporary-ai", 108, "2026-01-08T10:30:00.000Z"),
-      mention("temporary-infra", 501, "2026-03-20T06:45:00.000Z"),
+      notBoringMention(
+        3797,
+        "2025-09-13T22:37:46.000Z",
+        finalVerifiedCollectionTime
+      ),
+      notBoringMention(
+        4176,
+        "2026-05-12T09:34:33.000Z",
+        finalVerifiedCollectionTime
+      ),
     ],
   },
   {
@@ -213,24 +204,37 @@ export const tools = [
     ],
   },
   {
-    slug: "biome",
-    name: "Biome",
-    canonicalUrl: "https://biomejs.dev/",
+    slug: "nano-banana",
+    name: "Nano Banana",
+    canonicalUrl:
+      "https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-image",
     description:
-      "Fast formatter and linter for JavaScript, TypeScript, JSX, JSON, and CSS.",
-    category: "Developer tools",
-    tags: ["formatter", "linter", "JavaScript"],
-    mentions: [mention("temporary-devtools", 207, "2026-01-06T08:35:00.000Z")],
+      "Google image-generation and editing model for prompt-driven visual creation.",
+    category: "Creative AI",
+    tags: ["image generation", "image editing", "Gemini"],
+    mentions: [
+      notBoringMention(
+        3758,
+        "2025-08-30T23:31:04.000Z",
+        finalVerifiedCollectionTime
+      ),
+    ],
   },
   {
-    slug: "bun",
-    name: "Bun",
-    canonicalUrl: "https://bun.sh/",
+    slug: "stable-diffusion",
+    name: "Stable Diffusion",
+    canonicalUrl: "https://stability.ai/stable-image",
     description:
-      "Fast JavaScript runtime, package manager, test runner, and application bundler.",
-    category: "Developer tools",
-    tags: ["JavaScript", "runtime", "package manager"],
-    mentions: [mention("temporary-devtools", 208, "2025-09-21T14:10:00.000Z")],
+      "Diffusion-model family for generating and transforming images from text prompts.",
+    category: "Creative AI",
+    tags: ["image generation", "diffusion", "creative tool"],
+    mentions: [
+      notBoringMention(
+        2520,
+        "2022-11-16T11:59:43.000Z",
+        finalVerifiedCollectionTime
+      ),
+    ],
   },
   {
     slug: "q",
@@ -265,14 +269,20 @@ export const tools = [
     ],
   },
   {
-    slug: "zed",
-    name: "Zed",
-    canonicalUrl: "https://zed.dev/",
+    slug: "crewai",
+    name: "CrewAI",
+    canonicalUrl: "https://crewai.com/",
     description:
-      "Fast collaborative code editor built in Rust with integrated AI assistance.",
-    category: "Developer tools",
-    tags: ["code editor", "Rust", "collaboration"],
-    mentions: [mention("temporary-devtools", 211, "2026-02-11T15:50:00.000Z")],
+      "Build and runtime platform for orchestrating role-based AI agents and workflows.",
+    category: "AI development",
+    tags: ["agents", "multi-agent", "workflow"],
+    mentions: [
+      notBoringMention(
+        3780,
+        "2025-09-08T22:10:29.000Z",
+        finalVerifiedCollectionTime
+      ),
+    ],
   },
   {
     slug: "postico",
@@ -301,14 +311,20 @@ export const tools = [
     mentions: [ctoDailyMention(5, "2016-08-16T16:21:42.000Z")],
   },
   {
-    slug: "bruno",
-    name: "Bruno",
-    canonicalUrl: "https://www.usebruno.com/",
+    slug: "autogen",
+    name: "AutoGen",
+    canonicalUrl: "https://microsoft.github.io/autogen/stable/",
     description:
-      "Offline-first API client that stores plain-text collections alongside source code.",
-    category: "Developer tools",
-    tags: ["API client", "offline", "Git"],
-    mentions: [mention("temporary-devtools", 214, "2026-01-25T13:05:00.000Z")],
+      "Framework for prototyping conversational, event-driven, and multi-agent AI applications.",
+    category: "AI development",
+    tags: ["agents", "multi-agent", "Python"],
+    mentions: [
+      notBoringMention(
+        3780,
+        "2025-09-08T22:10:29.000Z",
+        finalVerifiedCollectionTime
+      ),
+    ],
   },
   {
     slug: "postgres-new",
@@ -337,16 +353,19 @@ export const tools = [
     mentions: [ctoDailyMention(1998, "2026-02-04T22:07:06.000Z")],
   },
   {
-    slug: "duckdb",
-    name: "DuckDB",
-    canonicalUrl: "https://duckdb.org/",
+    slug: "langchain",
+    name: "LangChain",
+    canonicalUrl: "https://www.langchain.com/",
     description:
-      "Fast embedded analytical database for querying local files and in-process data.",
-    category: "Data systems",
-    tags: ["analytics", "embedded", "SQL"],
+      "Framework and platform for building, testing, and operating language-model applications.",
+    category: "AI development",
+    tags: ["agents", "framework", "Python"],
     mentions: [
-      mention("temporary-data", 302, "2025-10-04T10:10:00.000Z"),
-      mention("temporary-devtools", 216, "2026-02-22T12:45:00.000Z"),
+      notBoringMention(
+        3456,
+        "2025-01-18T21:10:04.000Z",
+        finalVerifiedCollectionTime
+      ),
     ],
   },
   {
@@ -364,16 +383,19 @@ export const tools = [
     ],
   },
   {
-    slug: "qdrant",
-    name: "Qdrant",
-    canonicalUrl: "https://qdrant.tech/",
+    slug: "puppeteer",
+    name: "Puppeteer",
+    canonicalUrl: "https://pptr.dev/",
     description:
-      "Vector database and similarity-search engine designed for AI applications.",
-    category: "Data systems",
-    tags: ["vector database", "similarity search", "Rust"],
+      "JavaScript library for controlling Chrome and Firefox through a high-level browser API.",
+    category: "Developer tools",
+    tags: ["browser automation", "testing", "JavaScript"],
     mentions: [
-      mention("temporary-data", 304, "2026-01-17T11:30:00.000Z"),
-      mention("temporary-ai", 109, "2026-03-01T08:20:00.000Z"),
+      notBoringMention(
+        3832,
+        "2025-09-25T06:15:19.000Z",
+        finalVerifiedCollectionTime
+      ),
     ],
   },
   {
@@ -390,37 +412,52 @@ export const tools = [
     ],
   },
   {
-    slug: "neon",
-    name: "Neon",
-    canonicalUrl: "https://neon.com/",
+    slug: "figma",
+    name: "Figma",
+    canonicalUrl: "https://www.figma.com/",
     description:
-      "Serverless hosted Postgres with branching, autoscaling, and separated storage.",
-    category: "Data systems",
-    tags: ["Postgres", "serverless", "database"],
+      "Collaborative design canvas for interface design, prototyping, and shared component systems.",
+    category: "Design",
+    tags: ["design", "collaboration", "prototyping"],
     mentions: [
-      mention("temporary-data", 306, "2025-12-07T09:35:00.000Z"),
-      mention("temporary-infra", 502, "2026-02-09T17:00:00.000Z"),
+      ctoDailyMention(
+        1253,
+        "2021-02-13T19:08:33.000Z",
+        finalVerifiedCollectionTime
+      ),
     ],
   },
   {
-    slug: "pocketbase",
-    name: "PocketBase",
-    canonicalUrl: "https://pocketbase.io/",
+    slug: "lovable",
+    name: "Lovable",
+    canonicalUrl: "https://lovable.dev/",
     description:
-      "Single-file backend with embedded database, authentication, files, and realtime.",
-    category: "Data systems",
-    tags: ["backend as a service", "embedded", "Go"],
-    mentions: [mention("temporary-data", 307, "2026-01-29T12:10:00.000Z")],
+      "Prompt-driven app builder for producing working web prototypes and applications.",
+    category: "AI development",
+    tags: ["app builder", "vibe coding", "prototyping"],
+    mentions: [
+      ctoDailyMention(
+        1883,
+        "2025-08-15T10:48:10.000Z",
+        finalVerifiedCollectionTime
+      ),
+    ],
   },
   {
-    slug: "prisma",
-    name: "Prisma",
-    canonicalUrl: "https://www.prisma.io/",
+    slug: "datagrip",
+    name: "DataGrip",
+    canonicalUrl: "https://www.jetbrains.com/datagrip/",
     description:
-      "Type-safe ORM and migration toolkit for TypeScript database applications.",
-    category: "Data systems",
-    tags: ["ORM", "TypeScript", "database"],
-    mentions: [mention("temporary-data", 308, "2025-11-14T07:50:00.000Z")],
+      "Cross-platform database IDE with schema navigation, query tools, and SQL assistance.",
+    category: "Developer tools",
+    tags: ["database client", "SQL", "IDE"],
+    mentions: [
+      ctoDailyMention(
+        525,
+        "2018-02-12T16:38:01.000Z",
+        finalVerifiedCollectionTime
+      ),
+    ],
   },
   {
     slug: "vinext",
@@ -439,16 +476,19 @@ export const tools = [
     ],
   },
   {
-    slug: "shadcn-ui",
-    name: "shadcn/ui",
-    canonicalUrl: "https://ui.shadcn.com/",
+    slug: "navicat",
+    name: "Navicat",
+    canonicalUrl: "https://www.navicat.com/en/products",
     description:
-      "Accessible UI components distributed as editable source for application design systems.",
-    category: "Frontend",
-    tags: ["UI components", "accessibility", "design system"],
+      "Cross-platform database administration suite for relational and document databases.",
+    category: "Developer tools",
+    tags: ["database client", "SQL", "desktop"],
     mentions: [
-      mention("temporary-frontend", 403, "2025-10-22T09:10:00.000Z"),
-      mention("temporary-devtools", 217, "2026-01-31T16:30:00.000Z"),
+      ctoDailyMention(
+        525,
+        "2018-02-12T16:38:01.000Z",
+        finalVerifiedCollectionTime
+      ),
     ],
   },
   {
@@ -478,14 +518,20 @@ export const tools = [
     mentions: [ctoDailyMention(2022, "2026-02-25T14:00:42.000Z")],
   },
   {
-    slug: "astro",
-    name: "Astro",
-    canonicalUrl: "https://astro.build/",
+    slug: "tuple",
+    name: "Tuple",
+    canonicalUrl: "https://tuple.app/",
     description:
-      "Web framework for fast static content sites with component islands.",
-    category: "Frontend",
-    tags: ["static site", "web framework", "content"],
-    mentions: [mention("temporary-frontend", 406, "2025-12-19T11:45:00.000Z")],
+      "Low-latency screen sharing and remote control designed for pair programming.",
+    category: "Developer tools",
+    tags: ["pair programming", "screen sharing", "collaboration"],
+    mentions: [
+      ctoDailyMention(
+        1253,
+        "2021-02-13T19:08:33.000Z",
+        finalVerifiedCollectionTime
+      ),
+    ],
   },
   {
     slug: "sloplobster",
@@ -519,44 +565,73 @@ export const tools = [
     ],
   },
   {
-    slug: "railway",
-    name: "Railway",
-    canonicalUrl: "https://railway.com/",
+    slug: "open-interpreter",
+    name: "Open Interpreter",
+    canonicalUrl: "https://www.openinterpreter.com/",
     description:
-      "Application deployment platform with managed services, databases, and environments.",
-    category: "Infrastructure",
-    tags: ["deployment", "hosting", "platform as a service"],
-    mentions: [mention("temporary-infra", 504, "2025-11-27T14:40:00.000Z")],
+      "Local coding agent that lets language models run code and operate a computer.",
+    category: "AI development",
+    tags: ["coding agent", "computer use", "local AI"],
+    mentions: [
+      ctoDailyMention(
+        1783,
+        "2024-10-25T14:02:21.000Z",
+        finalVerifiedCollectionTime
+      ),
+    ],
   },
   {
-    slug: "render",
-    name: "Render",
-    canonicalUrl: "https://render.com/",
+    slug: "pglite",
+    name: "PGlite",
+    canonicalUrl: "https://pglite.dev/",
     description:
-      "Cloud platform for hosting web services, workers, static sites, and databases.",
-    category: "Infrastructure",
-    tags: ["deployment", "hosting", "platform as a service"],
-    mentions: [mention("temporary-infra", 505, "2025-10-17T07:25:00.000Z")],
+      "WASM build of Postgres packaged for embedded use in browsers and JavaScript runtimes.",
+    category: "Data systems",
+    tags: ["Postgres", "WASM", "embedded", "browser"],
+    mentions: [
+      ctoDailyMention(
+        1769,
+        "2024-08-14T10:36:31.000Z",
+        finalVerifiedCollectionTime
+      ),
+    ],
   },
   {
-    slug: "tailscale",
-    name: "Tailscale",
-    canonicalUrl: "https://tailscale.com/",
+    slug: "datadog",
+    name: "Datadog",
+    canonicalUrl: "https://www.datadoghq.com/",
     description:
-      "Private mesh network built on WireGuard for connecting people and machines.",
-    category: "Infrastructure",
-    tags: ["networking", "VPN", "security"],
-    mentions: [mention("temporary-infra", 506, "2025-12-13T12:35:00.000Z")],
+      "Observability platform for metrics, logs, traces, dashboards, and application monitoring.",
+    category: "Operations",
+    tags: ["monitoring", "APM", "observability"],
+    mentions: [
+      ctoDailyMention(
+        1119,
+        "2020-03-19T21:00:01.000Z",
+        finalVerifiedCollectionTime
+      ),
+    ],
   },
   {
-    slug: "sentry",
-    name: "Sentry",
-    canonicalUrl: "https://sentry.io/",
+    slug: "bugsnag",
+    name: "Bugsnag",
+    canonicalUrl: "https://www.bugsnag.com/",
     description:
-      "Application error monitoring, performance tracing, and debugging context.",
+      "Application stability platform for error monitoring, diagnostics, and performance insights.",
     category: "Operations",
     tags: ["monitoring", "errors", "observability"],
-    mentions: [mention("temporary-infra", 507, "2025-09-30T16:05:00.000Z")],
+    mentions: [
+      ctoDailyMention(
+        62,
+        "2016-12-22T16:55:34.000Z",
+        finalVerifiedCollectionTime
+      ),
+      ctoDailyMention(
+        1118,
+        "2020-03-18T16:31:55.000Z",
+        finalVerifiedCollectionTime
+      ),
+    ],
   },
   {
     slug: "pyspur",

@@ -104,12 +104,11 @@ export default function Home() {
 
       <Alert className="mt-6">
         <FlaskConicalIcon aria-hidden="true" />
-        <AlertTitle>Prototype corpus</AlertTitle>
+        <AlertTitle>Provisional corpus</AlertTitle>
         <AlertDescription>
-          Verified public mentions from @notboring_tech and @ctodaily are
-          included for part of the index. Remaining Telegram channels, post
-          links, and dates are explicit placeholders until the owner approves
-          enough corpus.
+          Every tool has verified public provenance from @notboring_tech or
+          @ctodaily. The final tool selection and retrieval expectations still
+          require owner approval.
         </AlertDescription>
       </Alert>
 

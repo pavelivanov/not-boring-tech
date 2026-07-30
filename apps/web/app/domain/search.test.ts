@@ -17,10 +17,13 @@ const emptyFilters = {
 
 describe("deterministic retrieval", () => {
   it("normalizes case, compatibility Unicode, and repeated whitespace", () => {
-    expect(normalizeSearchText("  ＶＬＬＭ \n Runtime ")).toBe("vllm runtime")
+    expect(normalizeSearchText("  ＬＭ　ＳＴＵＤＩＯ \n Desktop ")).toBe(
+      "lm studio desktop"
+    )
     expect(
-      searchTools(tools, { ...emptyFilters, query: "  ＶＬＬＭ " })[0]?.slug
-    ).toBe("vllm")
+      searchTools(tools, { ...emptyFilters, query: "  ＬＭ　ＳＴＵＤＩＯ " })[0]
+        ?.slug
+    ).toBe("lm-studio")
   })
 
   it("orders exact names before weaker matches", () => {
@@ -37,11 +40,12 @@ describe("deterministic retrieval", () => {
 
   it("matches tags, categories, and description tokens", () => {
     expect(
-      searchTools(tools, { ...emptyFilters, query: "wireguard" })[0]?.slug
-    ).toBe("tailscale")
+      searchTools(tools, { ...emptyFilters, query: "pair programming" })[0]
+        ?.slug
+    ).toBe("tuple")
     expect(
       searchTools(tools, { ...emptyFilters, query: "observability" })[0]?.slug
-    ).toBe("sentry")
+    ).toBe("bugsnag")
     expect(
       searchTools(tools, { ...emptyFilters, query: "productivity" })[0]?.slug
     ).toBe("obsidian")
@@ -51,20 +55,20 @@ describe("deterministic retrieval", () => {
     const results = searchTools(tools, {
       query: "postgres",
       category: "Data systems",
-      tags: ["serverless"],
+      tags: ["WASM"],
     })
 
-    expect(results.map((tool) => tool.slug)).toEqual(["neon", "supabase"])
+    expect(results.map((tool) => tool.slug)).toEqual(["pglite"])
   })
 
   it("uses OR within the selected tag facet", () => {
     const results = searchTools(tools, {
       ...emptyFilters,
-      tags: ["Rust", "Go"],
+      tags: ["database client", "coding agent"],
     })
 
     expect(results.map((tool) => tool.slug)).toEqual(
-      expect.arrayContaining(["zed", "qdrant", "pocketbase"])
+      expect.arrayContaining(["tableplus", "claude-code", "open-interpreter"])
     )
   })
 

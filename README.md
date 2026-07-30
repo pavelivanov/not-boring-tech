@@ -69,24 +69,25 @@ The website has no backend or network data source. It reads checked-in
 TypeScript fixtures and runs deterministic local search over them.
 
 The current 40 tool identities and canonical tool URLs are real. The corpus now
-includes owner-approved public mentions from `@notboring_tech` and `@ctodaily`.
-Cursor, Claude Code, GitHub Copilot, LangGraph, and Docker have verified
-mentions from both channels. Another 19 tools have verified single-channel
-coverage, bringing the verified subset to 24 of 40 tools. The remaining 16
-tools still use explicit interface-development placeholders for their Telegram
-channel identity, source-post URL, publication date, and collection date. The
-current retrieval evaluation cases are also temporary behavior checks, not
-owner-written acceptance queries.
+uses verified public mentions from the owner-approved `@notboring_tech` and
+`@ctodaily` channels for every tool. Cursor, Claude Code, GitHub Copilot,
+LangGraph, and Docker have verified mentions from both channels; the other 35
+tools have verified single-channel provenance.
+
+The checked-in tool selection remains provisional until the owner approves the
+final corpus. The current retrieval evaluation cases are also temporary
+behavior checks, not owner-written acceptance queries.
 
 Do not:
 
-- present the placeholder Telegram links or dates as real provenance;
+- present the provisional tool selection as owner-approved;
 - use these fixtures as collector, API, or database seed data;
-- mark Plan 002 `DONE` or begin Plan 003 based on the temporary corpus.
+- mark Plan 002 `DONE` or begin Plan 003 before the remaining owner gates pass.
 
-Before completing Plan 002, replace the placeholders with an owner-approved
-public-channel corpus and at least 15 owner-written retrieval cases, then rerun
-the retrieval, browser, and repository gates.
+Before completing Plan 002, obtain owner approval for the final tool set,
+replace the temporary behavior checks with at least 15 owner-written retrieval
+cases, obtain result-card and tool-detail approval, then rerun the retrieval,
+browser, and repository gates.
 
 ## Commands
 

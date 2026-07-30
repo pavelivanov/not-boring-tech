@@ -2,68 +2,67 @@ import type { RetrievalEvalCase } from "@techdex/contracts"
 
 /**
  * Temporary behavior checks, not owner-approved retrieval cases.
- * Replace these alongside the temporary corpus before completing Plan 002.
+ * Replace these with owner-written remembered needs before completing Plan 002.
  */
 export const retrievalEvalCases: readonly RetrievalEvalCase[] = [
   {
     query: "run models locally",
-    expectedToolSlugs: ["ollama"],
+    expectedToolSlugs: ["ollama", "lm-studio"],
   },
   {
     query: "browser automation testing",
-    expectedToolSlugs: ["playwright"],
+    expectedToolSlugs: ["playwright", "puppeteer"],
   },
   {
-    query: "fast embedded analytics database",
-    expectedToolSlugs: ["duckdb"],
+    query: "local markdown memory",
+    expectedToolSlugs: ["mem-agent", "obsidian"],
   },
   {
-    query: "serverless hosted postgres",
-    expectedToolSlugs: ["neon"],
+    query: "app builder",
+    expectedToolSlugs: ["lovable"],
   },
   {
-    query: "accessible ui components",
-    expectedToolSlugs: ["shadcn-ui"],
+    query: "agents workflow",
+    expectedToolSlugs: ["crewai", "langgraph"],
   },
   {
     query: "terminal ai coding agent",
     expectedToolSlugs: ["claude-code"],
   },
   {
-    query: "javascript formatter linter",
-    expectedToolSlugs: ["biome"],
+    query: "image generation collage",
+    expectedToolSlugs: ["artbreeder-collage"],
   },
   {
-    query: "vector database",
-    expectedToolSlugs: ["qdrant"],
+    query: "ai image editing model",
+    expectedToolSlugs: ["nano-banana", "stable-diffusion"],
   },
   {
-    query: "offline api client",
-    expectedToolSlugs: ["bruno"],
+    query: "desktop database client",
+    expectedToolSlugs: ["tableplus", "postico", "datagrip", "navicat"],
   },
   {
-    query: "typescript orm",
-    expectedToolSlugs: ["prisma"],
+    query: "browser postgres",
+    expectedToolSlugs: ["postgres-new", "pglite"],
   },
   {
-    query: "private network vpn",
-    expectedToolSlugs: ["tailscale"],
+    query: "sql csv terminal",
+    expectedToolSlugs: ["q"],
   },
   {
-    query: "error monitoring",
-    expectedToolSlugs: ["sentry"],
+    query: "application error monitoring",
+    expectedToolSlugs: ["bugsnag", "datadog"],
   },
   {
-    query: "static content site",
-    expectedToolSlugs: ["astro"],
+    query: "remote pair programming",
+    expectedToolSlugs: ["tuple"],
   },
   {
-    query: "fast javascript runtime",
-    expectedToolSlugs: ["bun"],
+    query: "vite deployment",
+    expectedToolSlugs: ["vinext"],
   },
   {
-    query: "application deployment platform",
-    tags: ["deployment"],
-    expectedToolSlugs: ["railway", "render"],
+    query: "password manager",
+    expectedToolSlugs: ["1password"],
   },
 ]

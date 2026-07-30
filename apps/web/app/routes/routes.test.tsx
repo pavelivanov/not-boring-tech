@@ -60,7 +60,7 @@ describe("home route", () => {
       await act(async () => {
         root = hydrateRoot(
           container,
-          <MemoryRouter initialEntries={["/?q=vector+database"]}>
+          <MemoryRouter initialEntries={["/?q=remote+pair"]}>
             <Home />
           </MemoryRouter>
         )
@@ -104,7 +104,7 @@ describe("home route", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("heading", { name: "9 tools" })
+        screen.getByRole("heading", { name: "5 tools" })
       ).toBeInTheDocument()
       expect(router.state.location.search).toBe("?category=Data+systems")
     })
@@ -114,7 +114,7 @@ describe("home route", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("heading", { name: "1 tool" })
+        screen.getByRole("heading", { name: "2 tools" })
       ).toBeInTheDocument()
       expect(router.state.location.search).toBe(
         "?category=Data+systems&tag=browser"
@@ -140,15 +140,15 @@ describe("home route", () => {
       name: "Search tools",
     })
 
-    await user.type(searchInput, "vector database")
+    await user.type(searchInput, "remote pair")
 
     await waitFor(() => {
-      expect(searchInput).toHaveValue("vector database")
+      expect(searchInput).toHaveValue("remote pair")
       expect(
         screen.getByRole("heading", { name: "1 tool" })
       ).toBeInTheDocument()
-      expect(screen.getByRole("link", { name: "Qdrant" })).toBeInTheDocument()
-      expect(router.state.location.search).toBe("?q=vector+database")
+      expect(screen.getByRole("link", { name: "Tuple" })).toBeInTheDocument()
+      expect(router.state.location.search).toBe("?q=remote+pair")
     })
   })
 
