@@ -97,12 +97,11 @@ export function SearchControls({
           <Select
             value={filters.category ?? allCategoriesValue}
             onValueChange={(value) =>
-              onChange({
-                ...filters,
-                ...(value === allCategoriesValue
-                  ? { category: undefined }
-                  : { category: value }),
-              })
+              onChange(
+                value === allCategoriesValue
+                  ? { query: filters.query, tags: filters.tags }
+                  : { ...filters, category: value }
+              )
             }
           >
             <SelectTrigger id="category-filter" className="w-full">
@@ -124,12 +123,13 @@ export function SearchControls({
         </Field>
 
         <Field>
-          <FieldLabel>Tags</FieldLabel>
+          <FieldLabel id="tag-filter-label">Tags</FieldLabel>
           <Popover open={tagPickerOpen} onOpenChange={setTagPickerOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 role="combobox"
+                aria-labelledby="tag-filter-label"
                 aria-expanded={tagPickerOpen}
                 className="w-full justify-between"
               >

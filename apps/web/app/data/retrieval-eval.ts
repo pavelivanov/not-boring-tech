@@ -4,7 +4,7 @@ import type { RetrievalEvalCase } from "@techdex/contracts"
  * Temporary behavior checks, not owner-approved retrieval cases.
  * Replace these alongside the temporary corpus before completing Plan 002.
  */
-export const retrievalEvalCases = [
+export const retrievalEvalCases: readonly RetrievalEvalCase[] = [
   {
     query: "run models locally",
     expectedToolSlugs: ["ollama"],
@@ -66,4 +66,4 @@ export const retrievalEvalCases = [
     tags: ["deployment"],
     expectedToolSlugs: ["railway", "render"],
   },
-] as const satisfies readonly RetrievalEvalCase[]
+]

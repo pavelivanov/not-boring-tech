@@ -1,4 +1,4 @@
-import type { Tool } from "@techdex/contracts"
+import type { Mention, Tool } from "@techdex/contracts"
 import { describe, expect, it } from "vitest"
 
 import { retrievalEvalCases } from "../data/retrieval-eval"
@@ -79,21 +79,20 @@ describe("deterministic retrieval", () => {
   })
 
   it("breaks equal scores by channel count and then name", () => {
+    const firstMention: Mention = {
+      channelId: "one",
+      sourceUrl: "https://t.me/example/1",
+      publishedAt: "2026-01-01T00:00:00.000Z",
+      collectedAt: "2026-01-01T01:00:00.000Z",
+    }
     const base = {
       canonicalUrl: "https://example.com/tool",
       description: "terminal helper",
       category: "Developer tools",
       tags: ["terminal"],
-      mentions: [
-        {
-          channelId: "one",
-          sourceUrl: "https://t.me/example/1",
-          publishedAt: "2026-01-01T00:00:00.000Z",
-          collectedAt: "2026-01-01T01:00:00.000Z",
-        },
-      ],
+      mentions: [firstMention],
     } satisfies Omit<Tool, "slug" | "name">
-    const corpus = [
+    const corpus: readonly Tool[] = [
       {
         ...base,
         slug: "beta",
@@ -114,13 +113,13 @@ describe("deterministic retrieval", () => {
         mentions: [
           ...base.mentions,
           {
-            ...base.mentions[0],
+            ...firstMention,
             channelId: "two",
             sourceUrl: "https://t.me/example/2",
           },
         ],
       },
-    ] satisfies readonly Tool[]
+    ]
 
     expect(
       searchTools(corpus, { ...emptyFilters, query: "terminal" }).map(

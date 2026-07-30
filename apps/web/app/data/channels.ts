@@ -30,6 +30,6 @@ export const channels = [
   },
 ] as const satisfies readonly Channel[]
 
-export const channelsById = new Map(
+export const channelsById: ReadonlyMap<string, Channel> = new Map(
   channels.map((channel) => [channel.id, channel])
 )

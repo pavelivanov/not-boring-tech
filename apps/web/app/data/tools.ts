@@ -461,7 +461,9 @@ export const tools = [
   },
 ] as const satisfies readonly Tool[]
 
-export const toolsBySlug = new Map(tools.map((tool) => [tool.slug, tool]))
+export const toolsBySlug: ReadonlyMap<string, Tool> = new Map(
+  tools.map((tool) => [tool.slug, tool])
+)
 
 export const categories = [...new Set(tools.map((tool) => tool.category))].sort(
   (left, right) => left.localeCompare(right)

@@ -35,7 +35,7 @@ describe("temporary fixture invariants", () => {
   })
 
   it("uses known channels, parseable UTC dates, and at least one mention", () => {
-    const channelIds = new Set(channels.map((channel) => channel.id))
+    const channelIds = new Set<string>(channels.map((channel) => channel.id))
 
     for (const tool of tools) {
       expect(tool.mentions.length, tool.slug).toBeGreaterThan(0)
