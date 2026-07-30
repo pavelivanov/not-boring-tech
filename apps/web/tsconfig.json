@@ -1,0 +1,17 @@
+{
+  "extends": "../../packages/typescript-config/react-app.json",
+  "include": [
+    "**/*",
+    "**/.server/**/*",
+    "**/.client/**/*",
+    ".react-router/types/**/*"
+  ],
+  "compilerOptions": {
+    "types": ["node", "vite/client", "vitest/globals", "vitest/jsdom"],
+    "rootDirs": [".", "./.react-router/types"],
+    "paths": {
+      "~/*": ["./app/*"]
+    },
+    "esModuleInterop": true
+  }
+}

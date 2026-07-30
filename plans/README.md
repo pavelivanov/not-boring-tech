@@ -36,7 +36,7 @@ verification gate, and update its status row when finished.
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | [001](001-setup-turborepo-monorepo.md) | Establish the Turborepo monorepo | P1 | S | — | DONE |
-| [002](002-build-retrieval-website.md) | Build the retrieval website | P1 | M | 001 | TODO |
+| [002](002-build-retrieval-website.md) | Build the retrieval website | P1 | M | 001 | IN PROGRESS |
 | [003](003-build-telegram-collector-service.md) | Analyze Telegram posts and persist structured presentations | P1 | L | 001, 002 gate | TODO |
 
 Status values: `TODO` | `IN PROGRESS` | `DONE` | `BLOCKED: <reason>` |
