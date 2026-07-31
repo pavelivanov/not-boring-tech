@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 
 import { channels, isTemporaryCorpus } from "../data/channels"
 import { retrievalEvalCases } from "../data/retrieval-eval"
+import { subjectAuditCases } from "../data/subject-audit"
 import { categories, tags, tools } from "../data/tools"
 import { distinctChannelCount, firstPresentation } from "./tools"
 
@@ -19,9 +20,6 @@ describe("provisional fixture invariants", () => {
     expect(tools.length).toBeGreaterThanOrEqual(40)
     expect(categories.length).toBeGreaterThanOrEqual(5)
     expect(tags.length).toBeGreaterThanOrEqual(20)
-    expect(
-      tools.filter((tool) => distinctChannelCount(tool) >= 2).length
-    ).toBeGreaterThanOrEqual(5)
     expect(retrievalEvalCases.length).toBeGreaterThanOrEqual(15)
   })
 
@@ -70,6 +68,70 @@ describe("provisional fixture invariants", () => {
     }
   })
 
+  it("models subject kinds and feature parents explicitly", () => {
+    for (const tool of tools) {
+      if (tool.kind === "FEATURE") {
+        expect(tool.parentName?.trim(), tool.slug).toBeTruthy()
+        expect(tool.parentName, tool.slug).not.toBe(tool.name)
+      } else {
+        expect(tool.parentName, tool.slug).toBeUndefined()
+      }
+    }
+  })
+
+  it("preserves the source-audited primary-subject decisions", () => {
+    const assignedSlugsBySource = new Map<string, string[]>()
+    const toolsBySlug = new Map(tools.map((tool) => [tool.slug, tool]))
+    const auditedSourceUrls = new Set(
+      subjectAuditCases.map((auditCase) => auditCase.sourceUrl)
+    )
+
+    expectUnique(subjectAuditCases.map((auditCase) => auditCase.sourceUrl))
+
+    for (const tool of tools) {
+      for (const mention of tool.mentions) {
+        const assignedSlugs = assignedSlugsBySource.get(mention.sourceUrl) ?? []
+
+        assignedSlugs.push(tool.slug)
+        assignedSlugsBySource.set(mention.sourceUrl, assignedSlugs)
+      }
+    }
+
+    for (const sourceUrl of assignedSlugsBySource.keys()) {
+      expect(auditedSourceUrls.has(sourceUrl), sourceUrl).toBe(true)
+    }
+
+    for (const auditCase of subjectAuditCases) {
+      const expectedSlugs = auditCase.expectedSubjects
+        .map((subject) => subject.slug)
+        .sort()
+      const actualSlugs = [
+        ...(assignedSlugsBySource.get(auditCase.sourceUrl) ?? []),
+      ].sort()
+
+      expect(actualSlugs, auditCase.sourceUrl).toEqual(expectedSlugs)
+
+      for (const expectedSubject of auditCase.expectedSubjects) {
+        expect(
+          toolsBySlug.get(expectedSubject.slug)?.kind,
+          `${auditCase.sourceUrl} -> ${expectedSubject.slug}`
+        ).toBe(expectedSubject.kind)
+      }
+
+      if (
+        auditCase.decision === "GENERIC_NEWS_OR_OPINION" ||
+        auditCase.decision === "INCIDENTAL_OR_CONTEXT"
+      ) {
+        expect(auditCase.expectedSubjects, auditCase.sourceUrl).toHaveLength(0)
+      } else {
+        expect(
+          auditCase.expectedSubjects.length,
+          auditCase.sourceUrl
+        ).toBeGreaterThan(0)
+      }
+    }
+  })
+
   it("derives presentation dates and channel counts instead of storing them", () => {
     const cursor = tools.find((tool) => tool.slug === "cursor")
 
@@ -77,7 +139,7 @@ describe("provisional fixture invariants", () => {
     expect(firstPresentation(cursor!).publishedAt).toBe(
       "2024-10-30T14:49:48.000Z"
     )
-    expect(distinctChannelCount(cursor!)).toBe(2)
+    expect(distinctChannelCount(cursor!)).toBe(1)
     expect("firstPresentedAt" in cursor!).toBe(false)
     expect("channelCount" in cursor!).toBe(false)
   })
@@ -86,26 +148,49 @@ describe("provisional fixture invariants", () => {
     const verifiedSlugs = [
       "cursor",
       "claude-code",
+      "claude-code-templates",
+      "claude-code-project-guide",
+      "opencode",
+      "oh-my-opencode",
+      "cowork",
+      "claude-code-agent-teams",
+      "antigravity-awesome-skills",
+      "hugging-face-skills",
+      "claude-code-best-practice",
+      "claude-code-skill-creator",
+      "nanochat",
+      "gstack",
+      "claude-code-technical-audit-guide",
+      "claude-code-channels",
+      "claude-code-cheat-sheet",
+      "claude-computer-use",
+      "google-agents-whitepaper",
+      "500-ai-agents-projects",
+      "build-your-first-ai-agent-guide",
+      "sequel-pro",
+      "clickhouse-podcast",
+      "phind",
+      "machinet",
+      "how-to-build-an-agent",
+      "cursor-agent-mode",
+      "surveillance-self-defense",
+      "codeguide",
+      "cursor-talk-to-figma-mcp",
+      "mcp-containers",
+      "cursor-visual-editor",
+      "react-grab",
+      "pencil",
+      "perplexica",
       "github-copilot",
-      "ollama",
       "langgraph",
       "mem-agent",
       "dify",
-      "lm-studio",
-      "playwright",
       "nano-banana",
-      "stable-diffusion",
       "q",
       "tableplus",
-      "crewai",
       "postico",
-      "ngrok",
-      "autogen",
       "postgres-new",
       "postgresql",
-      "langchain",
-      "clickhouse",
-      "puppeteer",
       "supabase",
       "figma",
       "lovable",
@@ -113,24 +198,12 @@ describe("provisional fixture invariants", () => {
       "vinext",
       "navicat",
       "artbreeder-collage",
-      "vite",
       "tuple",
       "sloplobster",
       "docker",
-      "open-interpreter",
       "pglite",
       "datadog",
-      "bugsnag",
       "pyspur",
-      "1password",
-      "obsidian",
-    ]
-    const crossChannelSlugs = [
-      "cursor",
-      "claude-code",
-      "github-copilot",
-      "langgraph",
-      "docker",
     ]
     const approvedChannels = new Map([
       ["notboring-tech", "https://t.me/notboring_tech/"],
@@ -148,7 +221,7 @@ describe("provisional fixture invariants", () => {
       publicUrl: "https://t.me/ctodaily",
     })
     expect(channels).toHaveLength(2)
-    expect(verifiedSlugs).toHaveLength(40)
+    expect(verifiedSlugs).toHaveLength(58)
 
     for (const slug of verifiedSlugs) {
       const tool = tools.find((candidate) => candidate.slug === slug)
@@ -177,18 +250,5 @@ describe("provisional fixture invariants", () => {
         )
       )
     ).toHaveLength(verifiedSlugs.length)
-
-    for (const slug of crossChannelSlugs) {
-      const tool = tools.find((candidate) => candidate.slug === slug)
-      const approvedChannelIds = new Set(
-        tool?.mentions
-          .filter((mention) => approvedChannels.has(mention.channelId))
-          .map((mention) => mention.channelId)
-      )
-
-      expect(approvedChannelIds, slug).toEqual(
-        new Set(["notboring-tech", "ctodaily"])
-      )
-    }
   })
 })

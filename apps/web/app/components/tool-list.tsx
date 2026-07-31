@@ -27,7 +27,7 @@ export function ToolList({ tools, search, onClear }: ToolListProps) {
           <EmptyMedia variant="icon">
             <SearchXIcon aria-hidden="true" />
           </EmptyMedia>
-          <EmptyTitle>No tools match this combination</EmptyTitle>
+          <EmptyTitle>No entries match this combination</EmptyTitle>
           <EmptyDescription>
             Keep the query and adjust a facet, or clear everything and begin
             again.

@@ -1,4 +1,23 @@
-import type { Mention, Tool } from "@techdex/contracts"
+import type { Mention, TechnologyKind, Tool } from "@techdex/contracts"
+
+const kindLabels: Readonly<Record<TechnologyKind, string>> = {
+  TOOL: "Tool",
+  PROJECT: "Project",
+  LIBRARY: "Library",
+  SERVICE: "Service",
+  PRODUCT: "Product",
+  FEATURE: "Feature",
+  PLUGIN: "Plugin",
+  SKILL: "Skill",
+  GUIDE: "Guide",
+  CHEAT_SHEET: "Cheat sheet",
+  PODCAST: "Podcast",
+  OTHER_TECH: "Technology",
+}
+
+export function formatTechnologyKind(kind: TechnologyKind): string {
+  return kindLabels[kind]
+}
 
 export function firstPresentation(tool: Tool): Mention {
   const [first, ...rest] = tool.mentions

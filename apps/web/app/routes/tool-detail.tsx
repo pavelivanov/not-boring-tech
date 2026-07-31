@@ -10,11 +10,12 @@ import { RelativeDate } from "~/components/relative-date"
 import { Badge } from "~/components/ui/badge"
 import { Separator } from "~/components/ui/separator"
 import { channelsById } from "~/data/channels"
-import { toolsBySlug } from "~/data/tools"
+import { toolsByName, toolsBySlug } from "~/data/tools"
 import { formatAbsoluteDate } from "~/domain/dates"
 import {
   distinctChannelCount,
   firstPresentation,
+  formatTechnologyKind,
   newestMentionsFirst,
 } from "~/domain/tools"
 import { canonicalMeta } from "~/domain/urls"
@@ -24,10 +25,10 @@ export function meta({ params }: { params: { slug?: string } }) {
 
   if (!tool) {
     return [
-      { title: "Tool not found · TechDex" },
+      { title: "Subject not found · TechDex" },
       {
         name: "description",
-        content: "The requested tool is not in the TechDex index.",
+        content: "The requested subject is not in the TechDex index.",
       },
     ]
   }
@@ -58,10 +59,10 @@ export default function ToolDetail() {
         className="page-width flex min-h-[65svh] flex-col justify-center py-16"
       >
         <p className="font-mono text-sm text-muted-foreground">
-          Unknown tool / {slug ?? "missing-slug"}
+          Unknown subject / {slug ?? "missing-slug"}
         </p>
         <h1 className="mt-4 max-w-3xl font-heading text-5xl font-semibold tracking-[-0.05em] md:text-7xl">
-          This tool is not in the index.
+          This subject is not in the index.
         </h1>
         <Link
           to="/"
@@ -77,6 +78,8 @@ export default function ToolDetail() {
   const firstMention = firstPresentation(tool)
   const channelCount = distinctChannelCount(tool)
   const mentions = newestMentionsFirst(tool.mentions)
+  const parent = tool.parentName ? toolsByName.get(tool.parentName) : undefined
+  const kindLabel = formatTechnologyKind(tool.kind)
 
   return (
     <main id="main-content" tabIndex={-1} className="page-width py-12 md:py-20">
@@ -91,7 +94,8 @@ export default function ToolDetail() {
       <header className="mt-10 grid gap-8 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
         <div className="min-w-0">
           <div className="flex flex-wrap gap-2">
-            <Badge variant="secondary">{tool.category}</Badge>
+            <Badge variant="secondary">{kindLabel}</Badge>
+            <Badge variant="outline">{tool.category}</Badge>
             {tool.tags.map((tag) => (
               <Badge key={tag} variant="outline">
                 {tag}
@@ -104,6 +108,23 @@ export default function ToolDetail() {
           <p className="mt-5 max-w-3xl text-lg leading-relaxed text-muted-foreground md:text-xl">
             {tool.description}
           </p>
+          {tool.parentName ? (
+            <p className="mt-4 text-sm text-muted-foreground">
+              Feature of{" "}
+              {parent ? (
+                <Link
+                  to={`/tools/${parent.slug}`}
+                  className="font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-primary"
+                >
+                  {parent.name}
+                </Link>
+              ) : (
+                <span className="font-medium text-foreground">
+                  {tool.parentName}
+                </span>
+              )}
+            </p>
+          ) : null}
         </div>
 
         <a
@@ -112,7 +133,7 @@ export default function ToolDetail() {
           rel="noreferrer"
           className="inline-flex h-fit items-center gap-1.5 font-medium underline decoration-primary decoration-2 underline-offset-4 md:justify-self-end"
         >
-          Visit tool
+          Open {kindLabel.toLocaleLowerCase("en")}
           <ArrowUpRightIcon aria-hidden="true" />
           <span className="sr-only">(opens in a new tab)</span>
         </a>

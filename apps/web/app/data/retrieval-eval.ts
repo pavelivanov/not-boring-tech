@@ -6,16 +6,16 @@ import type { RetrievalEvalCase } from "@techdex/contracts"
  */
 export const retrievalEvalCases: readonly RetrievalEvalCase[] = [
   {
-    query: "run models locally",
-    expectedToolSlugs: ["ollama", "lm-studio"],
+    query: "open source answer engine",
+    expectedToolSlugs: ["perplexica"],
   },
   {
-    query: "browser automation testing",
-    expectedToolSlugs: ["playwright", "puppeteer"],
+    query: "first ai agent beginner guide",
+    expectedToolSlugs: ["build-your-first-ai-agent-guide"],
   },
   {
     query: "local markdown memory",
-    expectedToolSlugs: ["mem-agent", "obsidian"],
+    expectedToolSlugs: ["mem-agent"],
   },
   {
     query: "app builder",
@@ -23,11 +23,39 @@ export const retrievalEvalCases: readonly RetrievalEvalCase[] = [
   },
   {
     query: "agents workflow",
-    expectedToolSlugs: ["crewai", "langgraph"],
+    expectedToolSlugs: ["langgraph"],
   },
   {
     query: "terminal ai coding agent",
     expectedToolSlugs: ["claude-code"],
+  },
+  {
+    query: "claude code cheat sheet",
+    expectedToolSlugs: ["claude-code-cheat-sheet"],
+  },
+  {
+    query: "claude code channels",
+    expectedToolSlugs: ["claude-code-channels"],
+  },
+  {
+    query: "karpathy learning project",
+    expectedToolSlugs: ["nanochat"],
+  },
+  {
+    query: "claude code skills setup",
+    expectedToolSlugs: ["gstack"],
+  },
+  {
+    query: "claude computer use api",
+    expectedToolSlugs: ["claude-computer-use"],
+  },
+  {
+    query: "google agents whitepaper",
+    expectedToolSlugs: ["google-agents-whitepaper"],
+  },
+  {
+    query: "project catalog ai agents",
+    expectedToolSlugs: ["500-ai-agents-projects"],
   },
   {
     query: "image generation collage",
@@ -35,11 +63,17 @@ export const retrievalEvalCases: readonly RetrievalEvalCase[] = [
   },
   {
     query: "ai image editing model",
-    expectedToolSlugs: ["nano-banana", "stable-diffusion"],
+    expectedToolSlugs: ["nano-banana"],
   },
   {
     query: "desktop database client",
-    expectedToolSlugs: ["tableplus", "postico", "datagrip", "navicat"],
+    expectedToolSlugs: [
+      "tableplus",
+      "postico",
+      "datagrip",
+      "navicat",
+      "sequel-pro",
+    ],
   },
   {
     query: "browser postgres",
@@ -50,8 +84,8 @@ export const retrievalEvalCases: readonly RetrievalEvalCase[] = [
     expectedToolSlugs: ["q"],
   },
   {
-    query: "application error monitoring",
-    expectedToolSlugs: ["bugsnag", "datadog"],
+    query: "application monitoring",
+    expectedToolSlugs: ["datadog"],
   },
   {
     query: "remote pair programming",
@@ -62,7 +96,7 @@ export const retrievalEvalCases: readonly RetrievalEvalCase[] = [
     expectedToolSlugs: ["vinext"],
   },
   {
-    query: "password manager",
-    expectedToolSlugs: ["1password"],
+    query: "personal digital security guide",
+    expectedToolSlugs: ["surveillance-self-defense"],
   },
 ]

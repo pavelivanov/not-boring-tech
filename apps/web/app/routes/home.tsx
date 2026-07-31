@@ -18,11 +18,11 @@ import { canonicalMeta } from "~/domain/urls"
 
 export function meta() {
   return [
-    { title: "TechDex · Search trusted Telegram tool mentions" },
+    { title: "TechDex · Search trusted Telegram technology mentions" },
     {
       name: "description",
       content:
-        "Search tools mentioned by trusted public Telegram technology channels, with dates and source provenance.",
+        "Search technology subjects mentioned by trusted public Telegram channels, with dates and source provenance.",
     },
     ...canonicalMeta("/"),
   ]
@@ -80,13 +80,13 @@ export default function Home() {
     >
       <section className="search-stage" aria-labelledby="search-heading">
         <p className="font-mono text-xs tracking-[0.2em] text-muted-foreground uppercase">
-          Public Telegram tool index
+          Public Telegram technology index
         </p>
         <h1
           id="search-heading"
           className="mt-4 max-w-4xl font-heading text-5xl font-semibold tracking-[-0.06em] text-balance md:text-7xl lg:text-8xl"
         >
-          Find the tool you know you saw.
+          Find the technology you know you saw.
         </h1>
         <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">
           Search a curated cross-channel archive by name, purpose, category, or
@@ -107,9 +107,9 @@ export default function Home() {
         <FlaskConicalIcon aria-hidden="true" />
         <AlertTitle>Provisional corpus</AlertTitle>
         <AlertDescription>
-          Every tool has verified public provenance from @notboring_tech or
-          @ctodaily. The final tool selection and retrieval expectations still
-          require owner approval.
+          Every indexed subject has verified public provenance from
+          @notboring_tech or @ctodaily. The final corpus and retrieval
+          expectations still require owner approval.
         </AlertDescription>
       </Alert>
 
@@ -120,7 +120,7 @@ export default function Home() {
               Retrieval results
             </p>
             <h2 id="results-heading" className="mt-2 text-2xl font-semibold">
-              {results.length} {results.length === 1 ? "tool" : "tools"}
+              {results.length} {results.length === 1 ? "entry" : "entries"}
             </h2>
           </div>
 

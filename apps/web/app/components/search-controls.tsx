@@ -71,14 +71,14 @@ export function SearchControls({
     <FieldGroup className="gap-4">
       <Field>
         <FieldLabel htmlFor="tool-search" className="sr-only">
-          Search tools
+          Search index
         </FieldLabel>
         <InputGroup className="h-14 rounded-xl bg-background shadow-sm">
           <InputGroupInput
             id="tool-search"
             value={queryDraft}
             onChange={(event) => updateQuery(event.target.value)}
-            placeholder="What was that tool for…"
+            placeholder="What was that technology for…"
             autoComplete="off"
             className="text-base md:text-base"
           />

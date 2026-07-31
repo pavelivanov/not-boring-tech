@@ -68,7 +68,7 @@ describe("home route", () => {
 
       await waitFor(() => {
         expect(
-          within(container).getByRole("heading", { name: "1 tool" })
+          within(container).getByRole("heading", { name: "1 entry" })
         ).toBeInTheDocument()
       })
       expect(consoleError).not.toHaveBeenCalled()
@@ -87,9 +87,9 @@ describe("home route", () => {
 
     expect(screen.getByRole("main")).toHaveAttribute("tabindex", "-1")
     expect(
-      screen.getByRole("heading", { name: "40 tools" })
+      screen.getByRole("heading", { name: "58 entries" })
     ).toBeInTheDocument()
-    expect(screen.getAllByRole("article")).toHaveLength(40)
+    expect(screen.getAllByRole("article")).toHaveLength(58)
     expect(screen.getByRole("link", { name: "Cursor" })).toHaveAttribute(
       "href",
       "/tools/cursor"
@@ -105,7 +105,7 @@ describe("home route", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("heading", { name: "5 tools" })
+        screen.getByRole("heading", { name: "4 entries" })
       ).toBeInTheDocument()
       expect(router.state.location.search).toBe("?category=Data+systems")
     })
@@ -115,7 +115,7 @@ describe("home route", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("heading", { name: "2 tools" })
+        screen.getByRole("heading", { name: "2 entries" })
       ).toBeInTheDocument()
       expect(router.state.location.search).toBe(
         "?category=Data+systems&tag=browser"
@@ -126,7 +126,7 @@ describe("home route", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("heading", { name: "3 tools" })
+        screen.getByRole("heading", { name: "3 entries" })
       ).toBeInTheDocument()
       expect(router.state.location.search).toBe(
         "?category=Data+systems&tag=browser&tag=serverless"
@@ -138,7 +138,7 @@ describe("home route", () => {
     const user = userEvent.setup()
     const router = renderAt()
     const searchInput = screen.getByRole("textbox", {
-      name: "Search tools",
+      name: "Search index",
     })
 
     await user.type(searchInput, "remote pair")
@@ -146,7 +146,7 @@ describe("home route", () => {
     await waitFor(() => {
       expect(searchInput).toHaveValue("remote pair")
       expect(
-        screen.getByRole("heading", { name: "1 tool" })
+        screen.getByRole("heading", { name: "1 entry" })
       ).toBeInTheDocument()
       expect(screen.getByRole("link", { name: "Tuple" })).toBeInTheDocument()
       expect(router.state.location.search).toBe("?q=remote+pair")
@@ -157,13 +157,15 @@ describe("home route", () => {
     const user = userEvent.setup()
     const router = renderAt("/?q=no-such-technology")
     const searchInput = screen.getByRole("textbox", {
-      name: "Search tools",
+      name: "Search index",
     })
 
     expect(searchInput).toHaveValue("no-such-technology")
-    expect(screen.getByRole("heading", { name: "0 tools" })).toBeInTheDocument()
     expect(
-      screen.getByText("No tools match this combination")
+      screen.getByRole("heading", { name: "0 entries" })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("No entries match this combination")
     ).toBeInTheDocument()
     expect(router.state.location.search).toBe("?q=no-such-technology")
 
@@ -172,7 +174,7 @@ describe("home route", () => {
     await waitFor(() => {
       expect(searchInput).toHaveValue("")
       expect(
-        screen.getByRole("heading", { name: "40 tools" })
+        screen.getByRole("heading", { name: "58 entries" })
       ).toBeInTheDocument()
       expect(router.state.location.search).toBe("")
     })
@@ -181,10 +183,13 @@ describe("home route", () => {
   it("renders canonical external links with safe new-tab attributes", () => {
     renderAt()
 
-    const canonicalLink = screen.getByRole("link", {
-      name: /cursor\.com/,
-    })
+    const canonicalLink = screen
+      .getAllByRole("link", {
+        name: "cursor.com (opens in a new tab)",
+      })
+      .find((link) => link.getAttribute("href") === "https://www.cursor.com/")
 
+    expect(canonicalLink).toBeDefined()
     expect(canonicalLink).toHaveAttribute("href", "https://www.cursor.com/")
     expect(canonicalLink).toHaveAttribute("target", "_blank")
     expect(canonicalLink).toHaveAttribute("rel", "noreferrer")
@@ -222,10 +227,47 @@ describe("tool detail route", () => {
       expect(link).toHaveAttribute("rel", "noreferrer")
     }
 
-    const visitLink = screen.getByRole("link", { name: /Visit tool/ })
+    const visitLink = screen.getByRole("link", { name: /Open tool/ })
     expect(visitLink).toHaveAttribute("href", cursor!.canonicalUrl)
     expect(visitLink).toHaveAttribute("target", "_blank")
     expect(visitLink).toHaveAttribute("rel", "noreferrer")
+  })
+
+  it("shows feature identity and links to its parent without merging provenance", () => {
+    renderAt("/tools/claude-code-channels")
+
+    const channels = toolsBySlug.get("claude-code-channels")
+
+    expect(channels).toBeDefined()
+    expect(
+      screen.getByRole("heading", {
+        level: 1,
+        name: "Claude Code Channels",
+      })
+    ).toBeInTheDocument()
+    expect(screen.getByText("Feature")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Claude Code" })).toHaveAttribute(
+      "href",
+      "/tools/claude-code"
+    )
+    expect(
+      screen.getAllByRole("link", { name: /Open Telegram source/ })
+    ).toHaveLength(1)
+  })
+
+  it("presents the reviewed reference as a cheat sheet, not its parent tool", () => {
+    renderAt("/tools/claude-code-cheat-sheet")
+
+    expect(
+      screen.getByRole("heading", {
+        level: 1,
+        name: "Claude Code Cheat Sheet",
+      })
+    ).toBeInTheDocument()
+    expect(screen.getByText("Cheat sheet")).toBeInTheDocument()
+    expect(
+      screen.getByRole("link", { name: /Open cheat sheet/ })
+    ).toHaveAttribute("href", "https://cc.storyfox.cz/")
   })
 
   it("renders a real not-found state for an unknown slug", () => {
@@ -234,11 +276,11 @@ describe("tool detail route", () => {
     expect(
       screen.getByRole("heading", {
         level: 1,
-        name: "This tool is not in the index.",
+        name: "This subject is not in the index.",
       })
     ).toBeInTheDocument()
     expect(
-      screen.getByText("Unknown tool / not-in-the-corpus")
+      screen.getByText("Unknown subject / not-in-the-corpus")
     ).toBeInTheDocument()
     expect(
       screen.getByRole("link", { name: "Return to search" })

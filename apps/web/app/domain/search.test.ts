@@ -21,15 +21,35 @@ describe("deterministic retrieval", () => {
       "lm studio desktop"
     )
     expect(
-      searchTools(tools, { ...emptyFilters, query: "  ＬＭ　ＳＴＵＤＩＯ " })[0]
-        ?.slug
-    ).toBe("lm-studio")
+      searchTools(tools, { ...emptyFilters, query: "  ＣＵＲＳＯＲ " })[0]?.slug
+    ).toBe("cursor")
   })
 
   it("orders exact names before weaker matches", () => {
     const results = searchTools(tools, { ...emptyFilters, query: "cursor" })
 
     expect(results[0]?.slug).toBe("cursor")
+  })
+
+  it("retrieves reviewed related subjects without replacing them with Claude Code", () => {
+    const cases = [
+      ["claude code cheat sheet", "claude-code-cheat-sheet"],
+      ["claude code channels", "claude-code-channels"],
+      ["karpathy learning project", "nanochat"],
+      ["claude code skills setup", "gstack"],
+      ["figma mcp integration", "cursor-talk-to-figma-mcp"],
+      ["containerized mcp servers", "mcp-containers"],
+      ["open source answer engine", "perplexica"],
+      ["cursor visual editor", "cursor-visual-editor"],
+      ["clickhouse podcast", "clickhouse-podcast"],
+      ["personal digital security guide", "surveillance-self-defense"],
+    ] as const
+
+    for (const [query, expectedSlug] of cases) {
+      expect(searchTools(tools, { ...emptyFilters, query })[0]?.slug).toBe(
+        expectedSlug
+      )
+    }
   })
 
   it("matches name prefixes and complete name tokens", () => {
@@ -45,10 +65,10 @@ describe("deterministic retrieval", () => {
     ).toBe("tuple")
     expect(
       searchTools(tools, { ...emptyFilters, query: "observability" })[0]?.slug
-    ).toBe("bugsnag")
+    ).toBe("datadog")
     expect(
-      searchTools(tools, { ...emptyFilters, query: "productivity" })[0]?.slug
-    ).toBe("obsidian")
+      searchTools(tools, { ...emptyFilters, query: "technical audit" })[0]?.slug
+    ).toBe("claude-code-technical-audit-guide")
   })
 
   it("combines query, category, and tag facets with AND", () => {
@@ -68,7 +88,7 @@ describe("deterministic retrieval", () => {
     })
 
     expect(results.map((tool) => tool.slug)).toEqual(
-      expect.arrayContaining(["tableplus", "claude-code", "open-interpreter"])
+      expect.arrayContaining(["tableplus", "claude-code", "opencode"])
     )
   })
 
@@ -79,7 +99,7 @@ describe("deterministic retrieval", () => {
         ...emptyFilters,
         category: "Security",
       }).map((tool) => tool.slug)
-    ).toEqual(["1password"])
+    ).toEqual(["surveillance-self-defense"])
   })
 
   it("breaks equal scores by channel count and then name", () => {
@@ -90,6 +110,7 @@ describe("deterministic retrieval", () => {
       collectedAt: "2026-01-01T01:00:00.000Z",
     }
     const base = {
+      kind: "TOOL",
       canonicalUrl: "https://example.com/tool",
       description: "terminal helper",
       category: "Developer tools",

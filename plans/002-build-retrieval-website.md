@@ -109,13 +109,13 @@ Official starting points:
 
 Expected command surface after implementation:
 
-| Purpose | Command | Expected on success |
-|---------|---------|---------------------|
-| Develop | `npm run dev --workspace=@techdex/web` | local URL is printed |
-| Unit tests | `npm run test --workspace=@techdex/web` | all tests pass |
-| Typecheck | `npm run typecheck --workspace=@techdex/web` | exit 0 |
-| Build | `npm run build --workspace=@techdex/web` | pre-rendered output exists |
-| Full gate | `npm run check` | every workspace task exits 0 |
+| Purpose    | Command                                      | Expected on success          |
+| ---------- | -------------------------------------------- | ---------------------------- |
+| Develop    | `npm run dev --workspace=@techdex/web`       | local URL is printed         |
+| Unit tests | `npm run test --workspace=@techdex/web`      | all tests pass               |
+| Typecheck  | `npm run typecheck --workspace=@techdex/web` | exit 0                       |
+| Build      | `npm run build --workspace=@techdex/web`     | pre-rendered output exists   |
+| Full gate  | `npm run check`                              | every workspace task exits 0 |
 
 ## Scope
 
@@ -156,34 +156,50 @@ public contract must model:
 
 ```ts
 type Channel = {
-  id: string
-  name: string
-  publicUrl: string
-}
+  id: string;
+  name: string;
+  publicUrl: string;
+};
 
 type Mention = {
-  channelId: string
-  sourceUrl: string
-  publishedAt: string
-  collectedAt: string
-}
+  channelId: string;
+  sourceUrl: string;
+  publishedAt: string;
+  collectedAt: string;
+};
+
+type TechnologyKind =
+  | "TOOL"
+  | "PROJECT"
+  | "LIBRARY"
+  | "SERVICE"
+  | "PRODUCT"
+  | "FEATURE"
+  | "PLUGIN"
+  | "SKILL"
+  | "GUIDE"
+  | "CHEAT_SHEET"
+  | "PODCAST"
+  | "OTHER_TECH";
 
 type Tool = {
-  slug: string
-  name: string
-  canonicalUrl: string
-  description: string
-  category: string
-  tags: string[]
-  mentions: Mention[]
-}
+  slug: string;
+  name: string;
+  kind: TechnologyKind;
+  parentName?: string;
+  canonicalUrl: string;
+  description: string;
+  category: string;
+  tags: string[];
+  mentions: Mention[];
+};
 
 type RetrievalEvalCase = {
-  query: string
-  category?: string
-  tags?: string[]
-  expectedToolSlugs: string[]
-}
+  query: string;
+  category?: string;
+  tags?: string[];
+  expectedToolSlugs: string[];
+};
 ```
 
 Use readonly fields/collections where practical. Dates are ISO-8601 UTC strings
@@ -197,6 +213,12 @@ The contract must preserve these invariants:
   appropriate.
 - Every mention refers to a known channel.
 - Every tool has at least one mention.
+- Only feature records have a non-empty `parentName`. A parent may link to
+  another corpus record, but parent existence is not required for indexing a
+  feature.
+- Mentions belong to the primary subject actually presented by the post. A
+  related project, plugin, skill, guide, cheat sheet, or feature must not
+  silently donate its provenance to a named parent tool.
 - A tool's first-presentation date is derived from its earliest
   `publishedAt`; it is not hand-maintained as a second source of truth.
 - Distinct-channel count is derived from unique mention channel IDs.
@@ -208,8 +230,8 @@ objects in `@techdex/contracts`.
 
 ## Fixture and evaluation requirements
 
-Curate metadata for at least 40 real tools from the owner's intended public
-Telegram-channel corpus:
+Curate metadata for at least 40 real technology subjects from the owner's
+intended public Telegram-channel corpus:
 
 - At least five categories.
 - At least 20 distinct tags.

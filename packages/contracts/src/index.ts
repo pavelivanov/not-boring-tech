@@ -11,9 +11,25 @@ export type Mention = {
   readonly collectedAt: string;
 };
 
+export type TechnologyKind =
+  | "TOOL"
+  | "PROJECT"
+  | "LIBRARY"
+  | "SERVICE"
+  | "PRODUCT"
+  | "FEATURE"
+  | "PLUGIN"
+  | "SKILL"
+  | "GUIDE"
+  | "CHEAT_SHEET"
+  | "PODCAST"
+  | "OTHER_TECH";
+
 export type Tool = {
   readonly slug: string;
   readonly name: string;
+  readonly kind: TechnologyKind;
+  readonly parentName?: string;
   readonly canonicalUrl: string;
   readonly description: string;
   readonly category: string;

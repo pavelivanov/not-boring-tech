@@ -8,7 +8,11 @@ import { Link } from "react-router"
 
 import { RelativeDate } from "~/components/relative-date"
 import { Badge } from "~/components/ui/badge"
-import { distinctChannelCount, firstPresentation } from "~/domain/tools"
+import {
+  distinctChannelCount,
+  firstPresentation,
+  formatTechnologyKind,
+} from "~/domain/tools"
 
 type ToolCardProps = {
   readonly tool: Tool
@@ -36,7 +40,8 @@ export function ToolCard({ tool, resultNumber, search }: ToolCardProps) {
       <div className="flex min-w-0 flex-col gap-4">
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">{tool.category}</Badge>
+            <Badge variant="secondary">{formatTechnologyKind(tool.kind)}</Badge>
+            <Badge variant="outline">{tool.category}</Badge>
             {tool.tags.slice(0, 3).map((tag) => (
               <Badge key={tag} variant="outline">
                 {tag}

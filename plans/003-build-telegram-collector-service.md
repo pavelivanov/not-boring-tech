@@ -156,14 +156,14 @@ not retain deprecated configuration merely to match this diagram.
 
 ## Commands you will need
 
-| Purpose | Command | Expected on success |
-|---------|---------|---------------------|
-| Install | `npm install` | exit 0; one root lockfile |
-| Unit/integration tests | `npm run test --workspace=@techdex/service -- --run` | all offline tests pass |
-| Extraction eval | `npm run test --workspace=@techdex/service -- --run extraction-eval` | labeled threshold passes |
-| Typecheck | `npm run typecheck --workspace=@techdex/service` | exit 0 |
-| Build | `npm run build --workspace=@techdex/service` | exit 0 |
-| Full gate | `npm run check` | all workspace gates pass |
+| Purpose                | Command                                                              | Expected on success       |
+| ---------------------- | -------------------------------------------------------------------- | ------------------------- |
+| Install                | `npm install`                                                        | exit 0; one root lockfile |
+| Unit/integration tests | `npm run test --workspace=@techdex/service -- --run`                 | all offline tests pass    |
+| Extraction eval        | `npm run test --workspace=@techdex/service -- --run extraction-eval` | labeled threshold passes  |
+| Typecheck              | `npm run typecheck --workspace=@techdex/service`                     | exit 0                    |
+| Build                  | `npm run build --workspace=@techdex/service`                         | exit 0                    |
+| Full gate              | `npm run check`                                                      | all workspace gates pass  |
 
 ## Documentation to verify before implementation
 
@@ -249,27 +249,27 @@ database access if invalid.
 
 Required for `sync`:
 
-| Variable | Meaning | Validation |
-|----------|---------|------------|
-| `DATABASE_URL` | PostgreSQL connection URL | non-empty PostgreSQL URL |
-| `TELEGRAM_API_ID` | Telegram application numeric ID | positive integer |
-| `TELEGRAM_API_HASH` | Telegram application secret | non-empty; never logged |
-| `TELEGRAM_SESSION` | Pre-authorized GramJS `StringSession` | non-empty; never logged |
-| `TELEGRAM_CHANNELS` | Comma-separated public handles | 1-10 unique valid handles |
-| `OPENAI_API_KEY` | Server-side OpenAI API key | non-empty; never logged |
-| `OPENAI_MODEL` | Structured-Outputs-compatible model ID | non-empty explicit value |
+| Variable            | Meaning                                | Validation                |
+| ------------------- | -------------------------------------- | ------------------------- |
+| `DATABASE_URL`      | PostgreSQL connection URL              | non-empty PostgreSQL URL  |
+| `TELEGRAM_API_ID`   | Telegram application numeric ID        | positive integer          |
+| `TELEGRAM_API_HASH` | Telegram application secret            | non-empty; never logged   |
+| `TELEGRAM_SESSION`  | Pre-authorized GramJS `StringSession`  | non-empty; never logged   |
+| `TELEGRAM_CHANNELS` | Comma-separated public handles         | 1-10 unique valid handles |
+| `OPENAI_API_KEY`    | Server-side OpenAI API key             | non-empty; never logged   |
+| `OPENAI_MODEL`      | Structured-Outputs-compatible model ID | non-empty explicit value  |
 
 Optional, with bounded defaults:
 
-| Variable | Default | Meaning |
-|----------|---------|---------|
-| `HOST` | `0.0.0.0` | Hono bind host |
-| `PORT` | `3001` | Hono port |
-| `LOG_LEVEL` | `info` | structured log threshold |
-| `TELEGRAM_BACKFILL_DAYS` | `90` | fixed initial-history cutoff, 1-90 |
-| `TELEGRAM_PAGE_SIZE` | conservative documented value | Telegram page size |
-| `OPENAI_REQUEST_TIMEOUT_MS` | `30000` | per-post timeout, bounded |
-| `OPENAI_MAX_ATTEMPTS` | `3` | total bounded attempts, 1-3 |
+| Variable                    | Default                       | Meaning                            |
+| --------------------------- | ----------------------------- | ---------------------------------- |
+| `HOST`                      | `0.0.0.0`                     | Hono bind host                     |
+| `PORT`                      | `3001`                        | Hono port                          |
+| `LOG_LEVEL`                 | `info`                        | structured log threshold           |
+| `TELEGRAM_BACKFILL_DAYS`    | `90`                          | fixed initial-history cutoff, 1-90 |
+| `TELEGRAM_PAGE_SIZE`        | conservative documented value | Telegram page size                 |
+| `OPENAI_REQUEST_TIMEOUT_MS` | `30000`                       | per-post timeout, bounded          |
+| `OPENAI_MAX_ATTEMPTS`       | `3`                           | total bounded attempts, 1-3        |
 
 `OPENAI_MODEL` is explicit rather than silently tracking a changing alias. The
 chosen value becomes part of the analysis-version identity and is stored with
@@ -298,12 +298,26 @@ showcases, or materially explains a usable technology subject:
 - `SERVICE`
 - `PRODUCT`
 - `FEATURE`
+- `PLUGIN`
+- `SKILL`
+- `GUIDE`
+- `CHEAT_SHEET`
+- `PODCAST`
 - `OTHER_TECH`
 
-Incidental name-drops, job posts, event/course promotions, generic opinion,
+Incidental name-drops, job posts, event or course promotions, generic opinion,
 non-technical news, and advertisements without substantive product information
-are not relevant. A feature is relevant only when the post materially presents
-that feature, not merely because a named product has features.
+are not relevant. A substantive reusable technical guide or cheat sheet is
+relevant even though a promotional course announcement is not. A feature is
+relevant only when the post materially presents that feature, not merely
+because a named product has features.
+
+Extraction is about the post's primary usable subject, not every technology
+name in its text. A project, plugin, skill, guide, cheat sheet, or feature that
+works with a parent tool is a separate presentation; it must not also create a
+presentation for that parent unless the post independently and materially
+presents the parent itself. Product-quality news and opinions return no
+presentation even when they repeatedly name a tool.
 
 One post may present zero, one, or multiple subjects. The prompt must treat all
 post content as untrusted data and explicitly ignore any instructions embedded
@@ -340,6 +354,11 @@ const Presentation = z.object({
     "SERVICE",
     "PRODUCT",
     "FEATURE",
+    "PLUGIN",
+    "SKILL",
+    "GUIDE",
+    "CHEAT_SHEET",
+    "PODCAST",
     "OTHER_TECH",
   ]),
   name: z.string(),
@@ -566,7 +585,13 @@ owner-approved excerpts only; do not copy entire source posts. Minimum:
 - 30 cases total.
 - At least 15 relevant and 10 irrelevant cases.
 - At least three `FEATURE` cases.
+- At least two each of `PROJECT`, `PLUGIN` or `SKILL`, and `GUIDE` or
+  `CHEAT_SHEET` cases.
 - At least three multi-presentation cases.
+- Parent-leakage cases where a related project, feature, guide, or cheat sheet
+  names a well-known tool but only the primary subject is accepted.
+- Generic news and opinion cases that repeatedly name a tool but remain
+  irrelevant.
 - Multiple source languages represented.
 - Adversarial content containing instructions that the analyzer must ignore.
 - Cases with link-present and link-absent subjects.
