@@ -1,5 +1,6 @@
-import { CheckIcon, ChevronsUpDownIcon, SearchIcon, XIcon } from "lucide-react"
-import { useEffect, useState } from "react"
+import type { Channel } from "@techdex/contracts"
+import { CheckIcon, ChevronsUpDownIcon } from "lucide-react"
+import { useState } from "react"
 
 import { Button } from "~/components/ui/button"
 import {
@@ -11,12 +12,6 @@ import {
   CommandList,
 } from "~/components/ui/command"
 import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-} from "~/components/ui/input-group"
 import {
   Popover,
   PopoverContent,
@@ -35,29 +30,26 @@ import type { SearchFilters } from "~/domain/search"
 type SearchControlsProps = {
   readonly filters: SearchFilters
   readonly categories: readonly string[]
+  readonly channels: readonly Channel[]
   readonly tags: readonly string[]
   readonly onChange: (filters: SearchFilters, replace?: boolean) => void
 }
 
 const allCategoriesValue = "__all_categories__"
+const allChannelsValue = "__all_channels__"
+
+function channelHandle(channel: Channel): string {
+  return `@${new URL(channel.publicUrl).pathname.replace(/^\//u, "")}`
+}
 
 export function SearchControls({
   filters,
   categories,
+  channels,
   tags,
   onChange,
 }: SearchControlsProps) {
   const [tagPickerOpen, setTagPickerOpen] = useState(false)
-  const [queryDraft, setQueryDraft] = useState(filters.query)
-
-  useEffect(() => {
-    setQueryDraft(filters.query)
-  }, [filters.query])
-
-  function updateQuery(query: string) {
-    setQueryDraft(query)
-    onChange({ ...filters, query }, true)
-  }
 
   function toggleTag(tag: string) {
     const nextTags = filters.tags.includes(tag)
@@ -69,37 +61,7 @@ export function SearchControls({
 
   return (
     <FieldGroup className="gap-4">
-      <Field>
-        <FieldLabel htmlFor="tool-search" className="sr-only">
-          Search index
-        </FieldLabel>
-        <InputGroup className="h-14 rounded-xl bg-background shadow-sm">
-          <InputGroupInput
-            id="tool-search"
-            value={queryDraft}
-            onChange={(event) => updateQuery(event.target.value)}
-            placeholder="What was that technology for…"
-            autoComplete="off"
-            className="text-base md:text-base"
-          />
-          <InputGroupAddon align="inline-start">
-            <SearchIcon aria-hidden="true" />
-          </InputGroupAddon>
-          {filters.query ? (
-            <InputGroupAddon align="inline-end">
-              <InputGroupButton
-                size="icon-sm"
-                aria-label="Clear search"
-                onClick={() => updateQuery("")}
-              >
-                <XIcon />
-              </InputGroupButton>
-            </InputGroupAddon>
-          ) : null}
-        </InputGroup>
-      </Field>
-
-      <FieldGroup className="grid gap-3 sm:grid-cols-2">
+      <FieldGroup className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Field>
           <FieldLabel htmlFor="category-filter">Category</FieldLabel>
           <Select
@@ -107,7 +69,13 @@ export function SearchControls({
             onValueChange={(value) =>
               onChange(
                 value === allCategoriesValue
-                  ? { query: filters.query, tags: filters.tags }
+                  ? {
+                      query: filters.query,
+                      ...(filters.channelId
+                        ? { channelId: filters.channelId }
+                        : {}),
+                      tags: filters.tags,
+                    }
                   : { ...filters, category: value }
               )
             }
@@ -123,6 +91,42 @@ export function SearchControls({
                 {categories.map((category) => (
                   <SelectItem key={category} value={category}>
                     {category}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </Field>
+
+        <Field>
+          <FieldLabel htmlFor="channel-filter">Source channel</FieldLabel>
+          <Select
+            value={filters.channelId ?? allChannelsValue}
+            onValueChange={(value) =>
+              onChange(
+                value === allChannelsValue
+                  ? {
+                      query: filters.query,
+                      ...(filters.category
+                        ? { category: filters.category }
+                        : {}),
+                      tags: filters.tags,
+                    }
+                  : { ...filters, channelId: value }
+              )
+            }
+          >
+            <SelectTrigger id="channel-filter" className="w-full">
+              <SelectValue placeholder="Any source channel" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value={allChannelsValue}>
+                  Any source channel
+                </SelectItem>
+                {channels.map((channel) => (
+                  <SelectItem key={channel.id} value={channel.id}>
+                    {channelHandle(channel)} · {channel.name}
                   </SelectItem>
                 ))}
               </SelectGroup>

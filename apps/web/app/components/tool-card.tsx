@@ -8,11 +8,8 @@ import { Link } from "react-router"
 
 import { RelativeDate } from "~/components/relative-date"
 import { Badge } from "~/components/ui/badge"
-import {
-  distinctChannelCount,
-  firstPresentation,
-  formatTechnologyKind,
-} from "~/domain/tools"
+import { channelsById } from "~/data/channels"
+import { firstPresentation, formatTechnologyKind } from "~/domain/tools"
 
 type ToolCardProps = {
   readonly tool: Tool
@@ -24,9 +21,28 @@ function hostLabel(value: string): string {
   return new URL(value).hostname.replace(/^www\./u, "")
 }
 
+function channelHandle(publicUrl: string): string {
+  return `@${new URL(publicUrl).pathname.replace(/^\//u, "")}`
+}
+
+function channelFilterPath(search: string, channelId: string): string {
+  const params = new URLSearchParams(search)
+
+  params.delete("q")
+  params.set("channel", channelId)
+
+  return `/?${params.toString()}`
+}
+
 export function ToolCard({ tool, resultNumber, search }: ToolCardProps) {
-  const channelCount = distinctChannelCount(tool)
   const firstMention = firstPresentation(tool)
+  const sourceChannels = [
+    ...new Set(tool.mentions.map((mention) => mention.channelId)),
+  ].flatMap((channelId) => {
+    const channel = channelsById.get(channelId)
+
+    return channel ? [channel] : []
+  })
 
   return (
     <article className="tool-result grid gap-5 py-7 md:grid-cols-[3rem_minmax(0,1fr)_auto] md:py-9">
@@ -67,9 +83,25 @@ export function ToolCard({ tool, resultNumber, search }: ToolCardProps) {
           <span>
             Presented <RelativeDate value={firstMention.publishedAt} />
           </span>
-          <span className="inline-flex items-center gap-1.5">
+          <span
+            className="flex flex-wrap items-center gap-1.5"
+            aria-label="Source channels"
+          >
             <MessageCircleMoreIcon aria-hidden="true" />
-            {channelCount} {channelCount === 1 ? "channel" : "channels"}
+            {sourceChannels.map((channel) => {
+              const handle = channelHandle(channel.publicUrl)
+
+              return (
+                <Badge key={channel.id} variant="outline" asChild>
+                  <Link
+                    to={channelFilterPath(search, channel.id)}
+                    aria-label={`Filter by source channel ${channel.name} (${handle})`}
+                  >
+                    {handle}
+                  </Link>
+                </Badge>
+              )
+            })}
           </span>
           <Link
             to={`/tools/${tool.slug}`}

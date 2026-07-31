@@ -1,8 +1,8 @@
 import type { RetrievalEvalCase } from "@techdex/contracts"
 
 /**
- * Temporary behavior checks, not owner-approved retrieval cases.
- * Replace these with owner-written remembered needs before completing Plan 002.
+ * Dormant implementation-authored behavior checks for a future text-search
+ * feature. They are intentionally excluded from the completed Plan 002 gate.
  */
 export const retrievalEvalCases: readonly RetrievalEvalCase[] = [
   {

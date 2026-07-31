@@ -33,7 +33,7 @@ export default function NotFound() {
         className="mt-8 inline-flex w-fit items-center gap-1.5 font-medium underline decoration-primary decoration-2 underline-offset-4"
       >
         <ArrowLeftIcon aria-hidden="true" />
-        Return to search
+        Return to index
       </Link>
     </main>
   )

@@ -60,7 +60,7 @@ describe("home route", () => {
       await act(async () => {
         root = hydrateRoot(
           container,
-          <MemoryRouter initialEntries={["/?q=remote+pair"]}>
+          <MemoryRouter initialEntries={["/?channel=notboring-tech"]}>
             <Home />
           </MemoryRouter>
         )
@@ -68,7 +68,7 @@ describe("home route", () => {
 
       await waitFor(() => {
         expect(
-          within(container).getByRole("heading", { name: "1 entry" })
+          within(container).getByRole("heading", { name: "23 entries" })
         ).toBeInTheDocument()
       })
       expect(consoleError).not.toHaveBeenCalled()
@@ -90,6 +90,9 @@ describe("home route", () => {
       screen.getByRole("heading", { name: "58 entries" })
     ).toBeInTheDocument()
     expect(screen.getAllByRole("article")).toHaveLength(58)
+    expect(
+      screen.queryByRole("textbox", { name: "Search index" })
+    ).not.toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Cursor" })).toHaveAttribute(
       "href",
       "/tools/cursor"
@@ -134,45 +137,82 @@ describe("home route", () => {
     })
   })
 
-  it("accepts multi-word queries typed one key at a time", async () => {
+  it("filters by source channel from the selector", async () => {
     const user = userEvent.setup()
     const router = renderAt()
-    const searchInput = screen.getByRole("textbox", {
-      name: "Search index",
-    })
 
-    await user.type(searchInput, "remote pair")
+    await user.click(screen.getByRole("combobox", { name: "Source channel" }))
+    expect(
+      screen.queryByRole("option", { name: /@ai_newz/ })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("option", { name: /@denissexy/ })
+    ).not.toBeInTheDocument()
+    await user.click(
+      screen.getByRole("option", {
+        name: "@notboring_tech · Not Boring Tech",
+      })
+    )
 
     await waitFor(() => {
-      expect(searchInput).toHaveValue("remote pair")
       expect(
-        screen.getByRole("heading", { name: "1 entry" })
+        screen.getByRole("heading", { name: "23 entries" })
       ).toBeInTheDocument()
-      expect(screen.getByRole("link", { name: "Tuple" })).toBeInTheDocument()
-      expect(router.state.location.search).toBe("?q=remote+pair")
+      expect(router.state.location.search).toBe("?channel=notboring-tech")
+      expect(screen.getByText("Source · @notboring_tech")).toBeInTheDocument()
     })
   })
 
-  it("retains an empty-result query and clears back to the corpus", async () => {
+  it("makes each card's source chip a channel filter", async () => {
     const user = userEvent.setup()
-    const router = renderAt("/?q=no-such-technology")
-    const searchInput = screen.getByRole("textbox", {
-      name: "Search index",
+    const router = renderAt()
+    const cursorCard = screen
+      .getByRole("link", { name: "Cursor" })
+      .closest("article")
+
+    expect(cursorCard).not.toBeNull()
+
+    const sourceChip = within(cursorCard!).getByRole("link", {
+      name: "Filter by source channel запуск завтра (@ctodaily)",
     })
 
-    expect(searchInput).toHaveValue("no-such-technology")
+    expect(sourceChip).toHaveAttribute("href", "/?channel=ctodaily")
+    await user.click(sourceChip)
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "35 entries" })
+      ).toBeInTheDocument()
+      expect(router.state.location.search).toBe("?channel=ctodaily")
+    })
+  })
+
+  it("clears an incompatible source and category combination", async () => {
+    const user = userEvent.setup()
+    const router = renderAt()
+
+    await user.click(screen.getByRole("combobox", { name: "Category" }))
+    await user.click(screen.getByRole("option", { name: "Security" }))
+    await user.click(screen.getByRole("combobox", { name: "Source channel" }))
+    await user.click(
+      screen.getByRole("option", {
+        name: "@notboring_tech · Not Boring Tech",
+      })
+    )
+
     expect(
       screen.getByRole("heading", { name: "0 entries" })
     ).toBeInTheDocument()
     expect(
       screen.getByText("No entries match this combination")
     ).toBeInTheDocument()
-    expect(router.state.location.search).toBe("?q=no-such-technology")
+    expect(router.state.location.search).toBe(
+      "?category=Security&channel=notboring-tech"
+    )
 
     await user.click(screen.getByRole("button", { name: "Clear filters" }))
 
     await waitFor(() => {
-      expect(searchInput).toHaveValue("")
       expect(
         screen.getByRole("heading", { name: "58 entries" })
       ).toBeInTheDocument()
@@ -283,7 +323,7 @@ describe("tool detail route", () => {
       screen.getByText("Unknown subject / not-in-the-corpus")
     ).toBeInTheDocument()
     expect(
-      screen.getByRole("link", { name: "Return to search" })
+      screen.getByRole("link", { name: "Return to index" })
     ).toHaveAttribute("href", "/")
   })
 

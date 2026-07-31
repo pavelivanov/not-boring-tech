@@ -1,4 +1,4 @@
-import { FlaskConicalIcon, XIcon } from "lucide-react"
+import { CircleCheckIcon, XIcon } from "lucide-react"
 import { useSyncExternalStore } from "react"
 import { useLocation, useSearchParams } from "react-router"
 
@@ -7,6 +7,7 @@ import { ToolList } from "~/components/tool-list"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
+import { channels, channelsById } from "~/data/channels"
 import { categories, tags, tools } from "~/data/tools"
 import {
   parseSearchParams,
@@ -18,17 +19,27 @@ import { canonicalMeta } from "~/domain/urls"
 
 export function meta() {
   return [
-    { title: "TechDex · Search trusted Telegram technology mentions" },
+    { title: "TechDex · Browse trusted Telegram technology mentions" },
     {
       name: "description",
       content:
-        "Search technology subjects mentioned by trusted public Telegram channels, with dates and source provenance.",
+        "Browse technology subjects mentioned by trusted public Telegram channels, with dates and source provenance.",
     },
     ...canonicalMeta("/"),
   ]
 }
 
-const searchOptions = { categories, tags } as const
+const indexedChannelIds = new Set(
+  tools.flatMap((tool) => tool.mentions.map((mention) => mention.channelId))
+)
+const indexedChannels = channels.filter((channel) =>
+  indexedChannelIds.has(channel.id)
+)
+const searchOptions = {
+  categories,
+  channelIds: indexedChannels.map((channel) => channel.id),
+  tags,
+} as const
 const emptySearchParams = new URLSearchParams()
 
 function subscribeToHydration() {
@@ -61,7 +72,7 @@ export default function Home() {
   )
   const results = searchTools(tools, filters)
   const hasFilters = Boolean(
-    filters.query || filters.category || filters.tags.length
+    filters.category || filters.channelId || filters.tags.length
   )
 
   function updateFilters(next: SearchFilters, replace = false) {
@@ -86,17 +97,18 @@ export default function Home() {
           id="search-heading"
           className="mt-4 max-w-4xl font-heading text-5xl font-semibold tracking-[-0.06em] text-balance md:text-7xl lg:text-8xl"
         >
-          Find the technology you know you saw.
+          Browse the technology worth finding again.
         </h1>
         <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-          Search a curated cross-channel archive by name, purpose, category, or
-          tag—then follow the evidence back to the original post.
+          Filter the audited archive by category, source channel, or tag—then
+          follow the evidence back to the original post.
         </p>
 
         <div className="mt-10 border-y py-6 md:mt-12 md:py-8">
           <SearchControls
             filters={filters}
             categories={categories}
+            channels={indexedChannels}
             tags={tags}
             onChange={updateFilters}
           />
@@ -104,12 +116,12 @@ export default function Home() {
       </section>
 
       <Alert className="mt-6">
-        <FlaskConicalIcon aria-hidden="true" />
-        <AlertTitle>Provisional corpus</AlertTitle>
+        <CircleCheckIcon aria-hidden="true" />
+        <AlertTitle>Audited source corpus</AlertTitle>
         <AlertDescription>
-          Every indexed subject has verified public provenance from
-          @notboring_tech or @ctodaily. The final corpus and retrieval
-          expectations still require owner approval.
+          Every indexed subject has verified public provenance. Text search is
+          intentionally deferred; use the source, category, and tag filters for
+          now.
         </AlertDescription>
       </Alert>
 
@@ -117,7 +129,7 @@ export default function Home() {
         <div className="flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="font-mono text-xs tracking-[0.2em] text-muted-foreground uppercase">
-              Retrieval results
+              Indexed subjects
             </p>
             <h2 id="results-heading" className="mt-2 text-2xl font-semibold">
               {results.length} {results.length === 1 ? "entry" : "entries"}
@@ -131,7 +143,7 @@ export default function Home() {
             </Button>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Ranked by distinct-channel mentions
+              Sorted alphabetically
             </p>
           )}
         </div>
@@ -142,11 +154,16 @@ export default function Home() {
             aria-label="Active filters"
           >
             <span className="text-sm text-muted-foreground">Active:</span>
-            {filters.query ? (
-              <Badge variant="secondary">Query · {filters.query}</Badge>
-            ) : null}
             {filters.category ? (
               <Badge variant="secondary">Category · {filters.category}</Badge>
+            ) : null}
+            {filters.channelId ? (
+              <Badge variant="secondary">
+                Source ·
+                {` @${new URL(
+                  channelsById.get(filters.channelId)?.publicUrl ?? ""
+                ).pathname.replace(/^\//u, "")}`}
+              </Badge>
             ) : null}
             {filters.tags.map((tag) => (
               <Badge key={tag} variant="outline">

@@ -1,8 +1,7 @@
 import type { Channel } from "@techdex/contracts"
 import { describe, expect, it } from "vitest"
 
-import { channels, isTemporaryCorpus } from "../data/channels"
-import { retrievalEvalCases } from "../data/retrieval-eval"
+import { channels, isOwnerApprovedCorpus } from "../data/channels"
 import { subjectAuditCases } from "../data/subject-audit"
 import { categories, tags, tools } from "../data/tools"
 import { distinctChannelCount, firstPresentation } from "./tools"
@@ -11,16 +10,15 @@ function expectUnique(values: readonly string[]): void {
   expect(new Set(values).size).toBe(values.length)
 }
 
-describe("provisional fixture invariants", () => {
-  it("is visibly marked as temporary until the owner approves the final corpus", () => {
-    expect(isTemporaryCorpus).toBe(true)
+describe("fixture invariants", () => {
+  it("records owner approval of the audited corpus", () => {
+    expect(isOwnerApprovedCorpus).toBe(true)
   })
 
   it("provides enough records to exercise the planned interface", () => {
     expect(tools.length).toBeGreaterThanOrEqual(40)
     expect(categories.length).toBeGreaterThanOrEqual(5)
     expect(tags.length).toBeGreaterThanOrEqual(20)
-    expect(retrievalEvalCases.length).toBeGreaterThanOrEqual(15)
   })
 
   it("keeps identifiers and URLs unique where required", () => {
@@ -208,6 +206,8 @@ describe("provisional fixture invariants", () => {
     const approvedChannels = new Map([
       ["notboring-tech", "https://t.me/notboring_tech/"],
       ["ctodaily", "https://t.me/ctodaily/"],
+      ["ai-newz", "https://t.me/ai_newz/"],
+      ["denissexy", "https://t.me/denissexy/"],
     ])
 
     expect(channels).toContainEqual({
@@ -220,7 +220,17 @@ describe("provisional fixture invariants", () => {
       name: "запуск завтра",
       publicUrl: "https://t.me/ctodaily",
     })
-    expect(channels).toHaveLength(2)
+    expect(channels).toContainEqual({
+      id: "ai-newz",
+      name: "эйай ньюз",
+      publicUrl: "https://t.me/ai_newz",
+    })
+    expect(channels).toContainEqual({
+      id: "denissexy",
+      name: "Denis Sexy IT 🤖",
+      publicUrl: "https://t.me/denissexy",
+    })
+    expect(channels).toHaveLength(4)
     expect(verifiedSlugs).toHaveLength(58)
 
     for (const slug of verifiedSlugs) {

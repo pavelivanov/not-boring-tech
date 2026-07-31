@@ -69,7 +69,7 @@ export default function ToolDetail() {
           className="mt-8 inline-flex w-fit items-center gap-1.5 font-medium underline decoration-primary decoration-2 underline-offset-4"
         >
           <ArrowLeftIcon aria-hidden="true" />
-          Return to search
+          Return to index
         </Link>
       </main>
     )
@@ -88,7 +88,7 @@ export default function ToolDetail() {
         className="inline-flex items-center gap-1.5 text-sm font-medium underline decoration-border underline-offset-4 hover:decoration-primary"
       >
         <ArrowLeftIcon aria-hidden="true" />
-        Back to {originSearch ? "results" : "search"}
+        Back to {originSearch ? "filtered results" : "index"}
       </Link>
 
       <header className="mt-10 grid gap-8 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">

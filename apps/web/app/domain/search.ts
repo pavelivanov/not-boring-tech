@@ -13,11 +13,13 @@ const relevance = {
 export type SearchFilters = {
   readonly query: string
   readonly category?: string
+  readonly channelId?: string
   readonly tags: readonly string[]
 }
 
 export type SearchStateOptions = {
   readonly categories: readonly string[]
+  readonly channelIds: readonly string[]
   readonly tags: readonly string[]
 }
 
@@ -96,6 +98,13 @@ export function searchTools(
 
   for (const tool of corpus) {
     if (
+      filters.channelId &&
+      !tool.mentions.some((mention) => mention.channelId === filters.channelId)
+    ) {
+      continue
+    }
+
+    if (
       selectedCategory &&
       normalizeSearchText(tool.category) !== selectedCategory
     ) {
@@ -147,6 +156,12 @@ export function parseSearchParams(
   const validTags = new Map(
     options.tags.map((tag) => [normalizeSearchText(tag), tag])
   )
+  const validChannels = new Map(
+    options.channelIds.map((channelId) => [
+      normalizeSearchText(channelId),
+      channelId,
+    ])
+  )
   const categoryValue = params.get("category")
   const category = categoryValue
     ? validCategories.get(normalizeSearchText(categoryValue))
@@ -159,24 +174,28 @@ export function parseSearchParams(
         .filter((tag): tag is string => Boolean(tag))
     ),
   ]
+  const channelValue = params.get("channel")
+  const channelId = channelValue
+    ? validChannels.get(normalizeSearchText(channelValue))
+    : undefined
 
   return {
-    query: params.get("q")?.replace(/\s+/gu, " ").trim() ?? "",
+    query: "",
     ...(category ? { category } : {}),
+    ...(channelId ? { channelId } : {}),
     tags,
   }
 }
 
 export function serializeSearchParams(filters: SearchFilters): URLSearchParams {
   const params = new URLSearchParams()
-  const query = filters.query.replace(/\s+/gu, " ").trim()
-
-  if (query) {
-    params.set("q", query)
-  }
 
   if (filters.category) {
     params.set("category", filters.category)
+  }
+
+  if (filters.channelId) {
+    params.set("channel", filters.channelId)
   }
 
   for (const tag of [...new Set(filters.tags)].sort((left, right) =>

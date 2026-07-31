@@ -36,7 +36,7 @@ verification gate, and update its status row when finished.
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | [001](001-setup-turborepo-monorepo.md) | Establish the Turborepo monorepo | P1 | S | — | DONE |
-| [002](002-build-retrieval-website.md) | Build the retrieval website | P1 | M | 001 | IN PROGRESS |
+| [002](002-build-retrieval-website.md) | Build the retrieval website | P1 | M | 001 | DONE |
 | [003](003-build-telegram-collector-service.md) | Analyze Telegram posts and persist structured presentations | P1 | L | 001, 002 gate | TODO |
 
 Status values: `TODO` | `IN PROGRESS` | `DONE` | `BLOCKED: <reason>` |
@@ -59,21 +59,19 @@ Status values: `TODO` | `IN PROGRESS` | `DONE` | `BLOCKED: <reason>` |
 All must be true before starting Plan 003:
 
 1. Plan 002 is `DONE`.
-2. The website contains at least 40 real tools from the intended public-channel
-   corpus.
-3. The checked-in retrieval evaluation contains at least 15 owner-written
-   queries.
-4. For at least 12 of those 15 queries, an expected tool appears in the first
-   five results.
-5. The owner approves the result-card and tool-detail information.
+2. The website contains at least 40 real subjects from the intended
+   public-channel corpus.
+3. The owner approves the audited corpus.
+4. The owner approves the result-card and tool-detail information.
+5. The repository and production-browser gates pass.
 
 This is an offline product-quality gate, not visitor analytics.
 
-Current gate record (2026-07-31): the audited corpus and demonstrated
-information design are owner-approved, the 22 temporary behavior checks pass,
-and the full repository/browser gates pass. Still open are 15 owner-authored
-remembered-search queries and five genuine cross-channel subjects; therefore
-Plan 002 remains `IN PROGRESS`.
+Gate passed on 2026-07-31: the audited corpus and demonstrated information
+design are owner-approved; source-channel filtering and card chips pass the
+automated and production-browser checks. Text search and its remembered-query
+evaluation are deferred to a later feature, and cross-channel coverage is not
+required. Plan 003 is unblocked.
 
 ## Scope of the analysis plan
 

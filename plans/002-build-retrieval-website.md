@@ -15,6 +15,7 @@
 
 ## Status
 
+- **Status**: DONE
 - **Priority**: P1
 - **Effort**: M (approximately three to five focused days, including curation)
 - **Risk**: MEDIUM
@@ -26,19 +27,19 @@
 
 - The owner approved the audited 58-subject corpus.
 - The owner approved the demonstrated result-card and detail-page information.
-- The owner accepted the current 22 deterministic cases as useful behavior
-  checks. They remain implementation-authored checks, so the separate gate for
-  at least 15 owner-authored remembered-search queries is still open.
-- Five genuine cross-channel subjects are still required. The earlier apparent
-  matches were removed because the second-channel posts only mentioned the
-  parent technology as context.
+- The owner deferred text search to a later feature. The query input and `q`
+  state are hidden, and the 22 implementation-authored query cases are not a
+  Plan 002 gate.
+- The owner removed cross-channel coverage as a prototype requirement.
+- Source-channel chips and URL-backed source-channel filtering are part of the
+  approved interface.
 
 ## Why this matters
 
 The business plan identifies retrieval—not discovery—as the recurring problem
 and explicitly requires a static, zero-backend prototype before ingestion
 (`business-plan.md:11-17`, `business-plan.md:113-121`). This plan tests whether
-search, filters, provenance, dates, and result formatting are useful with a
+filters, provenance, dates, and result formatting are useful with a
 representative real corpus.
 
 The output is a responsive, public, English-language, read-only website built
@@ -51,10 +52,9 @@ crawling.
 A visitor can:
 
 1. Open the site without an account.
-2. Search tools by name, purpose, category, or tag.
-3. combine the query with one category and multiple tags.
-4. See when a tool was first presented and how many distinct channels mentioned
-   it.
+2. Filter subjects by category, source channel, or tag.
+3. Combine one category, one source channel, and multiple tags.
+4. See when a subject was first presented and which channels mentioned it.
 5. Open a stable tool page and follow every source Telegram post.
 6. Clear filters or recover from an empty result without losing context.
 
@@ -246,64 +246,52 @@ intended public Telegram-channel corpus:
 
 - At least five categories.
 - At least 20 distinct tags.
-- At least five tools mentioned by two or more distinct channels.
 - Valid canonical tool URLs and valid public source-post URLs.
 - Short original English descriptions; do not reproduce full channel posts.
 - Publication dates from the source posts and a realistic `collectedAt`.
 - Explicit attribution through the channel and source link.
-
-Create at least 15 owner-written retrieval cases based on remembered needs, not
-queries reverse-engineered from the fixture descriptions. An expected tool must
-rank in the top five for at least 12 of 15 cases.
 
 The owner supplies or approves the public channel set and the final expected
 tools. If no representative public corpus is available, use clearly marked
 temporary sample records only to build the interface, but Plan 002 cannot be
 marked `DONE` and Plan 003 cannot start.
 
-## Deterministic prototype search
+## Deterministic prototype filtering
 
-Implement search as a pure function over fixtures. Normalize case, Unicode, and
-repeated whitespace. Do not add network calls or claim semantic search.
+Implement category, source-channel, and tag filtering as a pure function over
+fixtures. Text search is deferred and must not be presented in the Plan 002 UI.
+Existing query-ranking code and evaluation fixtures may remain dormant for a
+later feature, but they do not participate in this plan's acceptance gate.
 
 Use these rules:
 
-1. The text query, selected category, and selected tags combine with AND.
-2. The category filter permits zero or one category.
-3. Selected tags use OR within the tag facet: a tool matching any selected tag
-   remains eligible.
-4. An empty query returns all filter-eligible tools.
-5. Match relevance in this order:
-   - exact normalized tool name;
-   - name prefix or complete name token;
-   - tag;
-   - category;
-   - description token.
-6. Tie-break by distinct-channel count descending, then tool name ascending.
-7. With no text query, sort by distinct-channel count descending, then name.
+1. The selected category, source channel, and selected tags combine with AND.
+2. Category and source-channel filters each permit zero or one value.
+3. Selected tags use OR within the tag facet: a subject matching any selected
+   tag remains eligible.
+4. No filters returns the complete corpus, sorted by name.
+5. Every card shows its distinct source channels as chips; activating a chip
+   applies the matching source-channel filter.
 
-Weights may be represented as constants, but tests must assert ordering rather
-than internal score values. Avoid fuzzy-search dependencies until the owner has
-shown that deterministic matching is insufficient.
+URL filter parameters are the state boundary:
 
-URL search parameters are the state boundary:
-
-- `q` for the text query;
 - `category` for the single category;
+- `channel` for the single source channel;
 - repeated `tag` values for tags.
 
 Opening, refreshing, sharing, and using browser back/forward must preserve the
-same result set. Invalid category/tag values are ignored and removed on the next
-state update rather than causing an error.
+same result set. Invalid category/channel/tag values are ignored and removed on
+the next state update rather than causing an error. A legacy `q` parameter is
+ignored while text search is deferred.
 
 ## Information architecture and UI
 
 ### Home route
 
-- A concise heading explaining that this is a search index of tools mentioned
+- A concise heading explaining that this is an index of subjects mentioned
   by trusted Telegram channels.
-- One primary search control.
 - A category selector.
+- A source-channel selector.
 - A searchable tag picker.
 - A result count and active-filter summary.
 - A single vertical result list; avoid a dashboard/card-grid aesthetic.
@@ -314,6 +302,7 @@ Each result must show:
 - Tool name linked to its stable detail route.
 - One-line English description.
 - Category and a restrained subset of tags.
+- Source-channel chips that apply the matching source filter.
 - “Presented … ago” based on the earliest source publication.
 - Distinct-channel mention count.
 - Canonical tool URL and a clear provenance affordance.
@@ -325,7 +314,8 @@ Each result must show:
 - Every mention ordered by `publishedAt`, newest first.
 - Channel name, absolute publication date, relative age, and direct Telegram
   source URL for each mention.
-- A link back to the current search when navigation originated from results.
+- A link back to the current filtered index when navigation originated from
+  results.
 - A real not-found state for an unknown slug.
 
 ### About route
@@ -364,7 +354,7 @@ npx shadcn@latest add \
 ```
 
 Use semantic theme tokens in `app.css`; do not hard-code arbitrary colors into
-each component. Keep the visual hierarchy search-led, restrained, and readable.
+each component. Keep the visual hierarchy index-led, restrained, and readable.
 Icons need accessible names where they are the only control label.
 
 ## Rendering and crawlability
@@ -440,18 +430,15 @@ personal notes.
 npm run test --workspace=@techdex/web -- --run
 ```
 
-Expected: fixture-invariant tests pass and report at least 40 tools, five
-categories, 20 tags, five cross-channel tools, and 15 evaluation cases.
+Expected: fixture-invariant tests pass and report at least 40 subjects, five
+categories, and 20 tags.
 
-### Step 4: Implement and evaluate deterministic retrieval
+### Step 4: Implement deterministic filtering
 
-Implement the pure search/filter/sort function and unit tests covering exact
-names, partial names, description terms, category, multiple tags, combined
-filters, empty queries, stable tie-breaking, and Unicode/case normalization.
-
-Add a test that computes the top-five evaluation pass rate and prints failures
-with query and expected slugs. Tune only documented ranking constants; do not
-edit fixture descriptions merely to make the test pass.
+Implement pure filter/sort behavior and unit tests covering category, source
+channel, multiple tags, combined filters, empty filters, stable ordering, and
+URL parameter normalization. Keep any dormant query-ranking code disconnected
+from the public route.
 
 **Verify**:
 
@@ -459,7 +446,7 @@ edit fixture descriptions merely to make the test pass.
 npm run test --workspace=@techdex/web -- --run
 ```
 
-Expected: at least 12 of 15 evaluation cases pass at top five.
+Expected: all filter and URL-state tests pass.
 
 ### Step 5: Build routes and interface
 
@@ -501,18 +488,18 @@ path only if the current official template intentionally uses a different one.
 Run the production build locally and inspect at mobile and desktop widths.
 Exercise:
 
-- query typing, category selection, multiple tags, and clear-all;
+- category selection, source-channel selection, source chips, multiple tags,
+  and clear-all;
 - shared URL reload and browser back/forward;
 - zero-result recovery;
 - opening a tool detail page directly;
 - an unknown tool slug;
-- keyboard-only search/filter/detail navigation;
+- keyboard-only filter/detail navigation;
 - focus visibility and accessible names;
 - long tool names, descriptions, tags, and channel names;
 - no hydration warnings or console errors.
 
-The owner reviews at least the common query cases and the information shown on a
-result and detail page.
+The owner reviews the information shown on a result and detail page.
 
 **Verify**: save no screenshots or browser artifacts to the repository unless
 they are deliberately added to documentation.
@@ -532,16 +519,16 @@ Expected: exit 0 across every workspace.
 
 - Fixture referential integrity and uniqueness.
 - Derived first-presentation date and distinct-channel count.
-- Search normalization, eligibility, scoring order, and stable tie-breaks.
-- Query-parameter parse/serialize round trips.
+- Filter eligibility and stable ordering.
+- Filter-parameter parse/serialize round trips.
 - Relative and absolute date formatting.
-- Retrieval evaluation threshold.
 
 ### Route/component
 
 - Home renders the unfiltered corpus.
 - Filters update both results and URL.
-- Empty results retain the active query and expose clear-all.
+- Source-channel chips and selector update both results and URL.
+- Empty results retain active filters and expose clear-all.
 - Tool detail lists every source mention.
 - Unknown slug renders not found.
 - External links use the expected URL and safe relationship.
@@ -560,18 +547,15 @@ Expected: exit 0 across every workspace.
 - [x] `@techdex/web` and `@techdex/contracts` are npm workspaces with no nested
       lockfile.
 - [x] The UI uses Vite, React, TypeScript, Tailwind CSS, and shadcn/ui.
-- [ ] At least 40 real, attributed tools meet all fixture coverage rules.
-- [ ] At least five subjects have genuine mentions from two or more distinct
-      approved channels.
-- [ ] At least 12 of 15 owner-written queries pass at top five.
-- [x] Search, category, and tag state survives refresh and sharing.
+- [x] At least 40 real, attributed subjects meet all fixture coverage rules.
+- [x] Category, source-channel, and tag state survives refresh and sharing.
 - [x] Home, about, and every known tool page are pre-rendered.
 - [x] Publication date, relative age, and all source mentions are visible.
 - [x] The website remains public, read-only, English, and free of analytics/auth.
 - [x] Browser quality pass and owner information-design review are complete.
 - [x] `npm run check` exits 0.
-- [ ] Only in-scope paths changed.
-- [ ] Plan 002 status is updated.
+- [x] Only in-scope paths changed.
+- [x] Plan 002 status is updated.
 
 ## STOP conditions
 

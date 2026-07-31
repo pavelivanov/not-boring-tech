@@ -1,7 +1,7 @@
 import type { Mention, Tool } from "@techdex/contracts"
 import { describe, expect, it } from "vitest"
 
-import { retrievalEvalCases } from "../data/retrieval-eval"
+import { channels } from "../data/channels"
 import { categories, tags, tools } from "../data/tools"
 import {
   normalizeSearchText,
@@ -13,6 +13,11 @@ import {
 const emptyFilters = {
   query: "",
   tags: [],
+} as const
+const filterOptions = {
+  categories,
+  channelIds: channels.map((channel) => channel.id),
+  tags,
 } as const
 
 describe("deterministic retrieval", () => {
@@ -102,6 +107,20 @@ describe("deterministic retrieval", () => {
     ).toEqual(["surveillance-self-defense"])
   })
 
+  it("filters by source channel", () => {
+    const results = searchTools(tools, {
+      ...emptyFilters,
+      channelId: "notboring-tech",
+    })
+
+    expect(results).toHaveLength(23)
+    expect(
+      results.every((tool) =>
+        tool.mentions.some((mention) => mention.channelId === "notboring-tech")
+      )
+    ).toBe(true)
+  })
+
   it("breaks equal scores by channel count and then name", () => {
     const firstMention: Mention = {
       channelId: "one",
@@ -152,65 +171,38 @@ describe("deterministic retrieval", () => {
       )
     ).toEqual(["gamma", "alpha", "beta"])
   })
-
-  it("meets the temporary top-five retrieval threshold", () => {
-    const failures = retrievalEvalCases.flatMap((testCase) => {
-      const results = searchTools(tools, {
-        query: testCase.query,
-        ...(testCase.category ? { category: testCase.category } : {}),
-        tags: testCase.tags ?? [],
-      })
-      const topFive = results.slice(0, 5).map((tool) => tool.slug)
-      const passed = testCase.expectedToolSlugs.some((slug) =>
-        topFive.includes(slug)
-      )
-
-      return passed
-        ? []
-        : [
-            `${testCase.query}: expected ${testCase.expectedToolSlugs.join(
-              ", "
-            )}; received ${topFive.join(", ") || "no results"}`,
-          ]
-    })
-    const passCount = retrievalEvalCases.length - failures.length
-
-    if (failures.length > 0) {
-      console.warn(failures.join("\n"))
-    }
-
-    expect(failures.length, failures.join("\n")).toBeLessThanOrEqual(3)
-    expect(passCount).toBeGreaterThanOrEqual(12)
-  })
 })
 
-describe("URL search state", () => {
+describe("URL filter state", () => {
   it("parses valid values and ignores invalid or duplicate facets", () => {
     const params = new URLSearchParams(
-      "q=%20local+++models%20&category=AI+development&category=Security&tag=LLM&tag=LLM&tag=unknown"
+      "q=%20hidden+++for+now%20&category=AI+development&category=Security&channel=CTODAILY&tag=LLM&tag=LLM&tag=unknown"
     )
 
-    expect(parseSearchParams(params, { categories, tags })).toEqual({
-      query: "local models",
+    expect(parseSearchParams(params, filterOptions)).toEqual({
+      query: "",
       category: "AI development",
+      channelId: "ctodaily",
       tags: ["LLM"],
     })
   })
 
-  it("serializes a stable query string and round-trips", () => {
+  it("serializes stable facets, omits the dormant query, and round-trips", () => {
     const state = {
       query: "  local   models ",
       category: "AI development",
+      channelId: "notboring-tech",
       tags: ["terminal", "LLM", "terminal"],
     } as const
     const params = serializeSearchParams(state)
 
     expect(params.toString()).toBe(
-      "q=local+models&category=AI+development&tag=LLM&tag=terminal"
+      "category=AI+development&channel=notboring-tech&tag=LLM&tag=terminal"
     )
-    expect(parseSearchParams(params, { categories, tags })).toEqual({
-      query: "local models",
+    expect(parseSearchParams(params, filterOptions)).toEqual({
+      query: "",
       category: "AI development",
+      channelId: "notboring-tech",
       tags: ["LLM", "terminal"],
     })
   })

@@ -1,6 +1,6 @@
 import type { Channel } from "@techdex/contracts"
 
-export const isTemporaryCorpus = true
+export const isOwnerApprovedCorpus = true
 
 export const channels = [
   {
@@ -12,6 +12,16 @@ export const channels = [
     id: "ctodaily",
     name: "запуск завтра",
     publicUrl: "https://t.me/ctodaily",
+  },
+  {
+    id: "ai-newz",
+    name: "эйай ньюз",
+    publicUrl: "https://t.me/ai_newz",
+  },
+  {
+    id: "denissexy",
+    name: "Denis Sexy IT 🤖",
+    publicUrl: "https://t.me/denissexy",
   },
 ] as const satisfies readonly Channel[]
 

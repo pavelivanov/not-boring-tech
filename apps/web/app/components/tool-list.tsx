@@ -29,8 +29,8 @@ export function ToolList({ tools, search, onClear }: ToolListProps) {
           </EmptyMedia>
           <EmptyTitle>No entries match this combination</EmptyTitle>
           <EmptyDescription>
-            Keep the query and adjust a facet, or clear everything and begin
-            again.
+            Adjust a source, category, or tag filter—or clear everything and
+            begin again.
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>

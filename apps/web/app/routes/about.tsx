@@ -24,7 +24,7 @@ export default function About() {
         className="inline-flex items-center gap-1.5 text-sm font-medium underline decoration-border underline-offset-4 hover:decoration-primary"
       >
         <ArrowLeftIcon aria-hidden="true" />
-        Back to search
+        Back to index
       </Link>
 
       <header className="mt-10 max-w-3xl">
@@ -36,8 +36,8 @@ export default function About() {
         </h1>
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
           TechDex turns a bounded set of trusted public Telegram channels into a
-          searchable index. It is designed for finding a useful tool again—not
-          for manufacturing another discovery feed.
+          filterable index. It is designed for finding a useful subject
+          again—not for manufacturing another discovery feed.
         </p>
       </header>
 
@@ -65,9 +65,9 @@ export default function About() {
         <section className="flex flex-col gap-3">
           <h2 className="text-xl font-semibold">Read-only by design</h2>
           <p className="leading-relaxed text-muted-foreground">
-            Visitors can search and follow sources, but cannot create, edit, or
-            delete records. Updates are handled by controlled collection and
-            maintenance tooling outside the public website.
+            Visitors can filter the index and follow sources, but cannot create,
+            edit, or delete records. Updates are handled by controlled
+            collection and maintenance tooling outside the public website.
           </p>
         </section>
 

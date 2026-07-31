@@ -66,39 +66,32 @@ base: `--preset nova --base radix`.
 ### Fixture-only boundary
 
 The website has no backend or network data source. It reads checked-in
-TypeScript fixtures and runs deterministic local search over them.
+TypeScript fixtures and runs deterministic local filtering over them. Text
+search is intentionally hidden for now and can return as a later feature.
 
 The current 58 subject identities and canonical URLs are real. The corpus uses
 verified public mentions from the owner-approved `@notboring_tech` and
-`@ctodaily` channels for every record. After enforcing primary-subject
-identity, all current records have single-channel provenance; the earlier
-cross-channel matches were caused by contextual-name leakage.
+`@ctodaily` channels for every current record. `@ai_newz` and `@denissexy` are
+also registered as owner-approved sources for subsequent collection. The owner
+approved the audited corpus on 2026-07-31; cross-channel coverage is not a
+prototype requirement. Plan 002's website gate is complete.
 
 Subject identity is explicit: records are classified as tools, projects,
 libraries, services, products, features, plugins, skills, guides, cheat sheets,
-podcasts, or other technology. Features link to their parent record, but their source
-mentions are never inherited by that parent. Related projects, plugins, guides,
-and cheat sheets also remain separate records. Generic news and opinion do not
-create searchable records.
+podcasts, or other technology. Features link to their parent record, but their
+source mentions are never inherited by that parent. Related projects, plugins,
+guides, and cheat sheets also remain separate records. Generic news and opinion
+do not create indexed records.
 
 `apps/web/app/data/subject-audit.ts` captures 59 source-level regression cases
-from the Claude Code audit. The fixture invariant tests require each reviewed
-post to resolve to exactly its audited primary subject or to no subject.
+from the full corpus audit. The fixture invariant tests require each reviewed
+post to resolve to exactly its audited primary subject or to no subject. The
+current deterministic query cases remain dormant implementation notes for the
+future search feature and are not part of the Plan 002 gate.
 
-The checked-in corpus selection remains provisional until the owner approves the
-final corpus. The current retrieval evaluation cases are also temporary
-behavior checks, not owner-written acceptance queries.
-
-Do not:
-
-- present the provisional corpus selection as owner-approved;
-- use these fixtures as collector, API, or database seed data;
-- mark Plan 002 `DONE` or begin Plan 003 before the remaining owner gates pass.
-
-Before completing Plan 002, obtain owner approval for the final tool set,
-replace the temporary behavior checks with at least 15 owner-written retrieval
-cases, obtain result-card and tool-detail approval, then rerun the retrieval,
-browser, and repository gates.
+Cards expose their Telegram source channels as filter chips. Category, source
+channel, and tag filters are URL-backed and shareable. Do not use these fixtures
+as collector, API, or database seed data.
 
 ## Commands
 

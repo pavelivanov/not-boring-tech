@@ -33,12 +33,12 @@ function ctoDailyMention(
 }
 
 /**
- * Verified provisional corpus.
+ * Verified owner-approved corpus.
  *
  * Tool identities and canonical URLs are real. Mentions using
  * `notBoringMention` or `ctoDailyMention` were verified against their
- * owner-approved public channels. The final subject selection and retrieval
- * expectations still require owner approval before Plan 002 can be complete.
+ * owner-approved public channels. Subject assignments follow the checked-in
+ * primary-subject audit rather than incidental names in a source post.
  */
 export const tools: readonly Tool[] = [
   {

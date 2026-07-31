@@ -53,7 +53,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     )
                   }
                 >
-                  Search
+                  Index
                 </NavLink>
                 <NavLink
                   to="/about"
@@ -72,7 +72,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {children}
           <footer className="border-t">
             <div className="page-width flex flex-col gap-2 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-              <p>Public, read-only, and built for retrieval.</p>
+              <p>Public, read-only, and grounded in direct sources.</p>
               <p>No accounts · no analytics · direct sources</p>
             </div>
           </footer>
@@ -119,7 +119,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         to="/"
         className="mt-8 w-fit font-medium underline decoration-primary decoration-2 underline-offset-4"
       >
-        Return to search
+        Return to index
       </Link>
       {stack && (
         <pre className="mt-8 w-full overflow-x-auto rounded-lg bg-muted p-4 text-xs">
