@@ -22,6 +22,17 @@
 - **Category**: feature
 - **Planned at**: unborn repository, 2026-07-30
 
+### Owner gate decisions — 2026-07-31
+
+- The owner approved the audited 58-subject corpus.
+- The owner approved the demonstrated result-card and detail-page information.
+- The owner accepted the current 22 deterministic cases as useful behavior
+  checks. They remain implementation-authored checks, so the separate gate for
+  at least 15 owner-authored remembered-search queries is still open.
+- Five genuine cross-channel subjects are still required. The earlier apparent
+  matches were removed because the second-channel posts only mentioned the
+  parent technology as context.
+
 ## Why this matters
 
 The business plan identifies retrieval—not discovery—as the recurring problem
@@ -545,18 +556,20 @@ Expected: exit 0 across every workspace.
 
 ## Done criteria
 
-- [ ] Plan 001 is `DONE`.
-- [ ] `@techdex/web` and `@techdex/contracts` are npm workspaces with no nested
+- [x] Plan 001 is `DONE`.
+- [x] `@techdex/web` and `@techdex/contracts` are npm workspaces with no nested
       lockfile.
-- [ ] The UI uses Vite, React, TypeScript, Tailwind CSS, and shadcn/ui.
+- [x] The UI uses Vite, React, TypeScript, Tailwind CSS, and shadcn/ui.
 - [ ] At least 40 real, attributed tools meet all fixture coverage rules.
+- [ ] At least five subjects have genuine mentions from two or more distinct
+      approved channels.
 - [ ] At least 12 of 15 owner-written queries pass at top five.
-- [ ] Search, category, and tag state survives refresh and sharing.
-- [ ] Home, about, and every known tool page are pre-rendered.
-- [ ] Publication date, relative age, and all source mentions are visible.
-- [ ] The website remains public, read-only, English, and free of analytics/auth.
-- [ ] Browser quality pass and owner information-design review are complete.
-- [ ] `npm run check` exits 0.
+- [x] Search, category, and tag state survives refresh and sharing.
+- [x] Home, about, and every known tool page are pre-rendered.
+- [x] Publication date, relative age, and all source mentions are visible.
+- [x] The website remains public, read-only, English, and free of analytics/auth.
+- [x] Browser quality pass and owner information-design review are complete.
+- [x] `npm run check` exits 0.
 - [ ] Only in-scope paths changed.
 - [ ] Plan 002 status is updated.
 

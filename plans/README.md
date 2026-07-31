@@ -69,6 +69,12 @@ All must be true before starting Plan 003:
 
 This is an offline product-quality gate, not visitor analytics.
 
+Current gate record (2026-07-31): the audited corpus and demonstrated
+information design are owner-approved, the 22 temporary behavior checks pass,
+and the full repository/browser gates pass. Still open are 15 owner-authored
+remembered-search queries and five genuine cross-channel subjects; therefore
+Plan 002 remains `IN PROGRESS`.
+
 ## Scope of the analysis plan
 
 Plan 003 implements the core collection-and-analysis loop. It reads each public
