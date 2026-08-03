@@ -44,12 +44,12 @@ verification gate, and update its status row when finished.
 
 ## Execution order and status
 
-| Plan                                           | Title                                                       | Priority | Effort | Depends on                      | Status                                  |
-| ---------------------------------------------- | ----------------------------------------------------------- | -------- | ------ | ------------------------------- | --------------------------------------- |
-| [001](001-setup-turborepo-monorepo.md)         | Establish the Turborepo monorepo                            | P1       | S      | —                               | DONE                                    |
-| [002](002-build-retrieval-website.md)          | Build the retrieval website                                 | P1       | M      | 001                             | DONE                                    |
-| [003](003-build-telegram-collector-service.md) | Analyze Telegram posts and persist structured presentations | P1       | L      | 001, 002 gate                   | IN PROGRESS: live edit smoke pending    |
-| [004](004-build-dynamic-production-stack.md)   | Build the dynamic four-service Railway production stack     | P1       | L      | 003 offline; 003 live to deploy | IN PROGRESS: parser source/cron pending |
+| Plan                                           | Title                                                       | Priority | Effort | Depends on                      | Status |
+| ---------------------------------------------- | ----------------------------------------------------------- | -------- | ------ | ------------------------------- | ------ |
+| [001](001-setup-turborepo-monorepo.md)         | Establish the Turborepo monorepo                            | P1       | S      | —                               | DONE   |
+| [002](002-build-retrieval-website.md)          | Build the retrieval website                                 | P1       | M      | 001                             | DONE   |
+| [003](003-build-telegram-collector-service.md) | Analyze Telegram posts and persist structured presentations | P1       | L      | 001, 002 gate                   | DONE   |
+| [004](004-build-dynamic-production-stack.md)   | Build the dynamic four-service Railway production stack     | P1       | L      | 003 offline; 003 live to deploy | DONE   |
 
 Status values: `TODO` | `IN PROGRESS` | `DONE` | `BLOCKED: <reason>` |
 `REJECTED: <reason>`.
@@ -62,11 +62,14 @@ and `/health` plus `/ready` Compose probes. Controlled production work on
 repeat run, secret/data-hygiene checks, and the 30-case synthetic OpenAI
 evaluation at 1.00 precision, 1.00 recall, 1.00 kind accuracy, and zero URL
 grounding violations. A disable/re-enable run also proved that exclusively
-sourced items become hidden without deleting provenance. The real Telegram
-edit transition remains outstanding, so the parser's GitHub source connection
-and twice-daily cron intentionally remain disabled. The direct Hono Node
-adapter was upgraded to patched version 2.0.12 on 2026-08-02; the production
-service image audit reports zero vulnerabilities.
+sourced items become hidden without deleting provenance. Bounded recent-edit
+detection is implemented and integration-tested; the owner explicitly waived
+observing a real edited Telegram post in production on 2026-08-03, so that gate
+is recorded as waived rather than passed. The parser is connected to GitHub
+`main`; its `0 */12 * * *` UTC cron completed a controlled scheduled run with
+zero failed channels before the normal schedule was restored. The direct Hono
+Node adapter was upgraded to patched version 2.0.12 on 2026-08-02; the
+production service image audit reports zero vulnerabilities.
 
 ## Dependency notes
 

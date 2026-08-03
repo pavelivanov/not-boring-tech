@@ -243,11 +243,16 @@ channel disable/re-enable check reduced the visible catalog to 167 items while
 all 187 catalog rows, 199 candidates, and 413 analyzed-post ledgers remained
 stored, then restored all four channels and 187 visible items.
 
-The parser remains private with no domain. Its GitHub source connection and
-`0 */12 * * *` UTC cron are intentionally disabled until the outstanding live
-Telegram edit transition proves production re-analysis and candidate
-replacement. Do not mark Plans 003/004 complete or enable the cron before that
-gate passes.
+The parser is private with no domain, connected to GitHub `main`, and scheduled
+at `0 */12 * * *` UTC with restart policy `NEVER`. A controlled scheduled run
+completed successfully on 2026-08-03 with 200 recent posts fetched, all 200
+skipped by unchanged content hash, zero OpenAI analyses, and zero failed
+channels; the next normal run was recorded as 2026-08-04 00:00 UTC.
+
+The owner explicitly waived the live Telegram edit transition on 2026-08-03.
+Bounded recent-edit detection is implemented and covered by disposable-database
+integration tests, but this handoff does not claim that a real edited Telegram
+post was observed in production.
 
 ### Production database recovery
 
