@@ -143,11 +143,7 @@ export function SearchControls({
   const [showAllTags, setShowAllTags] = useState(false)
   const tagInputId = useId()
   const hasFilters = Boolean(
-    filters.query ||
-    filters.kind ||
-    filters.category ||
-    filters.channel ||
-    filters.tags.length
+    filters.kind || filters.category || filters.channel || filters.tags.length
   )
   const normalizedTagQuery = tagQuery.trim().toLocaleLowerCase("en")
   const matchingTags = normalizedTagQuery
@@ -186,7 +182,7 @@ export function SearchControls({
   }
 
   function clearAll() {
-    onChange({ query: "", tags: [], sort: filters.sort })
+    onChange({ query: filters.query, tags: [], sort: filters.sort })
   }
 
   return (

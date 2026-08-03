@@ -346,6 +346,21 @@ describe("home route", () => {
     ).toBe(true)
   })
 
+  it("resets popover facets without erasing the global search", async () => {
+    const user = userEvent.setup()
+    const router = renderAt("/?q=runtime&kind=LIBRARY")
+
+    await screen.findByRole("link", { name: /Dynamic Signal project/ })
+    await user.click(screen.getByRole("button", { name: /^Filters/ }))
+    await user.click(screen.getByRole("button", { name: "Reset" }))
+
+    await waitFor(() => expect(router.state.location.search).toBe("?q=runtime"))
+    expect(screen.getByRole("heading", { name: "Filters" })).toBeVisible()
+    expect(screen.getByRole("searchbox", { name: "Search index" })).toHaveValue(
+      "runtime"
+    )
+  })
+
   it("distinguishes an empty database from filtered zero results", async () => {
     databaseEmpty = true
     const { unmount } = render(

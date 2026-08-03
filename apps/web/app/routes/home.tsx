@@ -225,7 +225,15 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
           <div className="catalog-toolbar-filters">
             <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
               <PopoverTrigger asChild>
-                <Button variant="ink" size="pill">
+                <Button
+                  variant="ink"
+                  size="pill"
+                  aria-label={
+                    activeFilterCount > 0
+                      ? `Filters, ${activeFilterCount} active`
+                      : "Filters"
+                  }
+                >
                   <ListFilterIcon data-icon="inline-start" aria-hidden="true" />
                   Filters
                   {activeFilterCount > 0 ? (
@@ -243,8 +251,9 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
               <PopoverContent
                 className="filter-popover-content"
                 align="start"
-                sideOffset={12}
-                collisionPadding={16}
+                sideOffset={8}
+                collisionPadding={12}
+                onInteractOutside={(event) => event.preventDefault()}
               >
                 <SearchControls {...filterControlProps} />
               </PopoverContent>
