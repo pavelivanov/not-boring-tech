@@ -3,6 +3,7 @@ import { acquireSyncAdvisoryLock, createDbClient } from "@techdex/db";
 import { createOpenAiPostAnalyzer } from "./analyzer/openai-post-analyzer";
 import { runSync } from "./collector/run-sync";
 import { ConfigError, parseSyncConfig } from "./config";
+import { refreshGitHubStars } from "./github/refresh-stars";
 import { createGramJsTelegramSource } from "./telegram/gramjs-client";
 
 export const ALREADY_RUNNING_EXIT_CODE = 75;
@@ -41,8 +42,11 @@ const main = async (): Promise<void> => {
         }),
       },
     );
+    const github = await refreshGitHubStars(database, {
+      ...(config.GITHUB_TOKEN ? { token: config.GITHUB_TOKEN } : {}),
+    });
     process.stdout.write(
-      `${JSON.stringify({ runId: result.runId, status: result.status, failedChannels: result.failedChannels })}\n`,
+      `${JSON.stringify({ runId: result.runId, status: result.status, failedChannels: result.failedChannels, github })}\n`,
     );
     if (result.status === "PARTIAL") process.exitCode = PARTIAL_RUN_EXIT_CODE;
     if (result.status === "FAILED") process.exitCode = 1;

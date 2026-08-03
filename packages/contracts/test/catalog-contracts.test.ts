@@ -18,6 +18,8 @@ const item = {
   category: "Developer tools" as const,
   parentName: null,
   canonicalUrl: "https://example.com/synthetic-project",
+  githubStars: 12_345,
+  githubStarsUpdatedAt: "2026-08-02T10:00:00.000Z",
   descriptionEn: "A compact synthetic catalog record for contract tests.",
   tags: ["synthetic", "testing"],
   firstMentionedAt: "2026-08-01T09:00:00.000Z",
@@ -40,7 +42,16 @@ describe("catalog transport contracts", () => {
   it("accepts bounded list and detail DTOs with nullable URL fields", () => {
     expect(
       catalogListResponseSchema.parse({
-        items: [item, { ...item, slug: "url-less", canonicalUrl: null }],
+        items: [
+          item,
+          {
+            ...item,
+            slug: "url-less",
+            canonicalUrl: null,
+            githubStars: null,
+            githubStarsUpdatedAt: null,
+          },
+        ],
         nextCursor: "opaque-cursor",
         filters,
       }),

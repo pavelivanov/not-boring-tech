@@ -1,5 +1,5 @@
 import type { CatalogListItem } from "@techdex/contracts"
-import { ArrowUpRightIcon, BookmarkIcon } from "lucide-react"
+import { ArrowUpRightIcon, BookmarkIcon, StarIcon } from "lucide-react"
 import { Link } from "react-router"
 
 import { RelativeDate } from "~/components/relative-date"
@@ -14,9 +14,12 @@ type ToolCardProps = {
   readonly onToggleSaved: (slug: string) => void
 }
 
-function hostLabel(value: string): string {
-  return new URL(value).hostname.replace(/^www\./u, "")
-}
+const compactCountFormatter = new Intl.NumberFormat("en", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+})
+
+const exactCountFormatter = new Intl.NumberFormat("en")
 
 export function ToolCard({
   tool,
@@ -56,9 +59,14 @@ export function ToolCard({
           </span>
         </p>
         <h3>
-          <Link to={detailPath} state={{ from: search }}>
-            {tool.name}
-          </Link>
+          {tool.canonicalUrl ? (
+            <a href={tool.canonicalUrl} target="_blank" rel="noreferrer">
+              {tool.name}
+              <span className="sr-only"> project (opens in a new tab)</span>
+            </a>
+          ) : (
+            tool.name
+          )}
         </h3>
         <p className="tool-card-description">{tool.descriptionEn}</p>
         <div className="tool-card-tags" aria-label={`${tool.name} tags`}>
@@ -71,23 +79,20 @@ export function ToolCard({
       </div>
 
       <footer className="tool-card-footer">
-        {tool.canonicalUrl ? (
-          <a
-            href={tool.canonicalUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="tool-domain-link"
-          >
-            {hostLabel(tool.canonicalUrl)}
-            <span className="sr-only"> (opens in a new tab)</span>
-          </a>
-        ) : (
-          <span className="tool-domain-link">No canonical URL</span>
-        )}
         <span className="tool-card-meta">
-          <RelativeDate value={tool.firstMentionedAt} compact /> ·{" "}
-          {channelCount} CH
+          <RelativeDate value={tool.firstMentionedAt} /> · {channelCount}{" "}
+          {channelCount === 1 ? "channel" : "channels"}
         </span>
+        {tool.githubStars !== null ? (
+          <span
+            className="tool-github-stars"
+            aria-label={`${exactCountFormatter.format(tool.githubStars)} GitHub stars`}
+            title={`${exactCountFormatter.format(tool.githubStars)} GitHub stars`}
+          >
+            <StarIcon aria-hidden="true" />
+            {compactCountFormatter.format(tool.githubStars)}
+          </span>
+        ) : null}
         <Link
           to={detailPath}
           state={{ from: search }}

@@ -4,6 +4,7 @@ import {
   ArrowUpRightIcon,
   CalendarDaysIcon,
   MessageCircleMoreIcon,
+  StarIcon,
 } from "lucide-react"
 import { Link, useLocation, useRevalidator } from "react-router"
 
@@ -153,6 +154,12 @@ export default function ToolDetail({
           · {item.mentionCount}{" "}
           {item.mentionCount === 1 ? "mention" : "mentions"}
         </span>
+        {item.githubStars !== null ? (
+          <span className="inline-flex items-center gap-1.5">
+            <StarIcon aria-hidden="true" />
+            {item.githubStars.toLocaleString("en")} GitHub stars
+          </span>
+        ) : null}
       </div>
 
       <section className="mt-14" aria-labelledby="mentions-heading">

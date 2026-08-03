@@ -13,6 +13,7 @@ const SECRET_SENTINELS = {
   TELEGRAM_API_HASH: "telegram-hash-sentinel",
   TELEGRAM_SESSION: "telegram-session-sentinel",
   OPENAI_API_KEY: "openai-key-sentinel",
+  GITHUB_TOKEN: "github-token-sentinel",
 };
 
 const validSyncEnvironment = (): NodeJS.ProcessEnv => ({
@@ -76,7 +77,18 @@ describe("parseSyncConfig", () => {
       TELEGRAM_PAGE_SIZE: 50,
       OPENAI_REQUEST_TIMEOUT_MS: 30_000,
       OPENAI_MAX_ATTEMPTS: 3,
+      GITHUB_TOKEN: "github-token-sentinel",
     });
+  });
+
+  it("allows GitHub enrichment to run without authentication", () => {
+    const environment = validSyncEnvironment();
+    delete environment.GITHUB_TOKEN;
+
+    expect(parseSyncConfig(environment).GITHUB_TOKEN).toBeUndefined();
+    expect(
+      parseSyncConfig({ ...environment, GITHUB_TOKEN: "" }).GITHUB_TOKEN,
+    ).toBeUndefined();
   });
 
   it.each([

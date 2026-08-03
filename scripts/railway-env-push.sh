@@ -40,7 +40,7 @@ is_allowed_key() {
   case "$service:$key" in
     web:VITE_API_BASE_URL | web:VITE_PUBLIC_SITE_ORIGIN) return 0 ;;
     api:DATABASE_URL | api:API_ALLOWED_ORIGINS | api:HOST | api:LOG_LEVEL) return 0 ;;
-    parser:DATABASE_URL | parser:LOG_LEVEL | parser:TELEGRAM_API_ID | parser:TELEGRAM_API_HASH | parser:TELEGRAM_SESSION | parser:TELEGRAM_CHANNELS | parser:TELEGRAM_BACKFILL_DAYS | parser:TELEGRAM_PAGE_SIZE | parser:OPENAI_API_KEY | parser:OPENAI_MODEL | parser:OPENAI_REQUEST_TIMEOUT_MS | parser:OPENAI_MAX_ATTEMPTS) return 0 ;;
+    parser:DATABASE_URL | parser:LOG_LEVEL | parser:TELEGRAM_API_ID | parser:TELEGRAM_API_HASH | parser:TELEGRAM_SESSION | parser:TELEGRAM_CHANNELS | parser:TELEGRAM_BACKFILL_DAYS | parser:TELEGRAM_PAGE_SIZE | parser:OPENAI_API_KEY | parser:OPENAI_MODEL | parser:OPENAI_REQUEST_TIMEOUT_MS | parser:OPENAI_MAX_ATTEMPTS | parser:GITHUB_TOKEN) return 0 ;;
     *) return 1 ;;
   esac
 }

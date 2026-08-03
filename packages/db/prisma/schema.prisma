@@ -57,24 +57,28 @@ model Channel {
 }
 
 model CatalogItem {
-  id               String                  @id @default(uuid()) @db.Uuid
-  identityKey      String                  @unique @db.VarChar(69)
-  slug             String                  @unique @db.VarChar(160)
-  kind             PresentationKind
-  category         String                  @db.VarChar(40)
-  name             String                  @db.VarChar(120)
-  nameSortKey      String                  @db.VarChar(240)
-  parentName       String?                 @db.VarChar(120)
-  canonicalUrl     String?                 @db.VarChar(2048)
-  descriptionEn    String                  @db.VarChar(400)
-  tags             String[]                @default([])
-  searchText       String                  @db.Text
-  firstMentionedAt DateTime
-  lastMentionedAt  DateTime
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime                @updatedAt
-  presentations    PresentationCandidate[]
-  identityAliases  CatalogIdentityAlias[]
+  id                   String                  @id @default(uuid()) @db.Uuid
+  identityKey          String                  @unique @db.VarChar(69)
+  slug                 String                  @unique @db.VarChar(160)
+  kind                 PresentationKind
+  category             String                  @db.VarChar(40)
+  name                 String                  @db.VarChar(120)
+  nameSortKey          String                  @db.VarChar(240)
+  parentName           String?                 @db.VarChar(120)
+  canonicalUrl         String?                 @db.VarChar(2048)
+  descriptionEn        String                  @db.VarChar(400)
+  tags                 String[]                @default([])
+  searchText           String                  @db.Text
+  githubRepository     String?                 @db.VarChar(201)
+  githubStars          Int?
+  githubStarsFetchedAt DateTime?
+  githubEtag           String?                 @db.VarChar(255)
+  firstMentionedAt     DateTime
+  lastMentionedAt      DateTime
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  presentations        PresentationCandidate[]
+  identityAliases      CatalogIdentityAlias[]
 
   @@index([lastMentionedAt, id])
   @@index([nameSortKey, id])

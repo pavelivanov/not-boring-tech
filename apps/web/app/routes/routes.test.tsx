@@ -40,6 +40,8 @@ const item = {
   category: "Developer tools",
   parentName: "Runtime Parent",
   canonicalUrl: "https://dynamic.example.test/",
+  githubStars: 12_438,
+  githubStarsUpdatedAt: "2026-08-03T08:00:00.000Z",
   descriptionEn: "A synthetic subject returned only by the test API.",
   tags: ["runtime", "signal"],
   firstMentionedAt: "2026-08-01T10:00:00.000Z",
@@ -275,9 +277,23 @@ describe("home route", () => {
   it("renders synthetic records and filter choices from the live API", async () => {
     renderAt()
 
+    const projectLink = await screen.findByRole("link", {
+      name: /Dynamic Signal project/,
+    })
+    expect(projectLink).toHaveAttribute("href", "https://dynamic.example.test/")
+    expect(projectLink).toHaveAttribute("target", "_blank")
+    expect(projectLink).toHaveAttribute("rel", "noreferrer")
+    expect(screen.getByLabelText("12,438 GitHub stars")).toBeVisible()
     expect(
-      await screen.findByRole("link", { name: "Dynamic Signal" })
+      screen.getByRole("link", { name: "View Dynamic Signal provenance" })
     ).toHaveAttribute("href", "/tools/dynamic-signal")
+    expect(
+      screen.getByText(
+        (_, element) =>
+          element?.classList.contains("tool-card-meta") === true &&
+          element.textContent === "2 days ago · 1 channel"
+      )
+    ).toBeVisible()
     expect(screen.getByRole("button", { name: /^Library 01$/ })).toBeVisible()
     expect(
       screen.getByRole("button", { name: /^Developer tools 01$/ })
@@ -292,7 +308,7 @@ describe("home route", () => {
     const user = userEvent.setup()
     const router = renderAt()
 
-    await screen.findByRole("link", { name: "Dynamic Signal" })
+    await screen.findByRole("link", { name: /Dynamic Signal project/ })
     await user.click(screen.getByRole("button", { name: /^Library 01$/ }))
     await waitFor(() =>
       expect(router.state.location.search).toBe("?kind=LIBRARY")
@@ -358,7 +374,7 @@ describe("home route", () => {
     catalogUnavailable = false
     await user.click(screen.getByRole("button", { name: "Retry" }))
     expect(
-      await screen.findByRole("link", { name: "Dynamic Signal" })
+      await screen.findByRole("link", { name: /Dynamic Signal project/ })
     ).toBeVisible()
   })
 

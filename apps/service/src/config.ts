@@ -87,6 +87,11 @@ const serverSchema = commonSchema.extend({
 });
 
 const syncSchema = commonSchema.extend({
+  GITHUB_TOKEN: z
+    .string()
+    .trim()
+    .transform((value) => value || undefined)
+    .optional(),
   TELEGRAM_API_ID: boundedInteger("TELEGRAM_API_ID", 1, 2_147_483_647),
   TELEGRAM_API_HASH: z.string().trim().min(1),
   TELEGRAM_SESSION: z.string().trim().min(1),

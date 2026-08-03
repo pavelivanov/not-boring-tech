@@ -77,6 +77,8 @@ export const catalogListItemSchema = z
     category: catalogCategorySchema,
     parentName: boundedText(120).nullable(),
     canonicalUrl: httpUrlSchema.nullable(),
+    githubStars: nonNegativeCountSchema.nullable(),
+    githubStarsUpdatedAt: dateTimeSchema.nullable(),
     descriptionEn: boundedText(400),
     tags: z.array(boundedText(48)).max(30),
     firstMentionedAt: dateTimeSchema,

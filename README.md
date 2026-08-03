@@ -130,6 +130,8 @@ The sync process additionally requires:
   `OPENAI_MODEL`;
 - optional bounded backfill, page-size, timeout, and attempt settings shown in
   `.env.example`.
+- optional `GITHUB_TOKEN` for authenticated repository-star refreshes. Public
+  GitHub data still refreshes without it, in smaller batches.
 
 Never prefix server credentials with `VITE_`, bake them into the image, pass
 them as build arguments, or commit a working `.env` or Telegram session.
@@ -208,7 +210,10 @@ panel:
 The managed database service is named `Postgres`. Both `api` and `parser` must
 receive `DATABASE_URL=${{Postgres.DATABASE_URL}}` as a Railway reference
 variable; `web` never receives database or parser credentials. Only `parser`
-receives Telegram and OpenAI credentials, and it must not have a public domain.
+receives Telegram, OpenAI, and optional GitHub credentials, and it must not have
+a public domain. Each 12-hour parser run refreshes GitHub-backed catalog star
+counts after collection; conditional requests avoid re-downloading unchanged
+repository metadata.
 
 Railway environment files are local and ignored:
 

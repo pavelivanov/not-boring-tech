@@ -78,6 +78,7 @@ services:
       OPENAI_MODEL: ${OPENAI_MODEL}
       OPENAI_REQUEST_TIMEOUT_MS: ${OPENAI_REQUEST_TIMEOUT_MS:-30000}
       OPENAI_MAX_ATTEMPTS: ${OPENAI_MAX_ATTEMPTS:-3}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     command: ["node", "apps/service/dist/sync.js"]
     depends_on:
