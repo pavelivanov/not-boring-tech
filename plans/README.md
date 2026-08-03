@@ -33,14 +33,23 @@ verification gate, and update its status row when finished.
 
 ## Execution order and status
 
-| Plan | Title | Priority | Effort | Depends on | Status |
-|------|-------|----------|--------|------------|--------|
-| [001](001-setup-turborepo-monorepo.md) | Establish the Turborepo monorepo | P1 | S | — | DONE |
-| [002](002-build-retrieval-website.md) | Build the retrieval website | P1 | M | 001 | DONE |
-| [003](003-build-telegram-collector-service.md) | Analyze Telegram posts and persist structured presentations | P1 | L | 001, 002 gate | TODO |
+| Plan                                           | Title                                                       | Priority | Effort | Depends on    | Status                             |
+| ---------------------------------------------- | ----------------------------------------------------------- | -------- | ------ | ------------- | ---------------------------------- |
+| [001](001-setup-turborepo-monorepo.md)         | Establish the Turborepo monorepo                            | P1       | S      | —             | DONE                               |
+| [002](002-build-retrieval-website.md)          | Build the retrieval website                                 | P1       | M      | 001           | DONE                               |
+| [003](003-build-telegram-collector-service.md) | Analyze Telegram posts and persist structured presentations | P1       | L      | 001, 002 gate | BLOCKED: live credentials required |
 
 Status values: `TODO` | `IN PROGRESS` | `DONE` | `BLOCKED: <reason>` |
 `REJECTED: <reason>`.
+
+Plan 003's offline implementation gates passed on 2026-08-01: schema generation
+and migration, 46 service tests including 10 disposable-PostgreSQL integration
+tests, the full repository check, the multi-stage image build, non-root runtime,
+and `/health` plus `/ready` Compose probes. No usable local OpenAI or Telegram
+credentials are available, so the controlled live extraction evaluation,
+bounded Telegram smoke, repeat-sync check, and edit smoke remain outstanding.
+The direct Hono Node adapter was upgraded to patched version 2.0.12 on
+2026-08-02; the production service image audit reports zero vulnerabilities.
 
 ## Dependency notes
 

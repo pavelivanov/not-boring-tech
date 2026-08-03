@@ -1,19 +1,10 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
-  "globalDependencies": [
-    ".env.example",
-    "packages/*-config/*.json"
-  ],
+  "globalDependencies": [".env.example", "packages/*-config/*.json"],
   "tasks": {
     "build": {
-      "dependsOn": [
-        "^build"
-      ],
-      "outputs": [
-        "dist/**",
-        "build/**",
-        "generated/**"
-      ]
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "build/**", "generated/**"]
     },
     "dev": {
       "cache": false,
@@ -21,6 +12,9 @@
     },
     "lint": {},
     "typecheck": {},
-    "test": {}
+    "test": {
+      "cache": false,
+      "passThroughEnv": ["TEST_DATABASE_URL"]
+    }
   }
 }

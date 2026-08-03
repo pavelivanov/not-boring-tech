@@ -1,0 +1,90 @@
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-techdex}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your local environment}
+      POSTGRES_DB: ${POSTGRES_DB:-techdex}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - techdex-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  db-test:
+    profiles: ["test"]
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: techdex_test
+      POSTGRES_PASSWORD: techdex_test
+      POSTGRES_DB: techdex_test
+    ports:
+      - "127.0.0.1:${POSTGRES_TEST_PORT:-5433}:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U techdex_test -d techdex_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/service/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-techdex}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-techdex}
+    command: ["npm", "run", "migrate:deploy", "--workspace=@techdex/db"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  service:
+    build:
+      context: .
+      dockerfile: apps/service/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-techdex}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-techdex}
+      HOST: 0.0.0.0
+      PORT: 3001
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "127.0.0.1:${SERVICE_PORT:-3001}:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  sync:
+    profiles: ["sync"]
+    build:
+      context: .
+      dockerfile: apps/service/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-techdex}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-techdex}
+      TELEGRAM_API_ID: ${TELEGRAM_API_ID}
+      TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
+      TELEGRAM_SESSION: ${TELEGRAM_SESSION}
+      TELEGRAM_CHANNELS: ${TELEGRAM_CHANNELS}
+      TELEGRAM_BACKFILL_DAYS: ${TELEGRAM_BACKFILL_DAYS:-90}
+      TELEGRAM_PAGE_SIZE: ${TELEGRAM_PAGE_SIZE:-50}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL}
+      OPENAI_REQUEST_TIMEOUT_MS: ${OPENAI_REQUEST_TIMEOUT_MS:-30000}
+      OPENAI_MAX_ATTEMPTS: ${OPENAI_MAX_ATTEMPTS:-3}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    command: ["node", "apps/service/dist/sync.js"]
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  techdex-postgres:

@@ -1,0 +1,34 @@
+{
+  "name": "@techdex/service",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsup src/server.ts src/sync.ts --format esm --clean --sourcemap",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "sync": "tsx src/sync.ts",
+    "eval:extraction": "tsx src/eval/run-extraction-eval.ts",
+    "lint": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.0.12",
+    "@techdex/db": "*",
+    "hono": "^4",
+    "openai": "^6",
+    "telegram": "^2",
+    "zod": "^4"
+  },
+  "devDependencies": {
+    "@techdex/typescript-config": "*",
+    "@types/node": "^22",
+    "prettier": "^3.8.3",
+    "tsup": "^8",
+    "tsx": "^4",
+    "typescript": "^6",
+    "vitest": "^4.1.6"
+  }
+}

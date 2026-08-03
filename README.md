@@ -93,6 +93,116 @@ Cards expose their Telegram source channels as filter chips. Category, source
 channel, and tag filters are URL-backed and shareable. Do not use these fixtures
 as collector, API, or database seed data.
 
+## Telegram analysis service
+
+`@techdex/service` is the Plan 003 collection and first-pass analysis service.
+It has two processes built into one image:
+
+- `server` exposes only `GET /health` and the database-backed `GET /ready`.
+- `sync` runs one bounded Telegram collection and OpenAI analysis pass, then
+  exits. Synchronization never runs inside the HTTP process.
+
+The service reads only configured public broadcast handles from
+`TELEGRAM_CHANNELS`. Adding a handle enables it; removing a handle disables
+future collection without deleting its cursor, analysis ledger, or candidates.
+It requires a pre-authorized GramJS user `StringSession`; interactive sign-in,
+bot tokens, private channels, groups, and dialog discovery are intentionally
+unsupported.
+
+### Data and OpenAI boundary
+
+Telegram post text, captions, entity payloads, prompts, and raw OpenAI responses
+are transient and are never stored or logged. PostgreSQL retains only source
+provenance, a SHA-256 content hash, safe request/usage metadata, processing
+status, and structured presentation candidates. Every Responses API request
+uses strict Structured Outputs, exposes no tools, and sets `store: false`.
+
+The prompt, schema, configured model, and combined `analysisVersion` are stored
+with each ledger record. An unchanged terminal post is not analyzed twice, even
+after a configured model change. Reprocessing a historical version will require
+an explicit future maintenance operation that refetches Telegram content.
+
+The initial history cutoff is fixed once per channel. A high-watermark cursor
+handles new posts while an independent `backfillBeforeMessageId` cursor resumes
+the newest-to-oldest historical backfill. Post outcomes commit before page
+cursors, so a crash may replay a page but does not duplicate OpenAI charges or
+candidate rows.
+
+### Configuration
+
+Copy `.env.example` to an ignored local `.env` and replace every placeholder.
+The HTTP process requires only `DATABASE_URL`, `HOST`, `PORT`, and `LOG_LEVEL`.
+`SERVICE_PORT` optionally changes only the Compose host binding.
+The sync process additionally requires:
+
+- `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, and `TELEGRAM_SESSION`;
+- `TELEGRAM_CHANNELS`, a comma-separated list of 1–10 unique public handles;
+- `OPENAI_API_KEY` and an explicit Structured-Outputs-compatible
+  `OPENAI_MODEL`;
+- optional bounded backfill, page-size, timeout, and attempt settings shown in
+  `.env.example`.
+
+Never prefix server credentials with `VITE_`, bake them into the image, pass
+them as build arguments, or commit a working `.env` or Telegram session.
+
+### Local database and service
+
+With `POSTGRES_PASSWORD` exported in the shell or supplied by an ignored `.env`:
+
+```sh
+docker compose up -d db
+docker compose run --rm migrate
+docker compose up -d service
+curl --fail http://127.0.0.1:3001/health
+curl --fail http://127.0.0.1:3001/ready
+```
+
+Run one synchronization pass with runtime-injected credentials:
+
+```sh
+docker compose --profile sync run --rm sync
+```
+
+The sync exit codes are `0` for success, `2` for a partial run, `75` when the
+advisory lock reports another sync already running, and `1` for configuration
+or fatal run failure. Output contains only run IDs, statuses, safe error classes,
+counts, cursor strings, and aggregate usage.
+
+### Verification and extraction evaluation
+
+The normal repository gate uses no third-party credentials:
+
+```sh
+npm run check
+```
+
+Database integration tests require the disposable local `techdex_test`
+database. Its Compose profile uses tmpfs and refuses non-loopback or non-test
+database URLs:
+
+```sh
+POSTGRES_PASSWORD=unused docker compose --profile test up -d db-test
+DATABASE_URL=postgresql://techdex_test:techdex_test@127.0.0.1:5433/techdex_test \
+  npm run migrate:deploy --workspace=@techdex/db
+TEST_DATABASE_URL=postgresql://techdex_test:techdex_test@127.0.0.1:5433/techdex_test \
+  npm run test --workspace=@techdex/service -- --run pipeline
+```
+
+The checked-in extraction evaluation uses 30 compact synthetic cases and prints
+aggregate metrics only. A controlled live run needs only the OpenAI evaluation
+variables, not database or Telegram credentials:
+
+```sh
+OPENAI_API_KEY=replace-at-runtime \
+OPENAI_MODEL=replace-with-an-explicit-compatible-model \
+  npm run eval:extraction --workspace=@techdex/service
+```
+
+Acceptance requires relevance precision of at least 0.90, relevance recall of
+at least 0.85, kind accuracy of at least 0.85, and zero URL-grounding violations.
+Canonicalization, cross-post deduplication, classification, embeddings, public
+search APIs, scheduling, and deployment remain separate follow-up work.
+
 ## Commands
 
 Run a task across all workspaces from the repository root:
