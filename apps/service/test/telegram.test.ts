@@ -140,6 +140,23 @@ describe("GramJsTelegramSource", () => {
     });
   });
 
+  it("replays a bounded recent page at or below the durable cursor", async () => {
+    const client = clientWithMessages([
+      telegramMessage(30),
+      telegramMessage(29),
+      telegramMessage(28),
+    ]);
+    const source = new GramJsTelegramSource(client);
+    const page = await source.getRecentPage(channel, 30n, 3);
+
+    expect(page.posts.map((post) => post.messageId)).toEqual([28n, 29n, 30n]);
+    expect(client.iterMessages).toHaveBeenCalledWith(channel.reference, {
+      limit: 3,
+      offsetId: 31,
+      reverse: false,
+    });
+  });
+
   it("stops backfill at the fixed cutoff", async () => {
     const recent = telegramMessage(20, "recent", { date: 1_800_000_000 });
     const old = telegramMessage(19, "old", { date: 1_600_000_000 });

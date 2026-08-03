@@ -112,7 +112,9 @@ The initial history cutoff is fixed once per channel. A high-watermark cursor
 handles new posts while an independent `backfillBeforeMessageId` cursor resumes
 the newest-to-oldest historical backfill. Post outcomes commit before page
 cursors, so a crash may replay a page but does not duplicate OpenAI charges or
-candidate rows.
+candidate rows. After backfill completes, each later run also refetches one
+bounded page at or below the durable high-watermark to detect recent edits;
+unchanged content hashes skip OpenAI without rewinding either cursor.
 
 ### Configuration
 
@@ -187,8 +189,9 @@ OPENAI_MODEL=replace-with-an-explicit-compatible-model \
 
 Acceptance requires relevance precision of at least 0.90, relevance recall of
 at least 0.85, kind accuracy of at least 0.85, and zero URL-grounding violations.
-The offline catalog projector and read API are implemented. Live credentialed
-collection and production provisioning remain explicit acceptance work.
+The controlled 30-case run on 2026-08-03 passed at 1.00 precision, 1.00 recall,
+1.00 kind accuracy, and zero URL-grounding violations after the versioned prompt
+made every application-side semantic invariant explicit.
 
 ## Railway service layout
 
@@ -227,6 +230,34 @@ one-shot process and receives no HTTP health check.
 ```sh
 npm run deploy:railway -- --help
 ```
+
+### Current production acceptance state
+
+The Railway `production` environment contains public
+[`web`](https://not-boring-tech-production.up.railway.app) and
+[`api`](https://api-production-648c.up.railway.app) services plus private
+`Postgres` and `parser` services. The initial bounded parser run analyzed 413
+posts from four configured public channels and produced 187 visible catalog
+items; an unchanged second run made zero OpenAI analyses. A controlled
+channel disable/re-enable check reduced the visible catalog to 167 items while
+all 187 catalog rows, 199 candidates, and 413 analyzed-post ledgers remained
+stored, then restored all four channels and 187 visible items.
+
+The parser remains private with no domain. Its GitHub source connection and
+`0 */12 * * *` UTC cron are intentionally disabled until the outstanding live
+Telegram edit transition proves production re-analysis and candidate
+replacement. Do not mark Plans 003/004 complete or enable the cron before that
+gate passes.
+
+### Production database recovery
+
+The production database is the private Railway-managed service named
+`Postgres`. Before any future destructive or data-rewriting migration, create a
+manual volume backup from **Postgres → Backups** in the Railway dashboard and
+wait for it to complete. Restore by selecting that backup from the same service;
+disable the parser cron and stop API writes before starting a restore. The
+initial catalog migration is forward-only and additive, so application rollback
+uses the previous API/parser image while retaining the migrated tables.
 
 ## Commands
 

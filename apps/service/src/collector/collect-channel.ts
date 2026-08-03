@@ -356,6 +356,10 @@ export const collectChannel = async (
       backfillCutoffAt: cutoffAt,
     },
   });
+  const recentEditScanThrough =
+    state.backfillCompletedAt === null
+      ? null
+      : state.incrementalCursorMessageId;
 
   const liveEdge = await source.captureLiveEdge(resolved);
   if (liveEdge !== null && state.incrementalCursorMessageId !== null) {
@@ -409,6 +413,22 @@ export const collectChannel = async (
     if (page.reachedBoundary) break;
     if (nextBeforeMessageId === null)
       throw new Error("TELEGRAM_BACKFILL_CURSOR_STALLED");
+  }
+
+  if (recentEditScanThrough !== null) {
+    const recentPage = await source.getRecentPage(
+      resolved,
+      recentEditScanThrough,
+      config.pageSize,
+    );
+    addCounts(
+      counts,
+      await processPage(database, state, analyzer, recentPage, config.modelId),
+    );
+    state = await database.channel.update({
+      where: { id: channel.id },
+      data: { lastCollectedAt: now },
+    });
   }
 
   return {

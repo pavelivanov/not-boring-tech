@@ -44,12 +44,12 @@ verification gate, and update its status row when finished.
 
 ## Execution order and status
 
-| Plan                                           | Title                                                       | Priority | Effort | Depends on                      | Status                             |
-| ---------------------------------------------- | ----------------------------------------------------------- | -------- | ------ | ------------------------------- | ---------------------------------- |
-| [001](001-setup-turborepo-monorepo.md)         | Establish the Turborepo monorepo                            | P1       | S      | —                               | DONE                               |
-| [002](002-build-retrieval-website.md)          | Build the retrieval website                                 | P1       | M      | 001                             | DONE                               |
-| [003](003-build-telegram-collector-service.md) | Analyze Telegram posts and persist structured presentations | P1       | L      | 001, 002 gate                   | BLOCKED: live credentials required |
-| [004](004-build-dynamic-production-stack.md)   | Build the dynamic four-service Railway production stack     | P1       | L      | 003 offline; 003 live to deploy | IN PROGRESS                        |
+| Plan                                           | Title                                                       | Priority | Effort | Depends on                      | Status                                  |
+| ---------------------------------------------- | ----------------------------------------------------------- | -------- | ------ | ------------------------------- | --------------------------------------- |
+| [001](001-setup-turborepo-monorepo.md)         | Establish the Turborepo monorepo                            | P1       | S      | —                               | DONE                                    |
+| [002](002-build-retrieval-website.md)          | Build the retrieval website                                 | P1       | M      | 001                             | DONE                                    |
+| [003](003-build-telegram-collector-service.md) | Analyze Telegram posts and persist structured presentations | P1       | L      | 001, 002 gate                   | IN PROGRESS: live edit smoke pending    |
+| [004](004-build-dynamic-production-stack.md)   | Build the dynamic four-service Railway production stack     | P1       | L      | 003 offline; 003 live to deploy | IN PROGRESS: parser source/cron pending |
 
 Status values: `TODO` | `IN PROGRESS` | `DONE` | `BLOCKED: <reason>` |
 `REJECTED: <reason>`.
@@ -57,11 +57,16 @@ Status values: `TODO` | `IN PROGRESS` | `DONE` | `BLOCKED: <reason>` |
 Plan 003's offline implementation gates passed on 2026-08-01: schema generation
 and migration, 46 service tests including 10 disposable-PostgreSQL integration
 tests, the full repository check, the multi-stage image build, non-root runtime,
-and `/health` plus `/ready` Compose probes. No usable local OpenAI or Telegram
-credentials are available, so the controlled live extraction evaluation,
-bounded Telegram smoke, repeat-sync check, and edit smoke remain outstanding.
-The direct Hono Node adapter was upgraded to patched version 2.0.12 on
-2026-08-02; the production service image audit reports zero vulnerabilities.
+and `/health` plus `/ready` Compose probes. Controlled production work on
+2026-08-03 completed a four-channel 90-day backfill, a zero-work unchanged
+repeat run, secret/data-hygiene checks, and the 30-case synthetic OpenAI
+evaluation at 1.00 precision, 1.00 recall, 1.00 kind accuracy, and zero URL
+grounding violations. A disable/re-enable run also proved that exclusively
+sourced items become hidden without deleting provenance. The real Telegram
+edit transition remains outstanding, so the parser's GitHub source connection
+and twice-daily cron intentionally remain disabled. The direct Hono Node
+adapter was upgraded to patched version 2.0.12 on 2026-08-02; the production
+service image audit reports zero vulnerabilities.
 
 ## Dependency notes
 

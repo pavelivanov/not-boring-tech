@@ -261,14 +261,6 @@ describe.skipIf(!testDatabaseUrl)("pipeline database integration", () => {
       }),
     });
     const originalCatalogItem = await database.catalogItem.findFirstOrThrow();
-    await database.channel.update({
-      where: { handle: "@notboring_tech" },
-      data: {
-        incrementalCursorMessageId: null,
-        backfillBeforeMessageId: null,
-        backfillCompletedAt: null,
-      },
-    });
 
     const edited = {
       ...original,
@@ -281,7 +273,7 @@ describe.skipIf(!testDatabaseUrl)("pipeline database integration", () => {
       analyzer: editAnalyzer,
       telegram: new ScriptedTelegramSource({
         liveEdges: { "@notboring_tech": 20n },
-        backfillPages: [page([edited])],
+        recentPages: [page([edited])],
       }),
     });
 

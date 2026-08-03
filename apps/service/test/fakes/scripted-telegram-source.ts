@@ -9,18 +9,22 @@ export class ScriptedTelegramSource implements TelegramSource {
     afterMessageId: bigint;
     throughMessageId: bigint;
   }> = [];
+  readonly recentCalls: Array<{ throughMessageId: bigint }> = [];
   readonly backfillCalls: Array<{ beforeMessageId: bigint | null }> = [];
   readonly #liveEdges: Map<string, bigint | null>;
   readonly #incrementalPages: TelegramPage[];
+  readonly #recentPages: TelegramPage[];
   readonly #backfillPages: TelegramPage[];
 
   constructor(options: {
     liveEdges: Readonly<Record<string, bigint | null>>;
     incrementalPages?: readonly TelegramPage[];
+    recentPages?: readonly TelegramPage[];
     backfillPages?: readonly TelegramPage[];
   }) {
     this.#liveEdges = new Map(Object.entries(options.liveEdges));
     this.#incrementalPages = [...(options.incrementalPages ?? [])];
+    this.#recentPages = [...(options.recentPages ?? [])];
     this.#backfillPages = [...(options.backfillPages ?? [])];
   }
 
@@ -57,6 +61,20 @@ export class ScriptedTelegramSource implements TelegramSource {
     const page = this.#incrementalPages.shift();
     if (!page) throw new Error("SCRIPTED_INCREMENTAL_PAGE_EXHAUSTED");
     return page;
+  }
+
+  async getRecentPage(
+    _channel: ResolvedTelegramChannel,
+    throughMessageId: bigint,
+  ): Promise<TelegramPage> {
+    this.recentCalls.push({ throughMessageId });
+    return (
+      this.#recentPages.shift() ?? {
+        posts: [],
+        reachedBoundary: true,
+        nextBeforeMessageId: null,
+      }
+    );
   }
 
   async getBackfillPage(

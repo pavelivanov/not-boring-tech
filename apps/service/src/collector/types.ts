@@ -25,6 +25,11 @@ export interface TelegramSource {
     throughMessageId: bigint,
     limit: number,
   ): Promise<TelegramPage>;
+  getRecentPage(
+    channel: ResolvedTelegramChannel,
+    throughMessageId: bigint,
+    limit: number,
+  ): Promise<TelegramPage>;
   getBackfillPage(
     channel: ResolvedTelegramChannel,
     beforeMessageId: bigint | null,

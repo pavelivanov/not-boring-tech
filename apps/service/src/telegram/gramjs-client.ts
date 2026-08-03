@@ -185,6 +185,29 @@ export class GramJsTelegramSource implements TelegramSource {
     };
   }
 
+  async getRecentPage(
+    channel: ResolvedTelegramChannel,
+    throughMessageId: bigint,
+    limit: number,
+  ): Promise<TelegramPage> {
+    const posts: TransientPostInput[] = [];
+
+    for await (const message of this.#client.iterMessages(channel.reference, {
+      limit,
+      offsetId: toSafeMessageId(throughMessageId + 1n),
+      reverse: false,
+    })) {
+      if (!(message instanceof Api.Message)) continue;
+      posts.push(mapTelegramMessage(channel, message));
+    }
+
+    return {
+      posts: ascending(posts),
+      reachedBoundary: true,
+      nextBeforeMessageId: null,
+    };
+  }
+
   async getBackfillPage(
     channel: ResolvedTelegramChannel,
     beforeMessageId: bigint | null,

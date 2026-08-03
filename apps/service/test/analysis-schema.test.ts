@@ -164,6 +164,12 @@ describe("prompt boundary", () => {
     expect(EXTRACTION_DEVELOPER_PROMPT).toContain("untrusted source data");
     expect(EXTRACTION_DEVELOPER_PROMPT).toContain("AI development");
     expect(EXTRACTION_DEVELOPER_PROMPT).toContain("never invent a category");
+    expect(EXTRACTION_DEVELOPER_PROMPT).toContain(
+      "parentName only for a FEATURE",
+    );
+    expect(EXTRACTION_DEVELOPER_PROMPT).toContain(
+      "one exact string from allowedHttpLinks",
+    );
   });
 
   it("combines prompt, schema, and model identity", () => {
