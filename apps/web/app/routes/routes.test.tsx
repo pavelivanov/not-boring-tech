@@ -275,6 +275,7 @@ afterEach(() => {
 
 describe("home route", () => {
   it("renders synthetic records and filter choices from the live API", async () => {
+    const user = userEvent.setup()
     renderAt()
 
     const projectLink = await screen.findByRole("link", {
@@ -291,9 +292,11 @@ describe("home route", () => {
       screen.getByText(
         (_, element) =>
           element?.classList.contains("tool-card-meta") === true &&
-          element.textContent === "2 days ago · 1 channel"
+          element.textContent === "2 days ago"
       )
     ).toBeVisible()
+    await user.click(screen.getByRole("button", { name: /^Filters/ }))
+    expect(screen.getByRole("heading", { name: "Filters" })).toBeVisible()
     expect(screen.getByRole("button", { name: /^Library 01$/ })).toBeVisible()
     expect(
       screen.getByRole("button", { name: /^Developer tools 01$/ })
@@ -309,6 +312,7 @@ describe("home route", () => {
     const router = renderAt()
 
     await screen.findByRole("link", { name: /Dynamic Signal project/ })
+    await user.click(screen.getByRole("button", { name: /^Filters/ }))
     await user.click(screen.getByRole("button", { name: /^Library 01$/ }))
     await waitFor(() =>
       expect(router.state.location.search).toBe("?kind=LIBRARY")

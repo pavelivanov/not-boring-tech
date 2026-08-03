@@ -27,8 +27,6 @@ export function ToolCard({
   saved,
   onToggleSaved,
 }: ToolCardProps) {
-  const channelCount = tool.channelCount
-  const mentionCount = tool.mentionCount
   const kindLabel = formatTechnologyKind(tool.kind)
   const detailPath = `/tools/${tool.slug}`
 
@@ -53,10 +51,6 @@ export function ToolCard({
       <div className="tool-card-body">
         <p className="tool-card-kicker">
           <span>{kindLabel}</span>
-          <span>
-            {String(mentionCount).padStart(2, "0")}{" "}
-            {mentionCount === 1 ? "mention" : "mentions"}
-          </span>
         </p>
         <h3>
           {tool.canonicalUrl ? (
@@ -80,8 +74,7 @@ export function ToolCard({
 
       <footer className="tool-card-footer">
         <span className="tool-card-meta">
-          <RelativeDate value={tool.firstMentionedAt} /> · {channelCount}{" "}
-          {channelCount === 1 ? "channel" : "channels"}
+          <RelativeDate value={tool.firstMentionedAt} />
         </span>
         {tool.githubStars !== null ? (
           <span

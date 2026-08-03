@@ -5,7 +5,6 @@ import type {
 } from "@techdex/contracts"
 import { SearchIcon, XIcon } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
-import { Link } from "react-router"
 
 import { Button } from "~/components/ui/button"
 import { FieldLegend, FieldSet } from "~/components/ui/field"
@@ -33,65 +32,39 @@ export type CategoryFilterOption = {
   readonly count: number
 }
 
+type IndexSearchProps = {
+  readonly filters: SearchFilters
+  readonly enableShortcut?: boolean
+  readonly onChange: (filters: SearchFilters, replace?: boolean) => void
+}
+
 type SearchControlsProps = {
   readonly filters: SearchFilters
   readonly resultCount: number
   readonly totalCount: number
-  readonly channelCount: number
   readonly channels: readonly CatalogChannel[]
   readonly categoryOptions: readonly CategoryFilterOption[]
   readonly kindOptions: readonly KindFilterOption[]
   readonly tagOptions: readonly TagFilterOption[]
-  readonly enableShortcut?: boolean
   readonly onChange: (filters: SearchFilters, replace?: boolean) => void
+  readonly onDone: () => void
 }
 
 function paddedCount(count: number): string {
   return String(count).padStart(2, "0")
 }
 
-export function SearchControls({
+export function IndexSearch({
   filters,
-  resultCount,
-  totalCount,
-  channelCount,
-  channels,
-  categoryOptions,
-  kindOptions,
-  tagOptions,
   enableShortcut = false,
   onChange,
-}: SearchControlsProps) {
+}: IndexSearchProps) {
   const [searchQuery, setSearchQuery] = useState(filters.query)
-  const [tagQuery, setTagQuery] = useState("")
-  const [showAllTags, setShowAllTags] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const searchInputId = useId()
-  const tagInputId = useId()
-  const hasFilters = Boolean(
-    filters.query ||
-    filters.kind ||
-    filters.category ||
-    filters.channel ||
-    filters.tags.length
-  )
-  const normalizedTagQuery = tagQuery.trim().toLocaleLowerCase("en")
-  const matchingTags = normalizedTagQuery
-    ? tagOptions.filter((option) =>
-        option.value.toLocaleLowerCase("en").includes(normalizedTagQuery)
-      )
-    : tagOptions
-  const visibleTags =
-    showAllTags || normalizedTagQuery ? matchingTags : matchingTags.slice(0, 8)
-  const hiddenTagCount = matchingTags.length - visibleTags.length
-  const activeChannel = filters.channel
-    ? channels.find((channel) => channel.handle === filters.channel)
-    : undefined
 
   useEffect(() => {
-    if (!enableShortcut) {
-      return
-    }
+    if (!enableShortcut) return
 
     function focusSearch(event: KeyboardEvent) {
       if (
@@ -110,7 +83,6 @@ export function SearchControls({
     }
 
     window.addEventListener("keydown", focusSearch)
-
     return () => window.removeEventListener("keydown", focusSearch)
   }, [enableShortcut])
 
@@ -128,9 +100,67 @@ export function SearchControls({
     return () => window.clearTimeout(timeout)
   }, [filters, onChange, searchQuery])
 
+  return (
+    <div className="index-search">
+      <label htmlFor={searchInputId} className="sr-only">
+        Search index
+      </label>
+      <InputGroup className="index-search-group">
+        <InputGroupAddon>
+          <SearchIcon aria-hidden="true" />
+        </InputGroupAddon>
+        <InputGroupInput
+          id={searchInputId}
+          ref={searchInputRef}
+          type="search"
+          value={searchQuery}
+          placeholder="Search the index"
+          aria-keyshortcuts={enableShortcut ? "/" : undefined}
+          onChange={(event) => setSearchQuery(event.target.value)}
+        />
+        {enableShortcut ? (
+          <InputGroupAddon align="inline-end">
+            <kbd>/</kbd>
+          </InputGroupAddon>
+        ) : null}
+      </InputGroup>
+    </div>
+  )
+}
+
+export function SearchControls({
+  filters,
+  resultCount,
+  totalCount,
+  channels,
+  categoryOptions,
+  kindOptions,
+  tagOptions,
+  onChange,
+  onDone,
+}: SearchControlsProps) {
+  const [tagQuery, setTagQuery] = useState("")
+  const [showAllTags, setShowAllTags] = useState(false)
+  const tagInputId = useId()
+  const hasFilters = Boolean(
+    filters.query ||
+    filters.kind ||
+    filters.category ||
+    filters.channel ||
+    filters.tags.length
+  )
+  const normalizedTagQuery = tagQuery.trim().toLocaleLowerCase("en")
+  const matchingTags = normalizedTagQuery
+    ? tagOptions.filter((option) =>
+        option.value.toLocaleLowerCase("en").includes(normalizedTagQuery)
+      )
+    : tagOptions
+  const visibleTags =
+    showAllTags || normalizedTagQuery ? matchingTags : matchingTags.slice(0, 12)
+  const hiddenTagCount = matchingTags.length - visibleTags.length
+
   function changeKind(kind?: TechnologyKind) {
     const { kind: _currentKind, ...remainingFilters } = filters
-
     onChange(
       kind && kind !== filters.kind
         ? { ...remainingFilters, kind }
@@ -142,13 +172,7 @@ export function SearchControls({
     const nextTags = filters.tags.includes(tag)
       ? filters.tags.filter((selectedTag) => selectedTag !== tag)
       : [...filters.tags, tag]
-
     onChange({ ...filters, tags: nextTags })
-  }
-
-  function removeCategory() {
-    const { category: _category, ...remainingFilters } = filters
-    onChange(remainingFilters)
   }
 
   function changeCategory(category?: CatalogCategory) {
@@ -161,172 +185,155 @@ export function SearchControls({
     onChange(channel ? { ...remainingFilters, channel } : remainingFilters)
   }
 
-  function removeChannel() {
-    const { channel: _channel, ...remainingFilters } = filters
-    onChange(remainingFilters)
-  }
-
   function clearAll() {
     onChange({ query: "", tags: [], sort: filters.sort })
   }
 
   return (
-    <div className="filter-panel-content">
-      <div className="filter-brand-row">
-        <Link to="/" className="filter-brand" aria-label="TechDex home">
-          TechDex<span>/</span>
-        </Link>
-        <Link to="/about" className="filter-about-link">
-          About
-        </Link>
-      </div>
-
-      <label htmlFor={searchInputId} className="sr-only">
-        Search index
-      </label>
-      <InputGroup className="filter-search-group">
-        <InputGroupAddon>
-          <SearchIcon aria-hidden="true" />
-        </InputGroupAddon>
-        <InputGroupInput
-          id={searchInputId}
-          ref={searchInputRef}
-          type="search"
-          value={searchQuery}
-          placeholder="Search the index"
-          aria-keyshortcuts={enableShortcut ? "/" : undefined}
-          onChange={(event) => {
-            setSearchQuery(event.target.value)
-          }}
-        />
-        {enableShortcut ? (
-          <InputGroupAddon align="inline-end">
-            <kbd>/</kbd>
-          </InputGroupAddon>
-        ) : null}
-      </InputGroup>
-
-      <div className="filter-result-row">
-        <span>
-          {resultCount} of {totalCount} showing
-        </span>
-        {hasFilters ? (
-          <Button variant="ghost" size="xs" onClick={clearAll}>
-            Clear all
-          </Button>
-        ) : null}
-      </div>
-
-      {filters.kind ||
-      filters.category ||
-      filters.channel ||
-      filters.tags.length ? (
-        <div className="active-filter-chips" aria-label="Active filters">
-          {filters.kind ? (
-            <Button
-              variant="ghost"
-              size="xs"
-              aria-label={`Remove type filter ${formatTechnologyKind(filters.kind)}`}
-              onClick={() => changeKind()}
-            >
-              {formatTechnologyKind(filters.kind)}
-              <XIcon data-icon="inline-end" aria-hidden="true" />
-            </Button>
-          ) : null}
-          {filters.category ? (
-            <Button
-              variant="ghost"
-              size="xs"
-              aria-label={`Remove category filter ${filters.category}`}
-              onClick={removeCategory}
-            >
-              {filters.category}
-              <XIcon data-icon="inline-end" aria-hidden="true" />
-            </Button>
-          ) : null}
-          {activeChannel ? (
-            <Button
-              variant="ghost"
-              size="xs"
-              aria-label={`Remove source filter ${activeChannel.title ?? activeChannel.handle}`}
-              onClick={removeChannel}
-            >
-              {activeChannel.handle}
-              <XIcon data-icon="inline-end" aria-hidden="true" />
-            </Button>
-          ) : null}
-          {filters.tags.map((tag) => (
-            <Button
-              key={tag}
-              variant="ghost"
-              size="xs"
-              aria-label={`Remove tag filter ${tag}`}
-              onClick={() => toggleTag(tag)}
-            >
-              {tag}
-              <XIcon data-icon="inline-end" aria-hidden="true" />
-            </Button>
-          ))}
-        </div>
-      ) : null}
-
-      <FieldSet className="filter-section">
-        <FieldLegend>Type — pick one</FieldLegend>
-        <div className="kind-filter-grid">
-          {kindOptions.map((option) => {
-            const active = filters.kind === option.value
-            const label = formatTechnologyKind(option.value)
-
-            return (
-              <Button
-                key={option.value}
-                type="button"
-                variant="outline"
-                className="kind-filter-button"
-                data-active={active || undefined}
-                aria-pressed={active}
-                onClick={() => changeKind(option.value)}
-              >
-                <span className="kind-filter-mark" aria-hidden="true">
-                  <span />
-                </span>
-                <span className="kind-filter-label">{label}</span>
-                <span className="kind-filter-count">
-                  {paddedCount(option.count)}
-                </span>
-              </Button>
-            )
-          })}
+    <div className="filter-popover-panel">
+      <div className="filter-popover-header">
+        <h2>Filters</h2>
+        <div className="filter-popover-actions">
           <Button
-            type="button"
-            variant="outline"
-            className="all-types-button"
-            onClick={() => changeKind()}
+            variant="link"
+            size="sm"
+            disabled={!hasFilters}
+            onClick={clearAll}
           >
-            All types
+            Reset
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Close filters"
+            onClick={onDone}
+          >
+            <XIcon aria-hidden="true" />
           </Button>
         </div>
-      </FieldSet>
+      </div>
 
-      {categoryOptions.length > 0 ? (
-        <FieldSet className="filter-section tag-filter-section">
-          <FieldLegend>Categories — pick one</FieldLegend>
-          <div className="tag-filter-list">
-            {categoryOptions.map((option) => {
-              const active = filters.category === option.value
+      <Separator />
+
+      <div className="filter-popover-scroll">
+        <FieldSet className="filter-section">
+          <FieldLegend>Type — one</FieldLegend>
+          <div className="facet-filter-list">
+            {kindOptions.map((option) => {
+              const active = filters.kind === option.value
+              const label = formatTechnologyKind(option.value)
 
               return (
                 <Button
                   key={option.value}
                   type="button"
-                  variant="outline"
-                  size="xs"
-                  className="tag-filter-button"
+                  variant={active ? "secondary" : "outline"}
+                  size="pill"
+                  className="facet-filter-button"
                   data-active={active || undefined}
                   aria-pressed={active}
-                  onClick={() =>
-                    changeCategory(active ? undefined : option.value)
-                  }
+                  onClick={() => changeKind(option.value)}
+                >
+                  {label}
+                  <span>{paddedCount(option.count)}</span>
+                </Button>
+              )
+            })}
+          </div>
+        </FieldSet>
+
+        {categoryOptions.length > 0 ? (
+          <FieldSet className="filter-section">
+            <FieldLegend>Categories — one</FieldLegend>
+            <div className="facet-filter-list">
+              {categoryOptions.map((option) => {
+                const active = filters.category === option.value
+
+                return (
+                  <Button
+                    key={option.value}
+                    type="button"
+                    variant={active ? "secondary" : "outline"}
+                    size="pill"
+                    className="facet-filter-button"
+                    data-active={active || undefined}
+                    aria-pressed={active}
+                    onClick={() =>
+                      changeCategory(active ? undefined : option.value)
+                    }
+                  >
+                    {option.value}
+                    <span>{paddedCount(option.count)}</span>
+                  </Button>
+                )
+              })}
+            </div>
+          </FieldSet>
+        ) : null}
+
+        {channels.length > 0 ? (
+          <FieldSet className="filter-section">
+            <FieldLegend>Sources — one</FieldLegend>
+            <div className="facet-filter-list">
+              {channels.map((channel) => {
+                const active = filters.channel === channel.handle
+
+                return (
+                  <Button
+                    key={channel.handle}
+                    type="button"
+                    variant={active ? "secondary" : "outline"}
+                    size="pill"
+                    className="facet-filter-button"
+                    data-active={active || undefined}
+                    aria-pressed={active}
+                    onClick={() =>
+                      changeChannel(active ? undefined : channel.handle)
+                    }
+                  >
+                    {channel.title ?? channel.handle}
+                    <span>{paddedCount(channel.itemCount)}</span>
+                  </Button>
+                )
+              })}
+            </div>
+          </FieldSet>
+        ) : null}
+
+        <FieldSet className="filter-section">
+          <div className="tag-filter-heading">
+            <FieldLegend>Tags — any</FieldLegend>
+            <span>{paddedCount(tagOptions.length)}</span>
+          </div>
+          <label htmlFor={tagInputId} className="sr-only">
+            Filter tags
+          </label>
+          <InputGroup className="tag-search-group">
+            <InputGroupAddon>
+              <SearchIcon aria-hidden="true" />
+            </InputGroupAddon>
+            <InputGroupInput
+              id={tagInputId}
+              type="search"
+              value={tagQuery}
+              placeholder="Filter tags"
+              onChange={(event) => setTagQuery(event.target.value)}
+            />
+          </InputGroup>
+          <div className="facet-filter-list">
+            {visibleTags.map((option) => {
+              const active = filters.tags.includes(option.value)
+
+              return (
+                <Button
+                  key={option.value}
+                  type="button"
+                  variant={active ? "secondary" : "outline"}
+                  size="pill"
+                  className="facet-filter-button"
+                  data-active={active || undefined}
+                  aria-pressed={active}
+                  onClick={() => toggleTag(option.value)}
                 >
                   {option.value}
                   <span>{paddedCount(option.count)}</span>
@@ -334,102 +341,32 @@ export function SearchControls({
               )
             })}
           </div>
+          {!normalizedTagQuery && tagOptions.length > 12 ? (
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="more-tags-button"
+              onClick={() => setShowAllTags((current) => !current)}
+            >
+              {showAllTags ? "Show fewer" : `${hiddenTagCount} more tags`}
+            </Button>
+          ) : null}
+          {normalizedTagQuery && matchingTags.length === 0 ? (
+            <p className="no-tags-message">No tags found</p>
+          ) : null}
         </FieldSet>
-      ) : null}
+      </div>
 
-      {channels.length > 0 ? (
-        <FieldSet className="filter-section tag-filter-section">
-          <FieldLegend>Sources — pick one</FieldLegend>
-          <div className="tag-filter-list">
-            {channels.map((channel) => {
-              const active = filters.channel === channel.handle
+      <Separator />
 
-              return (
-                <Button
-                  key={channel.handle}
-                  type="button"
-                  variant="outline"
-                  size="xs"
-                  className="tag-filter-button"
-                  data-active={active || undefined}
-                  aria-pressed={active}
-                  onClick={() =>
-                    changeChannel(active ? undefined : channel.handle)
-                  }
-                >
-                  {channel.title ?? channel.handle}
-                  <span>{paddedCount(channel.itemCount)}</span>
-                </Button>
-              )
-            })}
-          </div>
-        </FieldSet>
-      ) : null}
-
-      <FieldSet className="filter-section tag-filter-section">
-        <div className="tag-filter-heading">
-          <FieldLegend>Tags</FieldLegend>
-          <span>{paddedCount(tagOptions.length)}</span>
-        </div>
-        <label htmlFor={tagInputId} className="sr-only">
-          Filter tags
-        </label>
-        <InputGroup className="filter-search-group tag-search-group">
-          <InputGroupAddon>
-            <SearchIcon aria-hidden="true" />
-          </InputGroupAddon>
-          <InputGroupInput
-            id={tagInputId}
-            type="search"
-            value={tagQuery}
-            placeholder="Filter tags"
-            onChange={(event) => setTagQuery(event.target.value)}
-          />
-        </InputGroup>
-        <div className="tag-filter-list">
-          {visibleTags.map((option) => {
-            const active = filters.tags.includes(option.value)
-
-            return (
-              <Button
-                key={option.value}
-                type="button"
-                variant="outline"
-                size="xs"
-                className="tag-filter-button"
-                data-active={active || undefined}
-                aria-pressed={active}
-                onClick={() => toggleTag(option.value)}
-              >
-                {option.value}
-                <span>{paddedCount(option.count)}</span>
-              </Button>
-            )
-          })}
-        </div>
-        {!normalizedTagQuery && tagOptions.length > 8 ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="more-tags-button"
-            onClick={() => setShowAllTags((current) => !current)}
-          >
-            {showAllTags ? "Show fewer" : `${hiddenTagCount} more tags`}
-          </Button>
-        ) : null}
-        {normalizedTagQuery && matchingTags.length === 0 ? (
-          <p className="no-tags-message">No tags found</p>
-        ) : null}
-      </FieldSet>
-
-      <Separator className="filter-panel-separator" />
-      <div className="filter-panel-footer">
+      <div className="filter-popover-footer">
         <span>
-          Subjects {paddedCount(totalCount)} · Channels{" "}
-          {paddedCount(channelCount)}
+          {resultCount} of {totalCount} entries
         </span>
-        <span>Provisional</span>
+        <Button variant="ink" size="pill" onClick={onDone}>
+          Done
+        </Button>
       </div>
     </div>
   )

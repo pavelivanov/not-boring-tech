@@ -1,10 +1,21 @@
 import type { CatalogListItem, TechnologyKind } from "@techdex/contracts"
-import { AlertCircleIcon, SlidersHorizontalIcon } from "lucide-react"
+import {
+  AlertCircleIcon,
+  ChevronUpIcon,
+  ListFilterIcon,
+  XIcon,
+} from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { useLocation, useRevalidator, useSearchParams } from "react-router"
+import {
+  Link,
+  useLocation,
+  useRevalidator,
+  useSearchParams,
+} from "react-router"
 
 import type { Route } from "./+types/home"
 import {
+  IndexSearch,
   SearchControls,
   type CategoryFilterOption,
   type KindFilterOption,
@@ -18,15 +29,13 @@ import {
   AlertTitle,
 } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
-import { Skeleton } from "~/components/ui/skeleton"
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "~/components/ui/sheet"
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "~/components/ui/popover"
+import { Separator } from "~/components/ui/separator"
+import { Skeleton } from "~/components/ui/skeleton"
 import {
   CatalogApiError,
   loadHomeCatalog,
@@ -38,6 +47,7 @@ import {
   serializeSearchParams,
   type SearchFilters,
 } from "~/domain/search"
+import { formatTechnologyKind } from "~/domain/tools"
 import { canonicalMeta } from "~/domain/urls"
 
 export function meta() {
@@ -75,7 +85,7 @@ const kindOrder: readonly TechnologyKind[] = [
 function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const location = useLocation()
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [items, setItems] = useState<readonly CatalogListItem[]>(
     () => data.catalog.items
   )
@@ -99,7 +109,6 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
       right.count - left.count || left.value.localeCompare(right.value)
   )
   const activeFilterCount =
-    Number(Boolean(filters.query)) +
     Number(Boolean(filters.kind)) +
     Number(Boolean(filters.category)) +
     Number(Boolean(filters.channel)) +
@@ -131,6 +140,32 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
     updateFilters({ query: "", tags: [], sort: filters.sort })
   }
 
+  function clearFacetFilters() {
+    updateFilters({ query: filters.query, tags: [], sort: filters.sort })
+  }
+
+  function removeKind() {
+    const { kind: _kind, ...remainingFilters } = filters
+    updateFilters(remainingFilters)
+  }
+
+  function removeCategory() {
+    const { category: _category, ...remainingFilters } = filters
+    updateFilters(remainingFilters)
+  }
+
+  function removeChannel() {
+    const { channel: _channel, ...remainingFilters } = filters
+    updateFilters(remainingFilters)
+  }
+
+  function removeTag(tag: string) {
+    updateFilters({
+      ...filters,
+      tags: filters.tags.filter((selectedTag) => selectedTag !== tag),
+    })
+  }
+
   async function loadMore() {
     if (!nextCursor || loadingMore) return
     activeRequest.current?.abort()
@@ -153,98 +188,152 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
     }
   }
 
-  const searchControlProps = {
+  const filterControlProps = {
     filters,
     resultCount: items.length,
     totalCount,
-    channelCount: data.channels.channels.length,
     channels: data.channels.channels,
     categoryOptions,
     kindOptions,
     tagOptions,
     onChange: updateFilters,
+    onDone: () => setFiltersOpen(false),
   } as const
 
   return (
-    <div className="index-shell">
-      <aside className="filter-panel" aria-label="Index filters">
-        <SearchControls {...searchControlProps} enableShortcut />
-      </aside>
+    <div className="catalog-page">
+      <header className="catalog-header">
+        <Link to="/" className="catalog-brand" aria-label="TechDex home">
+          TechDex<span>/</span>
+        </Link>
+
+        <IndexSearch
+          filters={filters}
+          enableShortcut
+          onChange={updateFilters}
+        />
+
+        <Link to="/about" className="catalog-about-link">
+          About
+        </Link>
+      </header>
 
       <main id="main-content" tabIndex={-1} className="index-main">
-        <div className="mobile-index-bar">
-          <span className="mobile-brand">
-            TechDex<span>/</span>
-          </span>
-          <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
-            <SheetTrigger asChild>
-              <Button variant="outline" aria-label="Open index filters">
-                <SlidersHorizontalIcon
-                  data-icon="inline-start"
-                  aria-hidden="true"
-                />
-                Filters
-                {activeFilterCount > 0 ? (
-                  <span className="mobile-filter-count">
-                    {activeFilterCount}
-                  </span>
-                ) : null}
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="mobile-filter-sheet">
-              <SheetHeader className="sr-only">
-                <SheetTitle>Index filters</SheetTitle>
-                <SheetDescription>
-                  Search and filter the TechDex index.
-                </SheetDescription>
-              </SheetHeader>
-              <div className="mobile-filter-scroll">
-                <SearchControls {...searchControlProps} />
-              </div>
-            </SheetContent>
-          </Sheet>
-        </div>
+        <h1 className="sr-only">TechDex technology index</h1>
+
+        <section className="catalog-toolbar" aria-labelledby="results-heading">
+          <div className="catalog-toolbar-filters">
+            <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="ink" size="pill">
+                  <ListFilterIcon data-icon="inline-start" aria-hidden="true" />
+                  Filters
+                  {activeFilterCount > 0 ? (
+                    <span className="filter-count" aria-hidden="true">
+                      {activeFilterCount}
+                    </span>
+                  ) : null}
+                  <ChevronUpIcon
+                    data-icon="inline-end"
+                    className="filter-trigger-chevron"
+                    aria-hidden="true"
+                  />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="filter-popover-content"
+                align="start"
+                sideOffset={12}
+                collisionPadding={16}
+              >
+                <SearchControls {...filterControlProps} />
+              </PopoverContent>
+            </Popover>
+
+            <Separator orientation="vertical" className="toolbar-separator" />
+
+            <h2 id="results-heading" className="toolbar-result-count">
+              {items.length} of {totalCount} entries
+            </h2>
+
+            <div className="toolbar-active-filters" aria-label="Active filters">
+              {filters.kind ? (
+                <Button
+                  variant="secondary"
+                  size="pill"
+                  aria-label={`Remove type filter ${formatTechnologyKind(filters.kind)}`}
+                  onClick={removeKind}
+                >
+                  {formatTechnologyKind(filters.kind)}
+                  <XIcon data-icon="inline-end" aria-hidden="true" />
+                </Button>
+              ) : null}
+              {filters.category ? (
+                <Button
+                  variant="secondary"
+                  size="pill"
+                  aria-label={`Remove category filter ${filters.category}`}
+                  onClick={removeCategory}
+                >
+                  {filters.category}
+                  <XIcon data-icon="inline-end" aria-hidden="true" />
+                </Button>
+              ) : null}
+              {filters.channel ? (
+                <Button
+                  variant="secondary"
+                  size="pill"
+                  aria-label={`Remove source filter ${filters.channel}`}
+                  onClick={removeChannel}
+                >
+                  {data.channels.channels.find(
+                    (channel) => channel.handle === filters.channel
+                  )?.title ?? filters.channel}
+                  <XIcon data-icon="inline-end" aria-hidden="true" />
+                </Button>
+              ) : null}
+              {filters.tags.map((tag) => (
+                <Button
+                  key={tag}
+                  variant="secondary"
+                  size="pill"
+                  aria-label={`Remove tag filter ${tag}`}
+                  onClick={() => removeTag(tag)}
+                >
+                  {tag}
+                  <XIcon data-icon="inline-end" aria-hidden="true" />
+                </Button>
+              ))}
+              {activeFilterCount > 0 ? (
+                <Button variant="link" size="sm" onClick={clearFacetFilters}>
+                  Clear all
+                </Button>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="sort-controls" aria-label="Sort entries">
+            <span>Sort</span>
+            <Button
+              variant={filters.sort === "latest" ? "ink" : "outline"}
+              size="pill"
+              aria-pressed={filters.sort === "latest"}
+              onClick={() => updateFilters({ ...filters, sort: "latest" })}
+            >
+              Recent
+            </Button>
+            <Button
+              variant={filters.sort === "name" ? "ink" : "outline"}
+              size="pill"
+              aria-pressed={filters.sort === "name"}
+              onClick={() => updateFilters({ ...filters, sort: "name" })}
+            >
+              A–Z
+            </Button>
+          </div>
+        </section>
 
         <div className="index-surface">
-          <header className="index-header">
-            <div className="index-title-lockup">
-              <h1>Find the technology you know you saw.</h1>
-              <span>Public Telegram technology index</span>
-            </div>
-            <p>
-              Cross-channel archive of everything worth remembering — every
-              entry carries evidence back to its original post.
-            </p>
-          </header>
-
-          <section className="index-sort-bar" aria-labelledby="results-heading">
-            <h2 id="results-heading">
-              {items.length}
-              {nextCursor ? "+" : ""} {items.length === 1 ? "entry" : "entries"}
-            </h2>
-            <div className="sort-controls" aria-label="Sort entries">
-              <span>Sort</span>
-              <Button
-                variant="outline"
-                size="sm"
-                data-active={filters.sort === "latest" || undefined}
-                aria-pressed={filters.sort === "latest"}
-                onClick={() => updateFilters({ ...filters, sort: "latest" })}
-              >
-                Recent
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                data-active={filters.sort === "name" || undefined}
-                aria-pressed={filters.sort === "name"}
-                onClick={() => updateFilters({ ...filters, sort: "name" })}
-              >
-                A–Z
-              </Button>
-            </div>
-          </section>
-
           <ToolList
             tools={items}
             search={location.search}
@@ -291,24 +380,20 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
 export function HydrateFallback() {
   return (
-    <div className="index-shell" aria-label="Loading catalog">
-      <aside className="filter-panel" aria-hidden="true">
-        <div className="filter-panel-content flex flex-col gap-4">
-          <Skeleton className="h-6 w-28" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-4 w-36" />
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-48 w-full" />
-        </div>
-      </aside>
+    <div className="catalog-page" aria-label="Loading catalog">
+      <header className="catalog-header">
+        <span className="catalog-brand" aria-hidden="true">
+          TechDex<span>/</span>
+        </span>
+        <Skeleton className="h-12 w-full max-w-3xl" />
+        <Skeleton className="h-4 w-16" />
+      </header>
       <main id="main-content" className="index-main">
+        <div className="catalog-toolbar">
+          <Skeleton className="h-9 w-28" />
+          <Skeleton className="h-9 w-44" />
+        </div>
         <div className="index-surface">
-          <header className="index-header">
-            <div className="flex w-full flex-col gap-3">
-              <Skeleton className="h-8 w-2/3" />
-              <Skeleton className="h-4 w-1/3" />
-            </div>
-          </header>
           <div className="tool-grid">
             {Array.from({ length: 6 }, (_, index) => (
               <article key={index} className="tool-card p-4">

@@ -36,7 +36,7 @@ function previewPrerenderedRoutes(): Plugin {
 
 export default defineConfig({
   preview: {
-    allowedHosts: [".railway.internal", ".railway.app"],
+    allowedHosts: [".railway.internal", ".railway.app", "findthatproject.com"],
   },
   resolve: { tsconfigPaths: true },
   plugins: [previewPrerenderedRoutes(), tailwindcss(), reactRouter()],
