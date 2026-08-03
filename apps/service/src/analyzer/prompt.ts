@@ -1,5 +1,7 @@
-export const PROMPT_VERSION = "telegram-presentation-v1";
-export const SCHEMA_VERSION = "post-analysis-v1";
+import { CATALOG_CATEGORIES } from "@techdex/contracts";
+
+export const PROMPT_VERSION = "telegram-presentation-v2";
+export const SCHEMA_VERSION = "post-analysis-v2";
 export const createAnalysisVersion = (modelId: string): string =>
   `${PROMPT_VERSION}:${SCHEMA_VERSION}:${modelId}`;
 
@@ -12,6 +14,8 @@ Mark a post relevant only when it introduces, announces, recommends, reviews, sh
 Return an empty presentation list for incidental mentions, jobs, events or course promotions, generic opinion or news, non-technical content, and advertisements without substantive product information. A reusable technical guide or cheat sheet can be relevant. A feature is relevant only when the post materially presents that feature.
 
 Extract the post's primary usable subject, not every technology name it mentions. A project, plugin, skill, guide, cheat sheet, or feature that works with a parent tool is a separate presentation; do not also return the parent unless the post independently and materially presents it. Product news and opinions return no presentation even if they repeat a tool name.
+
+Assign every presentation exactly one controlled category from this list: ${CATALOG_CATEGORIES.join(", ")}. Use Other only when none of the narrower categories fits; never invent a category.
 
 Return concise original English descriptions. Return at most five presentations and at most ten short normalized tags per presentation.`;
 

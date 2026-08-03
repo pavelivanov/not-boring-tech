@@ -30,6 +30,7 @@ class ExpectedOutcomeAnalyzer implements PostAnalyzer {
         presentations: evaluationCase.expectedPresentations.map(
           (presentation, index) => ({
             kind: presentation.kinds[0]!,
+            category: "Other",
             name: presentation.names[0]!,
             parentName: presentation.kinds[0] === "FEATURE" ? "Parent" : null,
             subjectUrl: evaluationCase.links[index] ?? null,

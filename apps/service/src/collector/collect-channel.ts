@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 
-import { AnalyzedPostStatus, type Channel, type DbClient } from "@techdex/db";
+import {
+  AnalyzedPostStatus,
+  type Channel,
+  type DbClient,
+  type DbTransaction,
+} from "@techdex/db";
 
 import {
   PROMPT_VERSION,
@@ -12,6 +17,7 @@ import type {
   PostAnalyzer,
   TransientPostInput,
 } from "../analyzer/types";
+import { projectCandidateIds, refreshCatalogItems } from "../catalog/projector";
 import type { TelegramPage, TelegramSource } from "./types";
 
 const TERMINAL_STATUSES = new Set<AnalyzedPostStatus>([
@@ -93,6 +99,25 @@ const metadataFields = (
   openAiRequestId: metadata?.requestId ?? null,
 });
 
+const deletePostCandidates = async (
+  transaction: DbTransaction,
+  analyzedPostId: string,
+): Promise<void> => {
+  const linkedItems = await transaction.presentationCandidate.findMany({
+    where: { analyzedPostId, catalogItemId: { not: null } },
+    select: { catalogItemId: true },
+  });
+  await transaction.presentationCandidate.deleteMany({
+    where: { analyzedPostId },
+  });
+  await refreshCatalogItems(
+    transaction,
+    linkedItems.flatMap((candidate) =>
+      candidate.catalogItemId === null ? [] : [candidate.catalogItemId],
+    ),
+  );
+};
+
 const processPost = async (
   database: DbClient,
   channel: Channel,
@@ -166,9 +191,7 @@ const processPost = async (
           openAiRequestId: null,
         },
       });
-      await transaction.presentationCandidate.deleteMany({
-        where: { analyzedPostId: ledger.id },
-      });
+      await deletePostCandidates(transaction, ledger.id);
     });
     counts.skipped = 1;
     return counts;
@@ -211,9 +234,7 @@ const processPost = async (
         },
       });
       if (status === AnalyzedPostStatus.REVIEW_REQUIRED) {
-        await transaction.presentationCandidate.deleteMany({
-          where: { analyzedPostId: ledger.id },
-        });
+        await deletePostCandidates(transaction, ledger.id);
       }
     });
     counts.failed = 1;
@@ -248,6 +269,10 @@ const processPost = async (
         errorClass: null,
       },
     });
+    const oldItemIds = await transaction.presentationCandidate.findMany({
+      where: { analyzedPostId: ledger.id, catalogItemId: { not: null } },
+      select: { catalogItemId: true },
+    });
     await transaction.presentationCandidate.deleteMany({
       where: { analyzedPostId: ledger.id },
     });
@@ -257,6 +282,7 @@ const processPost = async (
           analyzedPostId: ledger.id,
           ordinal,
           kind: presentation.kind,
+          category: presentation.category,
           name: presentation.name,
           parentName: presentation.parentName,
           subjectUrl: presentation.subjectUrl,
@@ -266,7 +292,22 @@ const processPost = async (
           confidence: presentation.confidence,
         })),
       });
+      const createdCandidates =
+        await transaction.presentationCandidate.findMany({
+          where: { analyzedPostId: ledger.id },
+          select: { id: true },
+        });
+      await projectCandidateIds(
+        transaction,
+        createdCandidates.map((candidate) => candidate.id),
+      );
     }
+    await refreshCatalogItems(
+      transaction,
+      oldItemIds.flatMap((candidate) =>
+        candidate.catalogItemId === null ? [] : [candidate.catalogItemId],
+      ),
+    );
   });
 
   if (outcome.analysis.relevant) {

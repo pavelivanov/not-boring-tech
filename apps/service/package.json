@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsup src/server.ts src/sync.ts --format esm --clean --sourcemap",
+    "build": "tsup",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "sync": "tsx src/sync.ts",
@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.0.12",
+    "@techdex/contracts": "*",
     "@techdex/db": "*",
     "hono": "^4",
     "openai": "^6",

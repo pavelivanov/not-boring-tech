@@ -1,4 +1,4 @@
-import type { Tool } from "@techdex/contracts"
+import type { CatalogListItem } from "@techdex/contracts"
 import { SearchXIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 
@@ -14,9 +14,10 @@ import {
 } from "~/components/ui/empty"
 
 type ToolListProps = {
-  readonly tools: readonly Tool[]
+  readonly tools: readonly CatalogListItem[]
   readonly search: string
   readonly onClear: () => void
+  readonly emptyState: "database" | "filtered"
 }
 
 const savedToolsStorageKey = "techdex:saved:v1"
@@ -37,7 +38,12 @@ function readSavedTools(): Set<string> {
   }
 }
 
-export function ToolList({ tools, search, onClear }: ToolListProps) {
+export function ToolList({
+  tools,
+  search,
+  onClear,
+  emptyState,
+}: ToolListProps) {
   const [savedTools, setSavedTools] = useState<ReadonlySet<string>>(
     () => new Set()
   )
@@ -76,14 +82,22 @@ export function ToolList({ tools, search, onClear }: ToolListProps) {
           <EmptyMedia variant="icon">
             <SearchXIcon aria-hidden="true" />
           </EmptyMedia>
-          <EmptyTitle>No entries match this combination</EmptyTitle>
+          <EmptyTitle>
+            {emptyState === "database"
+              ? "No parsed entries yet"
+              : "No entries match this combination"}
+          </EmptyTitle>
           <EmptyDescription>
-            Adjust the query, type, or tags—or clear everything and begin again.
+            {emptyState === "database"
+              ? "The index will populate after the configured public channels complete a parser run."
+              : "Adjust the query, type, or tags—or clear everything and begin again."}
           </EmptyDescription>
         </EmptyHeader>
-        <EmptyContent>
-          <Button onClick={onClear}>Clear filters</Button>
-        </EmptyContent>
+        {emptyState === "filtered" ? (
+          <EmptyContent>
+            <Button onClick={onClear}>Clear filters</Button>
+          </EmptyContent>
+        ) : null}
       </Empty>
     )
   }

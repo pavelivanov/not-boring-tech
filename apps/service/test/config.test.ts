@@ -26,7 +26,33 @@ describe("parseServerConfig", () => {
   it("requires only database and server values", () => {
     expect(
       parseServerConfig({ DATABASE_URL: SECRET_SENTINELS.DATABASE_URL }),
-    ).toMatchObject({ HOST: "0.0.0.0", PORT: 3001, LOG_LEVEL: "info" });
+    ).toMatchObject({
+      HOST: "0.0.0.0",
+      PORT: 3001,
+      LOG_LEVEL: "info",
+      API_ALLOWED_ORIGINS: ["http://localhost:3000", "http://127.0.0.1:3000"],
+    });
+  });
+
+  it("normalizes an explicit CORS allowlist and rejects wildcards or paths", () => {
+    expect(
+      parseServerConfig({
+        DATABASE_URL: SECRET_SENTINELS.DATABASE_URL,
+        API_ALLOWED_ORIGINS: "https://techdex.example, http://localhost:5173/",
+      }).API_ALLOWED_ORIGINS,
+    ).toEqual(["https://techdex.example", "http://localhost:5173"]);
+    expect(() =>
+      parseServerConfig({
+        DATABASE_URL: SECRET_SENTINELS.DATABASE_URL,
+        API_ALLOWED_ORIGINS: "*",
+      }),
+    ).toThrow(ConfigError);
+    expect(() =>
+      parseServerConfig({
+        DATABASE_URL: SECRET_SENTINELS.DATABASE_URL,
+        API_ALLOWED_ORIGINS: "https://techdex.example/private",
+      }),
+    ).toThrow(ConfigError);
   });
 
   it("rejects non-PostgreSQL URLs without exposing the value", () => {

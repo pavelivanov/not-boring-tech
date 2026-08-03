@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CATALOG_CATEGORIES } from "@techdex/contracts";
 
 import {
   PRESENTATION_KINDS,
@@ -15,6 +16,7 @@ const MAX_URL_LENGTH = 2_048;
 export const presentationSchema = z
   .object({
     kind: z.enum(PRESENTATION_KINDS),
+    category: z.enum(CATALOG_CATEGORIES),
     name: z.string(),
     parentName: z.string().nullable(),
     subjectUrl: z.string().nullable(),
@@ -96,6 +98,7 @@ const normalizePresentation = (
 
   return {
     kind: presentation.kind,
+    category: presentation.category,
     name: boundedText(presentation.name, "name", MAX_NAME_LENGTH),
     parentName:
       parentName === null

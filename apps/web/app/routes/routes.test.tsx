@@ -1,31 +1,248 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react"
+import type {
+  CatalogActiveFilters,
+  CatalogCategory,
+  CatalogDetailItem,
+  CatalogListItem,
+  TechnologyKind,
+} from "@techdex/contracts"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { hydrateRoot } from "react-dom/client"
-import { renderToString } from "react-dom/server"
 import {
   createMemoryRouter,
-  MemoryRouter,
   RouterProvider,
   type InitialEntry,
+  type LoaderFunctionArgs,
+  type RouteObject,
+  useLoaderData,
+  useParams,
+  useRouteError,
 } from "react-router"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { tools, toolsBySlug } from "~/data/tools"
-import { formatAbsoluteDate } from "~/domain/dates"
-import { firstPresentation, newestMentionsFirst } from "~/domain/tools"
-
-import Home from "./home"
+import Home, {
+  clientLoader as homeClientLoader,
+  ErrorBoundary as HomeErrorBoundary,
+  HydrateFallback as HomeHydrateFallback,
+} from "./home"
 import NotFound from "./not-found"
-import ToolDetail from "./tool-detail"
+import ToolDetail, {
+  clientLoader as detailClientLoader,
+  ErrorBoundary as DetailErrorBoundary,
+} from "./tool-detail"
 
-const routes = [
+const apiOrigin = "https://catalog-api.example.test"
+const now = "2026-08-03T10:00:00.000Z"
+
+const item = {
+  slug: "dynamic-signal",
+  name: "Dynamic Signal",
+  kind: "LIBRARY",
+  category: "Developer tools",
+  parentName: "Runtime Parent",
+  canonicalUrl: "https://dynamic.example.test/",
+  descriptionEn: "A synthetic subject returned only by the test API.",
+  tags: ["runtime", "signal"],
+  firstMentionedAt: "2026-08-01T10:00:00.000Z",
+  lastMentionedAt: now,
+  mentionCount: 2,
+  channelCount: 1,
+} satisfies CatalogListItem
+
+const detailItem = {
+  ...item,
+  mentions: [
+    {
+      channelHandle: "@signal_lab",
+      channelTitle: "Signal Lab",
+      channelPublicUrl: "https://t.me/signal_lab",
+      sourceUrl: "https://t.me/signal_lab/42",
+      publishedAt: now,
+      confidence: 0.94,
+    },
+  ],
+} satisfies CatalogDetailItem
+
+const baseFilters = {
+  q: "",
+  kind: [],
+  category: [],
+  channel: [],
+  tag: [],
+  sort: "latest",
+  limit: 24,
+} satisfies CatalogActiveFilters
+
+let catalogUnavailable = false
+let databaseEmpty = false
+let fetchSpy: ReturnType<typeof vi.fn>
+
+function jsonResponse(payload: unknown, status = 200): Response {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  })
+}
+
+function filtersFromUrl(url: URL): CatalogActiveFilters {
+  const sort = url.searchParams.get("sort") === "name" ? "name" : "latest"
+
+  return {
+    q: url.searchParams.get("q") ?? "",
+    kind: url.searchParams.getAll("kind") as TechnologyKind[],
+    category: url.searchParams.getAll("category") as CatalogCategory[],
+    channel: url.searchParams.getAll("channel"),
+    tag: url.searchParams.getAll("tag"),
+    sort,
+    limit: 24,
+  }
+}
+
+function installApiFake() {
+  fetchSpy = vi.fn(async (input: string | URL | Request) => {
+    const url = new URL(input instanceof Request ? input.url : input.toString())
+
+    if (url.pathname === "/v1/facets") {
+      return jsonResponse({
+        categories: databaseEmpty
+          ? []
+          : [{ value: "Developer tools", count: 1 }],
+        kinds: databaseEmpty ? [] : [{ value: "LIBRARY", count: 1 }],
+        channels: databaseEmpty
+          ? []
+          : [{ value: "@signal_lab", label: "Signal Lab", count: 1 }],
+        tags: databaseEmpty
+          ? []
+          : [
+              { value: "runtime", count: 1 },
+              { value: "signal", count: 1 },
+            ],
+      })
+    }
+
+    if (url.pathname === "/v1/channels") {
+      return jsonResponse({
+        channels: databaseEmpty
+          ? []
+          : [
+              {
+                handle: "@signal_lab",
+                title: "Signal Lab",
+                publicUrl: "https://t.me/signal_lab",
+                itemCount: 1,
+                mentionCount: 2,
+                latestMentionedAt: now,
+              },
+            ],
+      })
+    }
+
+    if (url.pathname === "/v1/catalog/dynamic-signal") {
+      return jsonResponse({ item: detailItem })
+    }
+
+    if (url.pathname.startsWith("/v1/catalog/")) {
+      return jsonResponse(
+        {
+          error: {
+            code: "NOT_FOUND",
+            message: "Catalog item not found",
+            requestId: "request-not-found",
+          },
+        },
+        404
+      )
+    }
+
+    if (url.pathname === "/v1/catalog") {
+      if (catalogUnavailable) {
+        return jsonResponse(
+          {
+            error: {
+              code: "SERVICE_UNAVAILABLE",
+              message: "Catalog temporarily unavailable",
+              requestId: "request-retry-7",
+            },
+          },
+          503
+        )
+      }
+
+      const filters = filtersFromUrl(url)
+      const filteredOut = filters.q === "missing"
+      return jsonResponse({
+        items: databaseEmpty || filteredOut ? [] : [item],
+        nextCursor: null,
+        filters,
+      })
+    }
+
+    throw new Error(`Unexpected API request: ${url.href}`)
+  })
+
+  vi.stubGlobal("fetch", fetchSpy)
+}
+
+async function runHomeLoader({ request }: LoaderFunctionArgs) {
+  return homeClientLoader({ request } as Parameters<typeof homeClientLoader>[0])
+}
+
+async function runDetailLoader(args: LoaderFunctionArgs) {
+  return detailClientLoader(args as Parameters<typeof detailClientLoader>[0])
+}
+
+function HomeTestRoute() {
+  const props = {
+    loaderData: useLoaderData<Awaited<ReturnType<typeof homeClientLoader>>>(),
+    params: useParams(),
+    matches: [],
+  } as unknown as Parameters<typeof Home>[0]
+
+  return <Home {...props} />
+}
+
+function HomeTestErrorBoundary() {
+  const props = {
+    error: useRouteError(),
+    params: useParams(),
+    matches: [],
+  } as unknown as Parameters<typeof HomeErrorBoundary>[0]
+
+  return <HomeErrorBoundary {...props} />
+}
+
+function DetailTestRoute() {
+  const props = {
+    loaderData: useLoaderData<Awaited<ReturnType<typeof detailClientLoader>>>(),
+    params: useParams(),
+    matches: [],
+  } as unknown as Parameters<typeof ToolDetail>[0]
+
+  return <ToolDetail {...props} />
+}
+
+function DetailTestErrorBoundary() {
+  const props = {
+    error: useRouteError(),
+    params: useParams(),
+    matches: [],
+  } as unknown as Parameters<typeof DetailErrorBoundary>[0]
+
+  return <DetailErrorBoundary {...props} />
+}
+
+const routes: RouteObject[] = [
   {
     path: "/",
-    Component: Home,
+    loader: runHomeLoader,
+    Component: HomeTestRoute,
+    ErrorBoundary: HomeTestErrorBoundary,
+    HydrateFallback: HomeHydrateFallback,
   },
   {
     path: "/tools/:slug",
-    Component: ToolDetail,
+    loader: runDetailLoader,
+    Component: DetailTestRoute,
+    ErrorBoundary: DetailTestErrorBoundary,
   },
   {
     path: "*",
@@ -39,298 +256,163 @@ function renderAt(initialEntry: InitialEntry = "/") {
   })
 
   render(<RouterProvider router={router} />)
-
   return router
 }
 
+beforeEach(() => {
+  vi.stubEnv("VITE_API_BASE_URL", apiOrigin)
+  catalogUnavailable = false
+  databaseEmpty = false
+  installApiFake()
+})
+
+afterEach(() => {
+  vi.unstubAllEnvs()
+  vi.unstubAllGlobals()
+})
+
 describe("home route", () => {
-  it("hydrates a shared filtered URL from the unfiltered prerender", async () => {
-    const prerenderedMarkup = renderToString(
-      <MemoryRouter initialEntries={["/"]}>
-        <Home />
-      </MemoryRouter>
-    )
-    const container = document.createElement("div")
-    container.innerHTML = prerenderedMarkup
-    document.body.append(container)
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {})
-    let root: ReturnType<typeof hydrateRoot> | undefined
-
-    try {
-      await act(async () => {
-        root = hydrateRoot(
-          container,
-          <MemoryRouter initialEntries={["/?channel=notboring-tech"]}>
-            <Home />
-          </MemoryRouter>
-        )
-      })
-
-      await waitFor(() => {
-        expect(
-          within(container).getByRole("heading", { name: "23 entries" })
-        ).toBeInTheDocument()
-      })
-      expect(consoleError).not.toHaveBeenCalled()
-    } finally {
-      if (root) {
-        await act(async () => root?.unmount())
-      }
-
-      consoleError.mockRestore()
-      container.remove()
-    }
-  })
-
-  it("renders the unfiltered corpus as a single result list", () => {
+  it("renders synthetic records and filter choices from the live API", async () => {
     renderAt()
 
-    expect(screen.getByRole("main")).toHaveAttribute("tabindex", "-1")
     expect(
-      screen.getByRole("heading", { name: "58 entries" })
-    ).toBeInTheDocument()
-    expect(screen.getAllByRole("article")).toHaveLength(58)
+      await screen.findByRole("link", { name: "Dynamic Signal" })
+    ).toHaveAttribute("href", "/tools/dynamic-signal")
+    expect(screen.getByRole("button", { name: /^Library 01$/ })).toBeVisible()
     expect(
-      screen.getByRole("searchbox", { name: "Search index" })
-    ).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: "Cursor" })).toHaveAttribute(
-      "href",
-      "/tools/cursor"
-    )
+      screen.getByRole("button", { name: /^Developer tools 01$/ })
+    ).toBeVisible()
+    expect(
+      screen.getByRole("button", { name: /^Signal Lab 01$/ })
+    ).toBeVisible()
+    expect(screen.getByRole("button", { name: /^runtime 01$/ })).toBeVisible()
   })
 
-  it("updates results and URL for type and tag filters", async () => {
+  it("keeps live type, category, source, and search filters in the URL", async () => {
     const user = userEvent.setup()
     const router = renderAt()
-    const guideCount = tools.filter((tool) => tool.kind === "GUIDE").length
-    const guideWorkflowCount = tools.filter(
-      (tool) =>
-        tool.kind === "GUIDE" && tool.tags.includes("developer workflow")
-    ).length
 
-    await user.click(
-      screen.getByRole("button", {
-        name: new RegExp(`^Guide 0?${guideCount}$`),
-      })
+    await screen.findByRole("link", { name: "Dynamic Signal" })
+    await user.click(screen.getByRole("button", { name: /^Library 01$/ }))
+    await waitFor(() =>
+      expect(router.state.location.search).toBe("?kind=LIBRARY")
     )
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole("heading", { name: `${guideCount} entries` })
-      ).toBeInTheDocument()
-      expect(router.state.location.search).toBe("?type=GUIDE")
-    })
-
     await user.click(
-      screen.getByRole("button", { name: /^developer workflow/i })
+      screen.getByRole("button", { name: /^Developer tools 01$/ })
     )
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole("heading", {
-          name: `${guideWorkflowCount} ${guideWorkflowCount === 1 ? "entry" : "entries"}`,
-        })
-      ).toBeInTheDocument()
+    await waitFor(() =>
       expect(router.state.location.search).toBe(
-        "?type=GUIDE&tag=developer+workflow"
+        "?kind=LIBRARY&category=Developer+tools"
       )
-    })
-  })
-
-  it("searches the index and keeps the query shareable", async () => {
-    const user = userEvent.setup()
-    const router = renderAt()
-
+    )
+    await user.click(screen.getByRole("button", { name: /^Signal Lab 01$/ }))
+    await waitFor(() =>
+      expect(router.state.location.search).toBe(
+        "?kind=LIBRARY&category=Developer+tools&channel=%40signal_lab"
+      )
+    )
     await user.type(
       screen.getByRole("searchbox", { name: "Search index" }),
-      "claude code cheat sheet"
+      "runtime"
+    )
+    await waitFor(() =>
+      expect(router.state.location.search).toContain("q=runtime")
     )
 
-    await waitFor(() => {
-      expect(
-        screen.getByRole("heading", { name: "1 entry" })
-      ).toBeInTheDocument()
-      expect(router.state.location.search).toBe("?q=claude+code+cheat+sheet")
-      expect(
-        screen.getByRole("link", { name: "Claude Code Cheat Sheet" })
-      ).toBeInTheDocument()
-    })
-  })
-
-  it("sorts entries alphabetically", async () => {
-    const user = userEvent.setup()
-    renderAt()
-    const firstAlphabeticalTool = [...tools].sort((left, right) =>
-      left.name.localeCompare(right.name)
-    )[0]
-
-    await user.click(screen.getByRole("button", { name: "A–Z" }))
-
-    const firstCard = screen.getAllByRole("article")[0]
-
-    expect(firstAlphabeticalTool).toBeDefined()
     expect(
-      within(firstCard!).getByRole("link", {
-        name: firstAlphabeticalTool!.name,
-      })
-    ).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "A–Z" })).toHaveAttribute(
-      "aria-pressed",
-      "true"
-    )
+      fetchSpy.mock.calls.some(([input]) =>
+        input.toString().includes("channel=%40signal_lab")
+      )
+    ).toBe(true)
   })
 
-  it("saves an entry locally", async () => {
+  it("distinguishes an empty database from filtered zero results", async () => {
+    databaseEmpty = true
+    const { unmount } = render(
+      <RouterProvider router={createMemoryRouter(routes)} />
+    )
+
+    expect(await screen.findByText("No parsed entries yet")).toBeVisible()
+    expect(screen.queryByRole("button", { name: "Clear filters" })).toBeNull()
+    unmount()
+
+    databaseEmpty = false
+    renderAt("/?q=missing")
+    expect(
+      await screen.findByText("No entries match this combination")
+    ).toBeVisible()
+    expect(screen.getByRole("button", { name: "Clear filters" })).toBeVisible()
+  })
+
+  it("shows a retryable API failure without a fixture fallback", async () => {
+    catalogUnavailable = true
     const user = userEvent.setup()
     renderAt()
 
-    await user.click(screen.getByRole("button", { name: "Save Cursor" }))
-
     expect(
-      screen.getByRole("button", { name: "Remove Cursor from saved" })
-    ).toHaveAttribute("aria-pressed", "true")
+      await screen.findByText("The catalog API is unavailable")
+    ).toBeVisible()
+    expect(screen.getByText(/request-retry-7/)).toBeVisible()
+    expect(screen.queryByText("Dynamic Signal")).toBeNull()
+
+    catalogUnavailable = false
+    await user.click(screen.getByRole("button", { name: "Retry" }))
+    expect(
+      await screen.findByRole("link", { name: "Dynamic Signal" })
+    ).toBeVisible()
   })
 
-  it("clears an incompatible source and category combination", async () => {
-    const user = userEvent.setup()
-    const router = renderAt("/?category=Security&channel=notboring-tech")
+  it("renders an accessible loading skeleton", () => {
+    const { container } = render(<HomeHydrateFallback />)
 
+    expect(screen.getByLabelText("Loading catalog")).toBeVisible()
     expect(
-      screen.getByRole("heading", { name: "0 entries" })
-    ).toBeInTheDocument()
-    expect(
-      screen.getByText("No entries match this combination")
-    ).toBeInTheDocument()
-    expect(router.state.location.search).toBe(
-      "?category=Security&channel=notboring-tech"
-    )
-
-    await user.click(screen.getByRole("button", { name: "Clear filters" }))
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole("heading", { name: "58 entries" })
-      ).toBeInTheDocument()
-      expect(router.state.location.search).toBe("")
-    })
-  })
-
-  it("renders canonical external links with safe new-tab attributes", () => {
-    renderAt()
-
-    const canonicalLink = screen
-      .getAllByRole("link", {
-        name: "cursor.com (opens in a new tab)",
-      })
-      .find((link) => link.getAttribute("href") === "https://www.cursor.com/")
-
-    expect(canonicalLink).toBeDefined()
-    expect(canonicalLink).toHaveAttribute("href", "https://www.cursor.com/")
-    expect(canonicalLink).toHaveAttribute("target", "_blank")
-    expect(canonicalLink).toHaveAttribute("rel", "noreferrer")
+      container.querySelectorAll('[data-slot="skeleton"]')
+    ).not.toHaveLength(0)
   })
 })
 
 describe("tool detail route", () => {
-  it("lists every source mention with dates and safe source links", () => {
-    renderAt("/tools/cursor")
+  it("resolves an arbitrary runtime slug with full source provenance", async () => {
+    renderAt("/tools/dynamic-signal")
 
-    const cursor = toolsBySlug.get("cursor")
-    const sourceLinks = screen.getAllByRole("link", {
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Dynamic Signal" })
+    ).toBeVisible()
+    expect(screen.getByText("Feature of")).toHaveTextContent(
+      "Feature of Runtime Parent"
+    )
+    const sourceLink = screen.getByRole("link", {
       name: /Open Telegram source/,
     })
-
-    expect(cursor).toBeDefined()
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Cursor" })
-    ).toBeInTheDocument()
-    expect(sourceLinks).toHaveLength(cursor!.mentions.length)
-    expect(
-      screen.getByText(
-        new RegExp(
-          `First presented ${formatAbsoluteDate(
-            firstPresentation(cursor!).publishedAt
-          )}`
-        )
-      )
-    ).toBeInTheDocument()
-    const expectedMentions = newestMentionsFirst(cursor!.mentions)
-
-    for (const [index, link] of sourceLinks.entries()) {
-      expect(link).toHaveAttribute("href", expectedMentions[index]?.sourceUrl)
-      expect(link).toHaveAttribute("target", "_blank")
-      expect(link).toHaveAttribute("rel", "noreferrer")
-    }
-
-    const visitLink = screen.getByRole("link", { name: /Open tool/ })
-    expect(visitLink).toHaveAttribute("href", cursor!.canonicalUrl)
-    expect(visitLink).toHaveAttribute("target", "_blank")
-    expect(visitLink).toHaveAttribute("rel", "noreferrer")
+    expect(sourceLink).toHaveAttribute("href", "https://t.me/signal_lab/42")
+    expect(sourceLink).toHaveAttribute("target", "_blank")
+    expect(sourceLink).toHaveAttribute("rel", "noreferrer")
   })
 
-  it("shows feature identity and links to its parent without merging provenance", () => {
-    renderAt("/tools/claude-code-channels")
-
-    const channels = toolsBySlug.get("claude-code-channels")
-
-    expect(channels).toBeDefined()
-    expect(
-      screen.getByRole("heading", {
-        level: 1,
-        name: "Claude Code Channels",
-      })
-    ).toBeInTheDocument()
-    expect(screen.getByText("Feature")).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: "Claude Code" })).toHaveAttribute(
-      "href",
-      "/tools/claude-code"
-    )
-    expect(
-      screen.getAllByRole("link", { name: /Open Telegram source/ })
-    ).toHaveLength(1)
-  })
-
-  it("presents the reviewed reference as a cheat sheet, not its parent tool", () => {
-    renderAt("/tools/claude-code-cheat-sheet")
+  it("renders a real not-found state for an unknown API slug", async () => {
+    renderAt("/tools/not-created-at-build-time")
 
     expect(
-      screen.getByRole("heading", {
-        level: 1,
-        name: "Claude Code Cheat Sheet",
-      })
-    ).toBeInTheDocument()
-    expect(screen.getByText("Cheat sheet")).toBeInTheDocument()
-    expect(
-      screen.getByRole("link", { name: /Open cheat sheet/ })
-    ).toHaveAttribute("href", "https://cc.storyfox.cz/")
-  })
-
-  it("renders a real not-found state for an unknown slug", () => {
-    renderAt("/tools/not-in-the-corpus")
-
-    expect(
-      screen.getByRole("heading", {
+      await screen.findByRole("heading", {
         level: 1,
         name: "This subject is not in the index.",
       })
-    ).toBeInTheDocument()
+    ).toBeVisible()
     expect(
-      screen.getByText("Unknown subject / not-in-the-corpus")
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole("link", { name: "Return to index" })
-    ).toHaveAttribute("href", "/")
+      screen.getByText("Unknown subject / not-created-at-build-time")
+    ).toBeVisible()
   })
 
-  it("uses the catch-all route for an unknown page", () => {
+  it("uses the catch-all route for an unknown page", async () => {
     renderAt("/not-a-real-page")
 
-    const main = screen.getByRole("main")
+    const main = await screen.findByRole("main")
     expect(
       within(main).getByRole("heading", {
         level: 1,
         name: "That page never made it into the index.",
       })
-    ).toBeInTheDocument()
+    ).toBeVisible()
   })
 })

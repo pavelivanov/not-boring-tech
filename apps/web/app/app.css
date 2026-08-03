@@ -842,6 +842,16 @@
   background: #fcfbf9;
 }
 
+.catalog-load-more {
+  display: flex;
+  justify-content: center;
+  padding: 0 24px 36px;
+}
+
+.catalog-inline-alert {
+  margin: 0 40px 24px;
+}
+
 .mobile-filter-sheet[data-slot="sheet-content"] {
   width: min(90vw, 360px);
   max-width: none;
@@ -1014,6 +1024,10 @@
 
   .tool-empty-state {
     margin: 16px 16px 32px;
+  }
+
+  .catalog-inline-alert {
+    margin: 0 16px 20px;
   }
 }
 

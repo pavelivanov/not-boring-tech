@@ -1,6 +1,6 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 
-import { PrismaClient } from "./generated/prisma/client";
+import { PrismaClient, type Prisma } from "./generated/prisma/client";
 
 export const createDbClient = (databaseUrl: string): PrismaClient => {
   const adapter = new PrismaPg({ connectionString: databaseUrl });
@@ -8,3 +8,4 @@ export const createDbClient = (databaseUrl: string): PrismaClient => {
 };
 
 export type DbClient = PrismaClient;
+export type DbTransaction = Prisma.TransactionClient;

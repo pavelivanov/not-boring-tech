@@ -1,19 +1,12 @@
-export const PRESENTATION_KINDS = [
-  "PROJECT",
-  "TOOL",
-  "LIBRARY",
-  "SERVICE",
-  "PRODUCT",
-  "FEATURE",
-  "PLUGIN",
-  "SKILL",
-  "GUIDE",
-  "CHEAT_SHEET",
-  "PODCAST",
-  "OTHER_TECH",
-] as const;
+import {
+  TECHNOLOGY_KINDS,
+  type CatalogCategory,
+  type TechnologyKind,
+} from "@techdex/contracts";
 
-export type PresentationKind = (typeof PRESENTATION_KINDS)[number];
+export const PRESENTATION_KINDS = TECHNOLOGY_KINDS;
+
+export type PresentationKind = TechnologyKind;
 
 export interface TransientPostInput {
   readonly channelHandle: string;
@@ -27,6 +20,7 @@ export interface TransientPostInput {
 
 export interface Presentation {
   readonly kind: PresentationKind;
+  readonly category: CatalogCategory;
   readonly name: string;
   readonly parentName: string | null;
   readonly subjectUrl: string | null;

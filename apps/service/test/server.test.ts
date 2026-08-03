@@ -15,9 +15,14 @@ describe("service probes", () => {
 
   it("reports database readiness generically", async () => {
     const readyResponse = await createServerApp({
-      $queryRaw: vi.fn().mockResolvedValue([1]),
+      $queryRaw: vi.fn().mockResolvedValue([{ catalogTable: "CatalogItem" }]),
     } as never).request("/ready");
     expect(readyResponse.status).toBe(200);
+
+    const missingSchemaResponse = await createServerApp({
+      $queryRaw: vi.fn().mockResolvedValue([{ catalogTable: null }]),
+    } as never).request("/ready");
+    expect(missingSchemaResponse.status).toBe(503);
 
     const unavailableResponse = await createServerApp({
       $queryRaw: vi
@@ -30,10 +35,47 @@ describe("service probes", () => {
     );
   });
 
-  it("does not expose additional routes", async () => {
+  it("returns safe request-identified errors for unknown routes", async () => {
     const response = await createServerApp({
       $queryRaw: vi.fn(),
-    } as never).request("/channels");
+    } as never).request("/admin");
     expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({
+      error: { code: "NOT_FOUND", requestId: expect.any(String) },
+    });
+  });
+
+  it("allows CORS only for explicit origins", async () => {
+    const app = createServerApp({ $queryRaw: vi.fn() } as never, {
+      allowedOrigins: ["https://techdex.example"],
+    });
+    const allowed = await app.request("/v1/unknown", {
+      headers: { Origin: "https://techdex.example" },
+    });
+    expect(allowed.headers.get("access-control-allow-origin")).toBe(
+      "https://techdex.example",
+    );
+    expect(allowed.headers.get("access-control-allow-credentials")).toBeNull();
+
+    const denied = await app.request("/v1/unknown", {
+      headers: { Origin: "https://attacker.example" },
+    });
+    expect(denied.headers.get("access-control-allow-origin")).toBeNull();
+  });
+
+  it("sanitizes unexpected database failures", async () => {
+    const app = createServerApp({
+      catalogItem: {
+        findMany: vi
+          .fn()
+          .mockRejectedValue(new Error("postgresql://private:secret@db")),
+      },
+    } as never);
+    const response = await app.request("/v1/catalog");
+    const body = await response.text();
+
+    expect(response.status).toBe(500);
+    expect(body).toContain("INTERNAL_ERROR");
+    expect(body).not.toContain("postgresql://private:secret@db");
   });
 });
