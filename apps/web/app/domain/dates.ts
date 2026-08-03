@@ -42,3 +42,24 @@ export function formatRelativeAge(
 
   return relativeFormatter.format(-Math.floor(elapsed / duration.year), "year")
 }
+
+export function formatCompactRelativeAge(
+  value: string,
+  referenceTime = stableReferenceTime
+): string {
+  const elapsed = Math.max(0, referenceTime - Date.parse(value))
+
+  if (elapsed < duration.day) {
+    return "today"
+  }
+
+  if (elapsed < duration.month) {
+    return `${Math.floor(elapsed / duration.day)} d`
+  }
+
+  if (elapsed < duration.year) {
+    return `${Math.floor(elapsed / duration.month)} mo`
+  }
+
+  return `${Math.floor(elapsed / duration.year)} yr`
+}

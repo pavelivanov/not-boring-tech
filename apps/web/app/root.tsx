@@ -2,7 +2,6 @@ import {
   Links,
   Link,
   Meta,
-  NavLink,
   Outlet,
   Scripts,
   ScrollRestoration,
@@ -10,7 +9,6 @@ import {
 } from "react-router"
 
 import type { Route } from "./+types/root"
-import { cn } from "~/lib/utils"
 import "./app.css"
 
 export const links: Route.LinksFunction = () => [
@@ -33,50 +31,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         >
           Skip to content
         </a>
-        <div className="min-h-svh">
-          <header className="border-b">
-            <div className="page-width flex h-16 items-center justify-between">
-              <Link
-                to="/"
-                className="font-heading text-lg font-semibold tracking-[-0.04em]"
-              >
-                TechDex<span className="text-primary">/</span>
-              </Link>
-              <nav aria-label="Primary navigation" className="flex gap-5">
-                <NavLink
-                  to="/"
-                  end
-                  className={({ isActive }) =>
-                    cn(
-                      "text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground",
-                      isActive && "text-foreground underline"
-                    )
-                  }
-                >
-                  Index
-                </NavLink>
-                <NavLink
-                  to="/about"
-                  className={({ isActive }) =>
-                    cn(
-                      "text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground",
-                      isActive && "text-foreground underline"
-                    )
-                  }
-                >
-                  About
-                </NavLink>
-              </nav>
-            </div>
-          </header>
-          {children}
-          <footer className="border-t">
-            <div className="page-width flex flex-col gap-2 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-              <p>Public, read-only, and grounded in direct sources.</p>
-              <p>No accounts · no analytics · direct sources</p>
-            </div>
-          </footer>
-        </div>
+        <div className="min-h-svh">{children}</div>
         <ScrollRestoration />
         <Scripts />
       </body>

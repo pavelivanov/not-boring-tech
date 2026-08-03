@@ -1,129 +1,103 @@
 import type { Tool } from "@techdex/contracts"
-import {
-  ArrowUpRightIcon,
-  Layers2Icon,
-  MessageCircleMoreIcon,
-} from "lucide-react"
+import { ArrowUpRightIcon, BookmarkIcon } from "lucide-react"
 import { Link } from "react-router"
 
 import { RelativeDate } from "~/components/relative-date"
 import { Badge } from "~/components/ui/badge"
-import { channelsById } from "~/data/channels"
-import { firstPresentation, formatTechnologyKind } from "~/domain/tools"
+import { Button } from "~/components/ui/button"
+import {
+  distinctChannelCount,
+  firstPresentation,
+  formatTechnologyKind,
+} from "~/domain/tools"
 
 type ToolCardProps = {
   readonly tool: Tool
-  readonly resultNumber: number
   readonly search: string
+  readonly saved: boolean
+  readonly onToggleSaved: (slug: string) => void
 }
 
 function hostLabel(value: string): string {
   return new URL(value).hostname.replace(/^www\./u, "")
 }
 
-function channelHandle(publicUrl: string): string {
-  return `@${new URL(publicUrl).pathname.replace(/^\//u, "")}`
-}
-
-function channelFilterPath(search: string, channelId: string): string {
-  const params = new URLSearchParams(search)
-
-  params.delete("q")
-  params.set("channel", channelId)
-
-  return `/?${params.toString()}`
-}
-
-export function ToolCard({ tool, resultNumber, search }: ToolCardProps) {
+export function ToolCard({
+  tool,
+  search,
+  saved,
+  onToggleSaved,
+}: ToolCardProps) {
   const firstMention = firstPresentation(tool)
-  const sourceChannels = [
-    ...new Set(tool.mentions.map((mention) => mention.channelId)),
-  ].flatMap((channelId) => {
-    const channel = channelsById.get(channelId)
-
-    return channel ? [channel] : []
-  })
+  const channelCount = distinctChannelCount(tool)
+  const mentionCount = tool.mentions.length
+  const kindLabel = formatTechnologyKind(tool.kind)
+  const detailPath = `/tools/${tool.slug}`
 
   return (
-    <article className="tool-result grid gap-5 py-7 md:grid-cols-[3rem_minmax(0,1fr)_auto] md:py-9">
-      <p
-        className="font-mono text-xs text-muted-foreground"
-        aria-label={`Result ${resultNumber}`}
+    <article className="tool-card">
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="tool-save-button"
+        data-saved={saved || undefined}
+        aria-pressed={saved}
+        aria-label={
+          saved ? `Remove ${tool.name} from saved` : `Save ${tool.name}`
+        }
+        title={saved ? "Saved" : "Save"}
+        onClick={() => onToggleSaved(tool.slug)}
       >
-        {String(resultNumber).padStart(2, "0")}
-      </p>
+        <BookmarkIcon aria-hidden="true" />
+      </Button>
 
-      <div className="flex min-w-0 flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">{formatTechnologyKind(tool.kind)}</Badge>
-            <Badge variant="outline">{tool.category}</Badge>
-            {tool.tags.slice(0, 3).map((tag) => (
-              <Badge key={tag} variant="outline">
-                {tag}
-              </Badge>
-            ))}
-          </div>
-
-          <h2 className="font-heading text-2xl font-semibold tracking-tight md:text-3xl">
-            <Link
-              to={`/tools/${tool.slug}`}
-              state={{ from: search }}
-              className="decoration-primary decoration-2 underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-            >
-              {tool.name}
-            </Link>
-          </h2>
-          <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
-            {tool.description}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+      <div className="tool-card-body">
+        <p className="tool-card-kicker">
+          <span>{kindLabel}</span>
           <span>
-            Presented <RelativeDate value={firstMention.publishedAt} />
+            {String(mentionCount).padStart(2, "0")}{" "}
+            {mentionCount === 1 ? "mention" : "mentions"}
           </span>
-          <span
-            className="flex flex-wrap items-center gap-1.5"
-            aria-label="Source channels"
-          >
-            <MessageCircleMoreIcon aria-hidden="true" />
-            {sourceChannels.map((channel) => {
-              const handle = channelHandle(channel.publicUrl)
-
-              return (
-                <Badge key={channel.id} variant="outline" asChild>
-                  <Link
-                    to={channelFilterPath(search, channel.id)}
-                    aria-label={`Filter by source channel ${channel.name} (${handle})`}
-                  >
-                    {handle}
-                  </Link>
-                </Badge>
-              )
-            })}
-          </span>
-          <Link
-            to={`/tools/${tool.slug}`}
-            state={{ from: search }}
-            className="inline-flex items-center gap-1.5 font-medium text-foreground underline decoration-border underline-offset-4 transition-colors hover:decoration-primary"
-          >
-            <Layers2Icon aria-hidden="true" />
-            View provenance
+        </p>
+        <h3>
+          <Link to={detailPath} state={{ from: search }}>
+            {tool.name}
           </Link>
+        </h3>
+        <p className="tool-card-description">{tool.description}</p>
+        <div className="tool-card-tags" aria-label={`${tool.name} tags`}>
+          {tool.tags.slice(0, 2).map((tag) => (
+            <Badge key={tag} variant="outline">
+              {tag}
+            </Badge>
+          ))}
         </div>
       </div>
 
-      <a
-        href={tool.canonicalUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="inline-flex h-fit items-center gap-1.5 text-sm font-medium text-foreground underline decoration-border underline-offset-4 transition-colors hover:decoration-primary md:justify-self-end"
-      >
-        {hostLabel(tool.canonicalUrl)}
-        <ArrowUpRightIcon aria-hidden="true" />
-        <span className="sr-only">(opens in a new tab)</span>
-      </a>
+      <footer className="tool-card-footer">
+        <a
+          href={tool.canonicalUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="tool-domain-link"
+        >
+          {hostLabel(tool.canonicalUrl)}
+          <span className="sr-only"> (opens in a new tab)</span>
+        </a>
+        <span className="tool-card-meta">
+          <RelativeDate value={firstMention.publishedAt} compact /> ·{" "}
+          {channelCount} CH
+        </span>
+        <Link
+          to={detailPath}
+          state={{ from: search }}
+          className="tool-detail-link"
+          aria-label={`View ${tool.name} provenance`}
+        >
+          <ArrowUpRightIcon aria-hidden="true" />
+        </Link>
+      </footer>
     </article>
   )
 }

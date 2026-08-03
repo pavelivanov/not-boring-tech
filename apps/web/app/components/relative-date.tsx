@@ -2,15 +2,17 @@ import { useEffect, useState } from "react"
 
 import {
   formatAbsoluteDate,
+  formatCompactRelativeAge,
   formatRelativeAge,
   stableReferenceTime,
 } from "~/domain/dates"
 
 type RelativeDateProps = {
   readonly value: string
+  readonly compact?: boolean
 }
 
-export function RelativeDate({ value }: RelativeDateProps) {
+export function RelativeDate({ value, compact = false }: RelativeDateProps) {
   const [referenceTime, setReferenceTime] = useState(stableReferenceTime)
   const absoluteDate = formatAbsoluteDate(value)
 
@@ -24,7 +26,9 @@ export function RelativeDate({ value }: RelativeDateProps) {
       title={absoluteDate}
       aria-label={`Presented ${absoluteDate}`}
     >
-      {formatRelativeAge(value, referenceTime)}
+      {compact
+        ? formatCompactRelativeAge(value, referenceTime)
+        : formatRelativeAge(value, referenceTime)}
     </time>
   )
 }

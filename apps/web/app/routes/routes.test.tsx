@@ -10,7 +10,7 @@ import {
 } from "react-router"
 import { describe, expect, it, vi } from "vitest"
 
-import { toolsBySlug } from "~/data/tools"
+import { tools, toolsBySlug } from "~/data/tools"
 import { formatAbsoluteDate } from "~/domain/dates"
 import { firstPresentation, newestMentionsFirst } from "~/domain/tools"
 
@@ -91,114 +91,109 @@ describe("home route", () => {
     ).toBeInTheDocument()
     expect(screen.getAllByRole("article")).toHaveLength(58)
     expect(
-      screen.queryByRole("textbox", { name: "Search index" })
-    ).not.toBeInTheDocument()
+      screen.getByRole("searchbox", { name: "Search index" })
+    ).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Cursor" })).toHaveAttribute(
       "href",
       "/tools/cursor"
     )
   })
 
-  it("updates results and URL for category and multiple tag filters", async () => {
+  it("updates results and URL for type and tag filters", async () => {
     const user = userEvent.setup()
     const router = renderAt()
+    const guideCount = tools.filter((tool) => tool.kind === "GUIDE").length
+    const guideWorkflowCount = tools.filter(
+      (tool) =>
+        tool.kind === "GUIDE" && tool.tags.includes("developer workflow")
+    ).length
 
-    await user.click(screen.getByRole("combobox", { name: "Category" }))
-    await user.click(screen.getByRole("option", { name: "Data systems" }))
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole("heading", { name: "4 entries" })
-      ).toBeInTheDocument()
-      expect(router.state.location.search).toBe("?category=Data+systems")
-    })
-
-    await user.click(screen.getByRole("combobox", { name: "Tags" }))
-    await user.click(screen.getByRole("option", { name: "browser" }))
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole("heading", { name: "2 entries" })
-      ).toBeInTheDocument()
-      expect(router.state.location.search).toBe(
-        "?category=Data+systems&tag=browser"
-      )
-    })
-
-    await user.click(screen.getByRole("option", { name: "serverless" }))
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole("heading", { name: "3 entries" })
-      ).toBeInTheDocument()
-      expect(router.state.location.search).toBe(
-        "?category=Data+systems&tag=browser&tag=serverless"
-      )
-    })
-  })
-
-  it("filters by source channel from the selector", async () => {
-    const user = userEvent.setup()
-    const router = renderAt()
-
-    await user.click(screen.getByRole("combobox", { name: "Source channel" }))
-    expect(
-      screen.queryByRole("option", { name: /@ai_newz/ })
-    ).not.toBeInTheDocument()
-    expect(
-      screen.queryByRole("option", { name: /@denissexy/ })
-    ).not.toBeInTheDocument()
     await user.click(
-      screen.getByRole("option", {
-        name: "@notboring_tech · Not Boring Tech",
+      screen.getByRole("button", {
+        name: new RegExp(`^Guide 0?${guideCount}$`),
       })
     )
 
     await waitFor(() => {
       expect(
-        screen.getByRole("heading", { name: "23 entries" })
+        screen.getByRole("heading", { name: `${guideCount} entries` })
       ).toBeInTheDocument()
-      expect(router.state.location.search).toBe("?channel=notboring-tech")
-      expect(screen.getByText("Source · @notboring_tech")).toBeInTheDocument()
-    })
-  })
-
-  it("makes each card's source chip a channel filter", async () => {
-    const user = userEvent.setup()
-    const router = renderAt()
-    const cursorCard = screen
-      .getByRole("link", { name: "Cursor" })
-      .closest("article")
-
-    expect(cursorCard).not.toBeNull()
-
-    const sourceChip = within(cursorCard!).getByRole("link", {
-      name: "Filter by source channel запуск завтра (@ctodaily)",
+      expect(router.state.location.search).toBe("?type=GUIDE")
     })
 
-    expect(sourceChip).toHaveAttribute("href", "/?channel=ctodaily")
-    await user.click(sourceChip)
+    await user.click(
+      screen.getByRole("button", { name: /^developer workflow/i })
+    )
 
     await waitFor(() => {
       expect(
-        screen.getByRole("heading", { name: "35 entries" })
+        screen.getByRole("heading", {
+          name: `${guideWorkflowCount} ${guideWorkflowCount === 1 ? "entry" : "entries"}`,
+        })
       ).toBeInTheDocument()
-      expect(router.state.location.search).toBe("?channel=ctodaily")
+      expect(router.state.location.search).toBe(
+        "?type=GUIDE&tag=developer+workflow"
+      )
     })
+  })
+
+  it("searches the index and keeps the query shareable", async () => {
+    const user = userEvent.setup()
+    const router = renderAt()
+
+    await user.type(
+      screen.getByRole("searchbox", { name: "Search index" }),
+      "claude code cheat sheet"
+    )
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "1 entry" })
+      ).toBeInTheDocument()
+      expect(router.state.location.search).toBe("?q=claude+code+cheat+sheet")
+      expect(
+        screen.getByRole("link", { name: "Claude Code Cheat Sheet" })
+      ).toBeInTheDocument()
+    })
+  })
+
+  it("sorts entries alphabetically", async () => {
+    const user = userEvent.setup()
+    renderAt()
+    const firstAlphabeticalTool = [...tools].sort((left, right) =>
+      left.name.localeCompare(right.name)
+    )[0]
+
+    await user.click(screen.getByRole("button", { name: "A–Z" }))
+
+    const firstCard = screen.getAllByRole("article")[0]
+
+    expect(firstAlphabeticalTool).toBeDefined()
+    expect(
+      within(firstCard!).getByRole("link", {
+        name: firstAlphabeticalTool!.name,
+      })
+    ).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "A–Z" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    )
+  })
+
+  it("saves an entry locally", async () => {
+    const user = userEvent.setup()
+    renderAt()
+
+    await user.click(screen.getByRole("button", { name: "Save Cursor" }))
+
+    expect(
+      screen.getByRole("button", { name: "Remove Cursor from saved" })
+    ).toHaveAttribute("aria-pressed", "true")
   })
 
   it("clears an incompatible source and category combination", async () => {
     const user = userEvent.setup()
-    const router = renderAt()
-
-    await user.click(screen.getByRole("combobox", { name: "Category" }))
-    await user.click(screen.getByRole("option", { name: "Security" }))
-    await user.click(screen.getByRole("combobox", { name: "Source channel" }))
-    await user.click(
-      screen.getByRole("option", {
-        name: "@notboring_tech · Not Boring Tech",
-      })
-    )
+    const router = renderAt("/?category=Security&channel=notboring-tech")
 
     expect(
       screen.getByRole("heading", { name: "0 entries" })

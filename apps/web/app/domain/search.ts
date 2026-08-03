@@ -1,4 +1,4 @@
-import type { Tool } from "@techdex/contracts"
+import type { TechnologyKind, Tool } from "@techdex/contracts"
 
 import { distinctChannelCount } from "./tools"
 
@@ -12,12 +12,14 @@ const relevance = {
 
 export type SearchFilters = {
   readonly query: string
+  readonly kind?: TechnologyKind
   readonly category?: string
   readonly channelId?: string
   readonly tags: readonly string[]
 }
 
 export type SearchStateOptions = {
+  readonly kinds: readonly TechnologyKind[]
   readonly categories: readonly string[]
   readonly channelIds: readonly string[]
   readonly tags: readonly string[]
@@ -97,6 +99,10 @@ export function searchTools(
   const scored: Array<{ tool: Tool; score: number }> = []
 
   for (const tool of corpus) {
+    if (filters.kind && tool.kind !== filters.kind) {
+      continue
+    }
+
     if (
       filters.channelId &&
       !tool.mentions.some((mention) => mention.channelId === filters.channelId)
@@ -147,6 +153,9 @@ export function parseSearchParams(
   params: URLSearchParams,
   options: SearchStateOptions
 ): SearchFilters {
+  const validKinds = new Map(
+    options.kinds.map((kind) => [normalizeSearchText(kind), kind])
+  )
   const validCategories = new Map(
     options.categories.map((category) => [
       normalizeSearchText(category),
@@ -178,9 +187,15 @@ export function parseSearchParams(
   const channelId = channelValue
     ? validChannels.get(normalizeSearchText(channelValue))
     : undefined
+  const kindValue = params.get("type")
+  const kind = kindValue
+    ? validKinds.get(normalizeSearchText(kindValue))
+    : undefined
+  const query = params.get("q")?.replace(/\s+/gu, " ").trim() ?? ""
 
   return {
-    query: "",
+    query,
+    ...(kind ? { kind } : {}),
     ...(category ? { category } : {}),
     ...(channelId ? { channelId } : {}),
     tags,
@@ -189,6 +204,16 @@ export function parseSearchParams(
 
 export function serializeSearchParams(filters: SearchFilters): URLSearchParams {
   const params = new URLSearchParams()
+
+  const query = filters.query.replace(/\s+/gu, " ").trim()
+
+  if (query) {
+    params.set("q", query)
+  }
+
+  if (filters.kind) {
+    params.set("type", filters.kind)
+  }
 
   if (filters.category) {
     params.set("category", filters.category)

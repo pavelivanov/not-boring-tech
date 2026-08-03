@@ -2,7 +2,7 @@ import type { Mention, Tool } from "@techdex/contracts"
 import { describe, expect, it } from "vitest"
 
 import { channels } from "../data/channels"
-import { categories, tags, tools } from "../data/tools"
+import { categories, kinds, tags, tools } from "../data/tools"
 import {
   normalizeSearchText,
   parseSearchParams,
@@ -15,6 +15,7 @@ const emptyFilters = {
   tags: [],
 } as const
 const filterOptions = {
+  kinds,
   categories,
   channelIds: channels.map((channel) => channel.id),
   tags,
@@ -121,6 +122,16 @@ describe("deterministic retrieval", () => {
     ).toBe(true)
   })
 
+  it("filters by technology type", () => {
+    const results = searchTools(tools, {
+      ...emptyFilters,
+      kind: "GUIDE",
+    })
+
+    expect(results).toHaveLength(8)
+    expect(results.every((tool) => tool.kind === "GUIDE")).toBe(true)
+  })
+
   it("breaks equal scores by channel count and then name", () => {
     const firstMention: Mention = {
       channelId: "one",
@@ -176,20 +187,22 @@ describe("deterministic retrieval", () => {
 describe("URL filter state", () => {
   it("parses valid values and ignores invalid or duplicate facets", () => {
     const params = new URLSearchParams(
-      "q=%20hidden+++for+now%20&category=AI+development&category=Security&channel=CTODAILY&tag=LLM&tag=LLM&tag=unknown"
+      "q=%20local+++models%20&type=guide&category=AI+development&category=Security&channel=CTODAILY&tag=LLM&tag=LLM&tag=unknown"
     )
 
     expect(parseSearchParams(params, filterOptions)).toEqual({
-      query: "",
+      query: "local models",
+      kind: "GUIDE",
       category: "AI development",
       channelId: "ctodaily",
       tags: ["LLM"],
     })
   })
 
-  it("serializes stable facets, omits the dormant query, and round-trips", () => {
+  it("serializes stable facets and round-trips", () => {
     const state = {
       query: "  local   models ",
+      kind: "TOOL",
       category: "AI development",
       channelId: "notboring-tech",
       tags: ["terminal", "LLM", "terminal"],
@@ -197,10 +210,11 @@ describe("URL filter state", () => {
     const params = serializeSearchParams(state)
 
     expect(params.toString()).toBe(
-      "category=AI+development&channel=notboring-tech&tag=LLM&tag=terminal"
+      "q=local+models&type=TOOL&category=AI+development&channel=notboring-tech&tag=LLM&tag=terminal"
     )
     expect(parseSearchParams(params, filterOptions)).toEqual({
-      query: "",
+      query: "local models",
+      kind: "TOOL",
       category: "AI development",
       channelId: "notboring-tech",
       tags: ["LLM", "terminal"],

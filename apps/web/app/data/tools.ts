@@ -1,4 +1,4 @@
-import type { Mention, Tool } from "@techdex/contracts"
+import type { Mention, TechnologyKind, Tool } from "@techdex/contracts"
 
 const initialVerifiedCollectionTime = "2026-07-30T14:36:40.000Z"
 const latestVerifiedCollectionTime = "2026-07-30T15:02:17.000Z"
@@ -1014,6 +1014,10 @@ export const toolsByName: ReadonlyMap<string, Tool> = new Map(
 export const categories = [...new Set(tools.map((tool) => tool.category))].sort(
   (left, right) => left.localeCompare(right)
 )
+
+export const kinds: readonly TechnologyKind[] = [
+  ...new Set(tools.map((tool) => tool.kind)),
+]
 
 export const tags = [...new Set(tools.flatMap((tool) => tool.tags))].sort(
   (left, right) => left.localeCompare(right)
