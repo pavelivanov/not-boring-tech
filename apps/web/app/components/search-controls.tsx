@@ -2,7 +2,7 @@ import type {
   CatalogCategory,
   CatalogChannel,
   TechnologyKind,
-} from "@techdex/contracts"
+} from "@findthatproject/contracts"
 import { SearchIcon, XIcon } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
 

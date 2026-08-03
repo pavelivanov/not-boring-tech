@@ -1,4 +1,4 @@
-import type { DbClient } from "@techdex/db";
+import type { DbClient } from "@findthatproject/db";
 import { z } from "zod";
 
 import { visibleCatalogWhere } from "../catalog/queries";
@@ -169,7 +169,7 @@ export const refreshGitHubStars = async (
   for (const { row, repository } of repositories.slice(0, maximum)) {
     const headers: Record<string, string> = {
       Accept: "application/vnd.github+json",
-      "User-Agent": "techdex-catalog",
+      "User-Agent": "findthatproject-catalog",
       "X-GitHub-Api-Version": GITHUB_API_VERSION,
     };
     if (options.token) headers.Authorization = `Bearer ${options.token}`;

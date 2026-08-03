@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { TechnologyKind } from "@techdex/contracts";
+import type { TechnologyKind } from "@findthatproject/contracts";
 
 const TRACKING_PARAMETERS = new Set([
   "dclid",

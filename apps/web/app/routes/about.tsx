@@ -6,11 +6,11 @@ import { canonicalMeta } from "~/domain/urls"
 
 export function meta() {
   return [
-    { title: "About · TechDex" },
+    { title: "About · FindThatProject" },
     {
       name: "description",
       content:
-        "How TechDex defines its Telegram corpus, attribution, and read-only public index.",
+        "How FindThatProject defines its Telegram corpus, attribution, and read-only public index.",
     },
     ...canonicalMeta("/about"),
   ]
@@ -35,9 +35,9 @@ export default function About() {
           The stream already did the curation.
         </h1>
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-          TechDex turns a bounded set of trusted public Telegram channels into a
-          filterable index. It is designed for finding a useful subject
-          again—not for manufacturing another discovery feed.
+          FindThatProject turns a bounded set of trusted public Telegram
+          channels into a filterable index. It is designed for finding a useful
+          subject again—not for manufacturing another discovery feed.
         </p>
       </header>
 

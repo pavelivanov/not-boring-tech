@@ -1,6 +1,6 @@
-# TechDex
+# FindThatProject
 
-TechDex is a focused technology-discovery product. The product direction lives
+FindThatProject is a focused technology-discovery product. The product direction lives
 in the [business plan](business-plan.md), and implementation is sequenced in
 the [implementation plans](plans/README.md).
 
@@ -28,7 +28,7 @@ This repository uses npm workspaces coordinated by Turborepo. It has one
 
 ## Retrieval website
 
-`@techdex/web` is the Plan 002 retrieval prototype in `apps/web`. It uses React
+`@findthatproject/web` is the Plan 002 retrieval prototype in `apps/web`. It uses React
 Router Framework Mode on Vite, React, TypeScript, Tailwind CSS, and local
 shadcn/ui components. Runtime SSR is disabled: production builds pre-render the
 home and about pages into `apps/web/build/client`, with an additional SPA
@@ -38,25 +38,25 @@ Run website tasks from the repository root:
 
 ```sh
 # Development server
-npm run dev --workspace=@techdex/web
+npm run dev --workspace=@findthatproject/web
 
 # Unit and route/component tests
-npm run test --workspace=@techdex/web
+npm run test --workspace=@findthatproject/web
 
 # Watch tests while developing
-npm run test:watch --workspace=@techdex/web
+npm run test:watch --workspace=@findthatproject/web
 
 # React Router type generation plus TypeScript
-npm run typecheck --workspace=@techdex/web
+npm run typecheck --workspace=@findthatproject/web
 
 # Formatting check
-npm run lint --workspace=@techdex/web
+npm run lint --workspace=@findthatproject/web
 
 # Production build and prerender
-npm run build --workspace=@techdex/web
+npm run build --workspace=@findthatproject/web
 
 # Preview the latest production build
-npm run start --workspace=@techdex/web
+npm run start --workspace=@findthatproject/web
 ```
 
 The current shadcn CLI no longer accepts the plan's former `radix-nova` preset
@@ -79,7 +79,7 @@ the parent's provenance. Generic news and opinion do not create catalog rows.
 
 ## Telegram analysis service
 
-`@techdex/service` is the Plan 003 collection and first-pass analysis service.
+`@findthatproject/service` is the Plan 003 collection and first-pass analysis service.
 It has two processes built into one image:
 
 - `server` exposes `GET /health`, the database-backed `GET /ready`, and
@@ -167,16 +167,16 @@ The normal repository gate uses no third-party credentials:
 npm run check
 ```
 
-Database integration tests require the disposable local `techdex_test`
+Database integration tests require the disposable local `findthatproject_test`
 database. Its Compose profile uses tmpfs and refuses non-loopback or non-test
 database URLs:
 
 ```sh
 POSTGRES_PASSWORD=unused docker compose --profile test up -d db-test
-DATABASE_URL=postgresql://techdex_test:techdex_test@127.0.0.1:5433/techdex_test \
-  npm run migrate:deploy --workspace=@techdex/db
-TEST_DATABASE_URL=postgresql://techdex_test:techdex_test@127.0.0.1:5433/techdex_test \
-  npm run test --workspace=@techdex/service -- --run pipeline
+DATABASE_URL=postgresql://findthatproject_test:findthatproject_test@127.0.0.1:5433/findthatproject_test \
+  npm run migrate:deploy --workspace=@findthatproject/db
+TEST_DATABASE_URL=postgresql://findthatproject_test:findthatproject_test@127.0.0.1:5433/findthatproject_test \
+  npm run test --workspace=@findthatproject/service -- --run pipeline
 ```
 
 The checked-in extraction evaluation uses 30 compact synthetic cases and prints
@@ -186,7 +186,7 @@ variables, not database or Telegram credentials:
 ```sh
 OPENAI_API_KEY=replace-at-runtime \
 OPENAI_MODEL=replace-with-an-explicit-compatible-model \
-  npm run eval:extraction --workspace=@techdex/service
+  npm run eval:extraction --workspace=@findthatproject/service
 ```
 
 Acceptance requires relevance precision of at least 0.90, relevance recall of

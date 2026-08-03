@@ -1,5 +1,5 @@
 {
-  "name": "@techdex/contracts",
+  "name": "@findthatproject/contracts",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -19,7 +19,7 @@
     "zod": "^4"
   },
   "devDependencies": {
-    "@techdex/typescript-config": "*",
+    "@findthatproject/typescript-config": "*",
     "prettier": "^3.8.3",
     "typescript": "^6",
     "vitest": "^4.1.6"

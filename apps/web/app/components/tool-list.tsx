@@ -1,4 +1,4 @@
-import type { CatalogListItem } from "@techdex/contracts"
+import type { CatalogListItem } from "@findthatproject/contracts"
 import { SearchXIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 
@@ -20,7 +20,7 @@ type ToolListProps = {
   readonly emptyState: "database" | "filtered"
 }
 
-const savedToolsStorageKey = "techdex:saved:v1"
+const savedToolsStorageKey = "findthatproject:saved:v1"
 
 function readSavedTools(): Set<string> {
   try {

@@ -27,7 +27,7 @@ import { canonicalMeta } from "~/domain/urls"
 
 export function meta({ params }: Route.MetaArgs) {
   return [
-    { title: "Technology subject · TechDex" },
+    { title: "Technology subject · FindThatProject" },
     {
       name: "description",
       content: "A technology subject with Telegram source provenance.",

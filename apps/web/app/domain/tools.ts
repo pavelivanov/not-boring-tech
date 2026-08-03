@@ -1,4 +1,4 @@
-import type { TechnologyKind } from "@techdex/contracts"
+import type { TechnologyKind } from "@findthatproject/contracts"
 
 const kindLabels: Readonly<Record<TechnologyKind, string>> = {
   TOOL: "Tool",

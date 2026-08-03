@@ -2,8 +2,8 @@ import { serve } from "@hono/node-server";
 import {
   apiErrorResponseSchema,
   type ApiErrorResponse,
-} from "@techdex/contracts";
-import { createDbClient, type DbClient } from "@techdex/db";
+} from "@findthatproject/contracts";
+import { createDbClient, type DbClient } from "@findthatproject/db";
 import { Hono, type Context } from "hono";
 import { cors } from "hono/cors";
 import { requestId, type RequestIdVariables } from "hono/request-id";

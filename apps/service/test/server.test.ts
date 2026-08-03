@@ -47,13 +47,13 @@ describe("service probes", () => {
 
   it("allows CORS only for explicit origins", async () => {
     const app = createServerApp({ $queryRaw: vi.fn() } as never, {
-      allowedOrigins: ["https://techdex.example"],
+      allowedOrigins: ["https://findthatproject.example"],
     });
     const allowed = await app.request("/v1/unknown", {
-      headers: { Origin: "https://techdex.example" },
+      headers: { Origin: "https://findthatproject.example" },
     });
     expect(allowed.headers.get("access-control-allow-origin")).toBe(
-      "https://techdex.example",
+      "https://findthatproject.example",
     );
     expect(allowed.headers.get("access-control-allow-credentials")).toBeNull();
 

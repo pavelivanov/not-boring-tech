@@ -1,4 +1,4 @@
-import { IngestionRunStatus, type DbClient } from "@techdex/db";
+import { IngestionRunStatus, type DbClient } from "@findthatproject/db";
 
 import type { PostAnalyzer } from "../analyzer/types";
 import { reconcileCatalogProjection } from "../catalog/projector";

@@ -4,7 +4,7 @@ import type {
   CatalogDetailItem,
   CatalogListItem,
   TechnologyKind,
-} from "@techdex/contracts"
+} from "@findthatproject/contracts"
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import {
@@ -86,7 +86,9 @@ function jsonResponse(payload: unknown, status = 200): Response {
 }
 
 function filtersFromUrl(url: URL): CatalogActiveFilters {
-  const sort = url.searchParams.get("sort") === "name" ? "name" : "latest"
+  const sortValue = url.searchParams.get("sort")
+  const sort =
+    sortValue === "name" || sortValue === "stars" ? sortValue : "latest"
 
   return {
     q: url.searchParams.get("q") ?? "",
@@ -344,6 +346,19 @@ describe("home route", () => {
         input.toString().includes("channel=%40signal_lab")
       )
     ).toBe(true)
+  })
+
+  it("sorts entries by GitHub stars through URL state", async () => {
+    const user = userEvent.setup()
+    const router = renderAt()
+
+    await screen.findByRole("link", { name: /Dynamic Signal project/ })
+    await user.click(screen.getByRole("radio", { name: "GitHub Stars" }))
+
+    await waitFor(() =>
+      expect(router.state.location.search).toBe("?sort=stars")
+    )
+    expect(screen.getByRole("radio", { name: "GitHub Stars" })).toBeChecked()
   })
 
   it("resets popover facets without erasing the global search", async () => {

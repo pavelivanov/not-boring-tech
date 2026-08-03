@@ -5,10 +5,10 @@ import { canonicalMeta } from "~/domain/urls"
 
 export function meta() {
   return [
-    { title: "Not found · TechDex" },
+    { title: "Not found · FindThatProject" },
     {
       name: "description",
-      content: "The requested TechDex page could not be found.",
+      content: "The requested FindThatProject page could not be found.",
     },
     ...canonicalMeta("/404"),
   ]

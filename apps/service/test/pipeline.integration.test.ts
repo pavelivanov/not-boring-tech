@@ -3,7 +3,7 @@ import {
   acquireSyncAdvisoryLock,
   createDbClient,
   type DbClient,
-} from "@techdex/db";
+} from "@findthatproject/db";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { runSync } from "../src/collector/run-sync";
@@ -22,10 +22,10 @@ const assertDisposableDatabase = (databaseUrl: string): void => {
   const url = new URL(databaseUrl);
   if (
     !["127.0.0.1", "localhost", "::1"].includes(url.hostname) ||
-    url.pathname !== "/techdex_test"
+    url.pathname !== "/findthatproject_test"
   ) {
     throw new Error(
-      "TEST_DATABASE_URL must target local database techdex_test",
+      "TEST_DATABASE_URL must target local database findthatproject_test",
     );
   }
 };

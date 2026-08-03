@@ -1,4 +1,7 @@
-import type { CatalogListItem, TechnologyKind } from "@techdex/contracts"
+import type {
+  CatalogListItem,
+  TechnologyKind,
+} from "@findthatproject/contracts"
 import {
   AlertCircleIcon,
   ChevronUpIcon,
@@ -36,6 +39,7 @@ import {
 } from "~/components/ui/popover"
 import { Separator } from "~/components/ui/separator"
 import { Skeleton } from "~/components/ui/skeleton"
+import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group"
 import {
   CatalogApiError,
   loadHomeCatalog,
@@ -52,7 +56,7 @@ import { canonicalMeta } from "~/domain/urls"
 
 export function meta() {
   return [
-    { title: "TechDex · Find the technology you know you saw" },
+    { title: "FindThatProject · Find the technology you know you saw" },
     {
       name: "description",
       content:
@@ -203,8 +207,12 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
   return (
     <div className="catalog-page">
       <header className="catalog-header">
-        <Link to="/" className="catalog-brand" aria-label="TechDex home">
-          TechDex<span>/</span>
+        <Link
+          to="/"
+          className="catalog-brand"
+          aria-label="FindThatProject home"
+        >
+          FindThatProject<span>/</span>
         </Link>
 
         <IndexSearch
@@ -219,7 +227,7 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
       </header>
 
       <main id="main-content" tabIndex={-1} className="index-main">
-        <h1 className="sr-only">TechDex technology index</h1>
+        <h1 className="sr-only">FindThatProject technology index</h1>
 
         <section className="catalog-toolbar" aria-labelledby="results-heading">
           <div className="catalog-toolbar-filters">
@@ -322,23 +330,24 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
           </div>
 
           <div className="sort-controls" aria-label="Sort entries">
-            <span>Sort</span>
-            <Button
-              variant={filters.sort === "latest" ? "ink" : "outline"}
+            <span id="sort-label">Sort</span>
+            <ToggleGroup
+              type="single"
+              value={filters.sort}
+              variant="ink"
               size="pill"
-              aria-pressed={filters.sort === "latest"}
-              onClick={() => updateFilters({ ...filters, sort: "latest" })}
+              spacing={2}
+              aria-labelledby="sort-label"
+              onValueChange={(sort) => {
+                if (sort === "latest" || sort === "name" || sort === "stars") {
+                  updateFilters({ ...filters, sort })
+                }
+              }}
             >
-              Recent
-            </Button>
-            <Button
-              variant={filters.sort === "name" ? "ink" : "outline"}
-              size="pill"
-              aria-pressed={filters.sort === "name"}
-              onClick={() => updateFilters({ ...filters, sort: "name" })}
-            >
-              A–Z
-            </Button>
+              <ToggleGroupItem value="latest">Recent</ToggleGroupItem>
+              <ToggleGroupItem value="name">A–Z</ToggleGroupItem>
+              <ToggleGroupItem value="stars">GitHub Stars</ToggleGroupItem>
+            </ToggleGroup>
           </div>
         </section>
 
@@ -392,7 +401,7 @@ export function HydrateFallback() {
     <div className="catalog-page" aria-label="Loading catalog">
       <header className="catalog-header">
         <span className="catalog-brand" aria-hidden="true">
-          TechDex<span>/</span>
+          FindThatProject<span>/</span>
         </span>
         <Skeleton className="h-12 w-full max-w-3xl" />
         <Skeleton className="h-4 w-16" />
@@ -432,8 +441,8 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <AlertCircleIcon aria-hidden="true" />
         <AlertTitle>The catalog API is unavailable</AlertTitle>
         <AlertDescription>
-          TechDex will not substitute sample entries. Retry the live catalog
-          request.
+          FindThatProject will not substitute sample entries. Retry the live
+          catalog request.
           {requestId ? ` Request ID: ${requestId}.` : ""}
         </AlertDescription>
         <AlertAction>

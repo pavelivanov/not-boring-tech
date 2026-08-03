@@ -122,10 +122,10 @@ Expected command surface after implementation:
 
 | Purpose    | Command                                      | Expected on success          |
 | ---------- | -------------------------------------------- | ---------------------------- |
-| Develop    | `npm run dev --workspace=@techdex/web`       | local URL is printed         |
-| Unit tests | `npm run test --workspace=@techdex/web`      | all tests pass               |
-| Typecheck  | `npm run typecheck --workspace=@techdex/web` | exit 0                       |
-| Build      | `npm run build --workspace=@techdex/web`     | pre-rendered output exists   |
+| Develop    | `npm run dev --workspace=@findthatproject/web`       | local URL is printed         |
+| Unit tests | `npm run test --workspace=@findthatproject/web`      | all tests pass               |
+| Typecheck  | `npm run typecheck --workspace=@findthatproject/web` | exit 0                       |
+| Build      | `npm run build --workspace=@findthatproject/web`     | pre-rendered output exists   |
 | Full gate  | `npm run check`                              | every workspace task exits 0 |
 
 ## Scope
@@ -162,7 +162,7 @@ their documented state, inspect and preserve intentional changes.
 
 ## Data contract
 
-Create `@techdex/contracts` as a framework-neutral TypeScript workspace. Its
+Create `@findthatproject/contracts` as a framework-neutral TypeScript workspace. Its
 public contract must model:
 
 ```ts
@@ -237,7 +237,7 @@ The contract must preserve these invariants:
   publication date.
 
 Do not place React components, Prisma types, database IDs, or framework request
-objects in `@techdex/contracts`.
+objects in `@findthatproject/contracts`.
 
 ## Fixture and evaluation requirements
 
@@ -397,10 +397,10 @@ Expected: exit 0.
 ### Step 2: Scaffold the application and contracts
 
 Run the shadcn React Router scaffold, remove any nested lockfile, rename the
-workspace package to `@techdex/web`, and make its TypeScript config extend the
+workspace package to `@findthatproject/web`, and make its TypeScript config extend the
 shared React config without breaking framework-generated references.
 
-Create `@techdex/contracts`, export its types/schemas, and add it as a workspace
+Create `@findthatproject/contracts`, export its types/schemas, and add it as a workspace
 dependency of the web app. Install from the repository root so only the root
 lockfile changes.
 
@@ -410,7 +410,7 @@ Add workspace scripts for `dev`, `build`, `lint`, `typecheck`, and `test`.
 
 ```sh
 npm install \
-  && npm ls @techdex/web @techdex/contracts \
+  && npm ls @findthatproject/web @findthatproject/contracts \
   && test "$(find apps packages -name package-lock.json | wc -l | tr -d ' ')" = "0"
 ```
 
@@ -427,7 +427,7 @@ personal notes.
 **Verify**:
 
 ```sh
-npm run test --workspace=@techdex/web -- --run
+npm run test --workspace=@findthatproject/web -- --run
 ```
 
 Expected: fixture-invariant tests pass and report at least 40 subjects, five
@@ -443,7 +443,7 @@ from the public route.
 **Verify**:
 
 ```sh
-npm run test --workspace=@techdex/web -- --run
+npm run test --workspace=@findthatproject/web -- --run
 ```
 
 Expected: all filter and URL-state tests pass.
@@ -460,9 +460,9 @@ distinguishable. When opening a new tab, use safe `rel` attributes.
 **Verify**:
 
 ```sh
-npm run lint --workspace=@techdex/web \
-  && npm run typecheck --workspace=@techdex/web \
-  && npm run test --workspace=@techdex/web -- --run
+npm run lint --workspace=@findthatproject/web \
+  && npm run typecheck --workspace=@findthatproject/web \
+  && npm run test --workspace=@findthatproject/web -- --run
 ```
 
 Expected: exit 0 with no ignored type or lint failures.
@@ -475,7 +475,7 @@ client output contains representative home, about, and tool pages.
 **Verify**:
 
 ```sh
-npm run build --workspace=@techdex/web \
+npm run build --workspace=@findthatproject/web \
   && test -d apps/web/build/client \
   && find apps/web/build/client -type f | sort | sed -n '1,80p'
 ```
@@ -544,7 +544,7 @@ Expected: exit 0 across every workspace.
 ## Done criteria
 
 - [x] Plan 001 is `DONE`.
-- [x] `@techdex/web` and `@techdex/contracts` are npm workspaces with no nested
+- [x] `@findthatproject/web` and `@findthatproject/contracts` are npm workspaces with no nested
       lockfile.
 - [x] The UI uses Vite, React, TypeScript, Tailwind CSS, and shadcn/ui.
 - [x] At least 40 real, attributed subjects meet all fixture coverage rules.

@@ -1,4 +1,4 @@
-import { acquireSyncAdvisoryLock, createDbClient } from "@techdex/db";
+import { acquireSyncAdvisoryLock, createDbClient } from "@findthatproject/db";
 
 import { createOpenAiPostAnalyzer } from "./analyzer/openai-post-analyzer";
 import { runSync } from "./collector/run-sync";

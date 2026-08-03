@@ -1,6 +1,6 @@
 # Business plan — Public web index of Telegram-sourced tech tools
 
-*Working name: TechDex (placeholder). Version 0.1 — draft for decision, not for investors.*
+*Working name: FindThatProject (placeholder). Version 0.1 — draft for decision, not for investors.*
 
 ---
 

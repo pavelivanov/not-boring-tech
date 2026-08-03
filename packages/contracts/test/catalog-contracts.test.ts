@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   CATALOG_CATEGORIES,
+  CATALOG_SORTS,
   TECHNOLOGY_KINDS,
   apiErrorResponseSchema,
   catalogActiveFiltersSchema,
@@ -151,6 +152,7 @@ describe("catalog transport contracts", () => {
     expect(catalogActiveFiltersSchema.parse(filters)).toEqual(filters);
     expect(TECHNOLOGY_KINDS).toContain("OTHER_TECH");
     expect(CATALOG_CATEGORIES).toContain("Other");
+    expect(CATALOG_SORTS).toContain("stars");
     expect(() =>
       catalogActiveFiltersSchema.parse({ ...filters, limit: 101 }),
     ).toThrow();

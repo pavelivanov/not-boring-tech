@@ -1,5 +1,5 @@
 {
-  "name": "@techdex/service",
+  "name": "@findthatproject/service",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -16,15 +16,15 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.0.12",
-    "@techdex/contracts": "*",
-    "@techdex/db": "*",
+    "@findthatproject/contracts": "*",
+    "@findthatproject/db": "*",
     "hono": "^4",
     "openai": "^6",
     "telegram": "^2",
     "zod": "^4"
   },
   "devDependencies": {
-    "@techdex/typescript-config": "*",
+    "@findthatproject/typescript-config": "*",
     "@types/node": "^22",
     "prettier": "^3.8.3",
     "tsup": "^8",

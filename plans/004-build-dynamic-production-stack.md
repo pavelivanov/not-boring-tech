@@ -37,7 +37,7 @@ The production Railway project contains exactly these application services:
 
 They live in one Railway project and one production environment. They are not
 four Railway projects. The `api` and `parser` services may use the same
-`@techdex/service` image because `apps/service/src/server.ts` and
+`@findthatproject/service` image because `apps/service/src/server.ts` and
 `apps/service/src/sync.ts` are already separate entry points; their Railway
 service names, commands, variables, health behavior, and scaling remain
 independent.
@@ -219,7 +219,7 @@ arrays. If a facet has no live values, omit or disable its control.
 
 ## API contract
 
-Place transport DTOs and query enums in `@techdex/contracts`; never expose
+Place transport DTOs and query enums in `@findthatproject/contracts`; never expose
 Prisma-generated types to the web. Validate API input and output at the service
 boundary.
 
@@ -239,14 +239,14 @@ Minimum endpoints:
 - `q`: trimmed text query over name, parent, description, tags, and canonical
   URL;
 - repeated `kind`, `category`, `channel`, and `tag` values;
-- `sort=latest|name`;
+- `sort=latest|name|stars`;
 - opaque `cursor` and bounded `limit` (default 24, maximum 100).
 
 Use stable keyset pagination (`lastMentionedAt` plus `id` for latest, normalized
-name plus `id` for name), never offset pagination. A malformed query returns a
-safe `400`; an unknown or hidden slug returns `404`; unexpected failures return
-a non-sensitive request ID and `500`. Serialize PostgreSQL `BigInt`, dates, and
-decimals explicitly.
+name plus `id` for name, and nulls-last `githubStars` plus `id` for stars), never
+offset pagination. A malformed query returns a safe `400`; an unknown or hidden
+slug returns `404`; unexpected failures return a non-sensitive request ID and
+`500`. Serialize PostgreSQL `BigInt`, dates, and decimals explicitly.
 
 List responses include `items`, `nextCursor`, and the normalized active filter
 state. Detail responses include source URL, channel ID/handle/title, published
@@ -359,7 +359,7 @@ Telegram/OpenAI credentials blocks Steps 9-10, not the offline implementation.
 
 Replace the prototype-only `Tool` assumptions with explicit catalog list,
 detail, mention, facet, pagination, and API-error DTOs in
-`@techdex/contracts`. Add the controlled category to the parser's strict output
+`@findthatproject/contracts`. Add the controlled category to the parser's strict output
 schema and increment prompt/schema/analysis versions. Keep ORM types private.
 
 Create small synthetic contract fixtures that contain no copied production
@@ -369,9 +369,9 @@ parent/canonical URL, cursor shape, and multiple mentions.
 **Verify**:
 
 ```sh
-npm run typecheck --workspace=@techdex/contracts
-npm run test --workspace=@techdex/service -- --run analysis-schema
-npm run test --workspace=@techdex/service -- --run extraction-eval
+npm run typecheck --workspace=@findthatproject/contracts
+npm run test --workspace=@findthatproject/service -- --run analysis-schema
+npm run test --workspace=@findthatproject/service -- --run extraction-eval
 ```
 
 Expected: transport types compile; parser output stays strict; offline extraction
@@ -392,9 +392,9 @@ retain every provenance path.
 **Verify**:
 
 ```sh
-npm run db:validate --workspace=@techdex/db
-npm run generate --workspace=@techdex/db
-npm run build --workspace=@techdex/db
+npm run db:validate --workspace=@findthatproject/db
+npm run generate --workspace=@findthatproject/db
+npm run build --workspace=@findthatproject/db
 docker compose up -d db
 docker compose run --rm migrate
 ```
@@ -417,8 +417,8 @@ sync rejection. Do not log candidate descriptions or post contents.
 **Verify**:
 
 ```sh
-npm run test --workspace=@techdex/service -- --run catalog
-npm run test --workspace=@techdex/service -- --run pipeline
+npm run test --workspace=@findthatproject/service -- --run catalog
+npm run test --workspace=@findthatproject/service -- --run pipeline
 ```
 
 Expected: projector and existing ingestion tests pass; repeated runs create no
@@ -439,9 +439,9 @@ disagree about disabled channels or orphaned items.
 **Verify**:
 
 ```sh
-npm run test --workspace=@techdex/service -- --run server
-npm run test --workspace=@techdex/service -- --run api
-npm run typecheck --workspace=@techdex/service
+npm run test --workspace=@findthatproject/service -- --run server
+npm run test --workspace=@findthatproject/service -- --run api
+npm run typecheck --workspace=@findthatproject/service
 ```
 
 Expected: endpoints pass list/detail/filter/facet/pagination/error/CORS tests;
@@ -470,9 +470,9 @@ synthetic records. Delete fixture-corpus tests and the two runtime corpus files.
 ! rg -n "~/data/(tools|channels)|data/(tools|channels)" apps/web/app
 test ! -e apps/web/app/data/tools.ts
 test ! -e apps/web/app/data/channels.ts
-npm run test --workspace=@techdex/web
-npm run typecheck --workspace=@techdex/web
-npm run build --workspace=@techdex/web
+npm run test --workspace=@findthatproject/web
+npm run typecheck --workspace=@findthatproject/web
+npm run build --workspace=@findthatproject/web
 ```
 
 Expected: the web works with synthetic API responses and all empty/error states;
@@ -624,7 +624,7 @@ the next expected run in the deployment handoff.
 - Edits move candidates and refresh old/new items.
 - Disabled-only/orphan items remain stored but invisible.
 - List/detail/facets/channels share the same visibility boundary.
-- Filter combinations and both keyset sort orders do not skip/duplicate rows.
+- Filter combinations and all keyset sort orders do not skip/duplicate rows.
 - Readiness fails when the catalog migration is absent.
 
 ### Web integration
@@ -653,7 +653,7 @@ changes. Suggested sequence:
 1. `feat: add dynamic catalog contracts and schema`
 2. `feat: project parsed candidates into catalog items`
 3. `feat: expose catalog read API`
-4. `feat: load TechDex catalog from API`
+4. `feat: load FindThatProject catalog from API`
 5. `chore: configure Railway production services`
 6. `test: verify dynamic production data boundary`
 

@@ -20,9 +20,9 @@ COPY packages/contracts packages/contracts
 COPY packages/db packages/db
 COPY packages/typescript-config packages/typescript-config
 RUN DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build \
-    npm run generate --workspace=@techdex/db
-RUN npm run build --workspace=@techdex/db
-RUN npm run build --workspace=@techdex/service
+    npm run generate --workspace=@findthatproject/db
+RUN npm run build --workspace=@findthatproject/db
+RUN npm run build --workspace=@findthatproject/service
 RUN npm prune --omit=dev
 
 FROM node:22-bookworm-slim AS runtime

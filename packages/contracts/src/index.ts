@@ -30,7 +30,7 @@ export const CATALOG_CATEGORIES = [
   "Other",
 ] as const;
 
-export const CATALOG_SORTS = ["latest", "name"] as const;
+export const CATALOG_SORTS = ["latest", "name", "stars"] as const;
 
 export const technologyKindSchema = z.enum(TECHNOLOGY_KINDS);
 export const catalogCategorySchema = z.enum(CATALOG_CATEGORIES);

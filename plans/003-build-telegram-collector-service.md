@@ -62,7 +62,7 @@ Nothing from this plan is publicly served yet.
 
 ## Architectural decision
 
-Create one Node.js TypeScript package, `@techdex/service`, with two entry
+Create one Node.js TypeScript package, `@findthatproject/service`, with two entry
 points built into one Docker image:
 
 - `server` starts a small Hono process exposing only liveness and database
@@ -159,10 +159,10 @@ not retain deprecated configuration merely to match this diagram.
 | Purpose                | Command                                                              | Expected on success       |
 | ---------------------- | -------------------------------------------------------------------- | ------------------------- |
 | Install                | `npm install`                                                        | exit 0; one root lockfile |
-| Unit/integration tests | `npm run test --workspace=@techdex/service -- --run`                 | all offline tests pass    |
-| Extraction eval        | `npm run test --workspace=@techdex/service -- --run extraction-eval` | labeled threshold passes  |
-| Typecheck              | `npm run typecheck --workspace=@techdex/service`                     | exit 0                    |
-| Build                  | `npm run build --workspace=@techdex/service`                         | exit 0                    |
+| Unit/integration tests | `npm run test --workspace=@findthatproject/service -- --run`                 | all offline tests pass    |
+| Extraction eval        | `npm run test --workspace=@findthatproject/service -- --run extraction-eval` | labeled threshold passes  |
+| Typecheck              | `npm run typecheck --workspace=@findthatproject/service`                     | exit 0                    |
+| Build                  | `npm run build --workspace=@findthatproject/service`                         | exit 0                    |
 | Full gate              | `npm run check`                                                      | all workspace gates pass  |
 
 ## Documentation to verify before implementation
@@ -690,7 +690,7 @@ operator authenticates Context7.
 
 ### Step 2: Scaffold service/database workspaces
 
-Create `@techdex/service` and `@techdex/db` using current Hono/Prisma
+Create `@findthatproject/service` and `@findthatproject/db` using current Hono/Prisma
 conventions. Install compatible Hono, Prisma, PostgreSQL, GramJS, OpenAI,
 Zod/configuration, logging, and test dependencies at the workspace level.
 
@@ -698,7 +698,7 @@ Zod/configuration, logging, and test dependencies at the workspace level.
 
 ```sh
 npm install \
-  && npm ls @techdex/service @techdex/db hono telegram openai prisma zod \
+  && npm ls @findthatproject/service @findthatproject/db hono telegram openai prisma zod \
   && test "$(find apps packages -name package-lock.json | wc -l | tr -d ' ')" = "0"
 ```
 
@@ -712,7 +712,7 @@ Separate server/common config from sync-only Telegram/OpenAI config. Add safe
 **Verify**:
 
 ```sh
-npm run test --workspace=@techdex/service -- --run config
+npm run test --workspace=@findthatproject/service -- --run config
 ```
 
 Expected: exit 0 and output contains none of the secret sentinels used by tests.
@@ -727,7 +727,7 @@ and relevant/array-invariant tests.
 **Verify**:
 
 ```sh
-npm run test --workspace=@techdex/service -- --run analysis-schema
+npm run test --workspace=@findthatproject/service -- --run analysis-schema
 ```
 
 Expected: all schema and semantic-validation cases pass.
@@ -742,8 +742,8 @@ column.
 **Verify**:
 
 ```sh
-npm run db:validate --workspace=@techdex/db \
-  && npm run generate --workspace=@techdex/db \
+npm run db:validate --workspace=@findthatproject/db \
+  && npm run generate --workspace=@findthatproject/db \
   && docker compose up -d db \
   && docker compose run --rm migrate \
   && ! rg -n "rawMessage|raw_message|messageText|message_text|caption|promptBody|responseBody" packages/db
@@ -765,7 +765,7 @@ database URL.
 **Verify**:
 
 ```sh
-npm run test --workspace=@techdex/service -- --run pipeline
+npm run test --workspace=@findthatproject/service -- --run pipeline
 ```
 
 Expected: all offline unit/database integration cases pass.
@@ -784,8 +784,8 @@ strict schema, and that no raw content enters logs.
 **Verify**:
 
 ```sh
-npm run test --workspace=@techdex/service -- --run openai \
-  && npm run typecheck --workspace=@techdex/service
+npm run test --workspace=@findthatproject/service -- --run openai \
+  && npm run typecheck --workspace=@findthatproject/service
 ```
 
 Expected: exit 0 with no network calls.
@@ -799,9 +799,9 @@ mapping tests; use no captured production bodies.
 **Verify**:
 
 ```sh
-npm run lint --workspace=@techdex/service \
-  && npm run typecheck --workspace=@techdex/service \
-  && npm run test --workspace=@techdex/service -- --run telegram
+npm run lint --workspace=@findthatproject/service \
+  && npm run typecheck --workspace=@findthatproject/service \
+  && npm run test --workspace=@findthatproject/service -- --run telegram
 ```
 
 Expected: exit 0 without contacting Telegram.
@@ -824,8 +824,8 @@ Verify directly in PostgreSQL that:
 **Verify**:
 
 ```sh
-npm run test --workspace=@techdex/service -- --run extraction-eval \
-  && npm run eval:extraction --workspace=@techdex/service
+npm run test --workspace=@findthatproject/service -- --run extraction-eval \
+  && npm run eval:extraction --workspace=@findthatproject/service
 ```
 
 Expected: fake tests pass and controlled live aggregate metrics meet all

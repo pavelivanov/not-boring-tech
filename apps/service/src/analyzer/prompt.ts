@@ -1,4 +1,4 @@
-import { CATALOG_CATEGORIES } from "@techdex/contracts";
+import { CATALOG_CATEGORIES } from "@findthatproject/contracts";
 
 export const PROMPT_VERSION = "telegram-presentation-v3";
 export const SCHEMA_VERSION = "post-analysis-v2";

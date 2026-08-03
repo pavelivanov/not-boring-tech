@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas"><style>
+body{margin:0;background:#EFEDE8;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif}
+a{color:#111110}a:hover{color:#EA6136}
+input{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif}
+input::placeholder{color:#A3A29D}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 14px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 "Helvetica Neue",sans-serif;color:#1a1a1a}
+.dv-opts{display:flex;flex-wrap:wrap;gap:34px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 "Helvetica Neue",sans-serif;color:rgba(0,0,0,.55)}
+.dv-opt:target .dv-oid{background:#EA6136;color:#fff}
+.dv-cap{margin:12px 2px 0;font:400 11.5px/1.55 "Helvetica Neue",sans-serif;color:#7A7975;max-width:600px;text-wrap:pretty}
+.dv-next{margin:24px 0 0;font:12px/1.5 "Helvetica Neue",sans-serif;color:rgba(0,0,0,.5)}
+</style></helmet>
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Filters out of the sidebar — three popover systems</span></div>
+<p style="margin:-2px 0 20px;font:400 12.5px/1.6 'Helvetica Neue',sans-serif;color:#55554F;max-width:760px;text-wrap:pretty">The sidebar spent a full column on controls used a few times per session, and pushed the results — the actual product — into a narrow gutter. In all three the panel is summoned, sticky while you work (it never closes on selection or mouse-out; only the trigger, ✕, Done or Esc dismiss it), and whatever you picked stays legible on the page afterwards. All three are live — click the triggers.</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a"><div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>One Filters button — a single panel, chips below</div>
+<x-import component-from-global-scope="ChromeWindow" from="./browser-window.jsx" width="{{ frameW }}" height="{{ frameH }}" url="findthatproject.io" tabs="{{ tabs }}" hint-size="1160px,740px">
+<div style="min-height:100%;background:#fff;display:flex;flex-direction:column">
+<div style="display:flex;align-items:center;gap:20px;padding:14px 32px;border-bottom:1px solid #EFEEEA">
+<span style="font:500 17px/1 'Helvetica Neue',sans-serif;letter-spacing:-.015em;color:#111110">FindThatProject<span style="color:#EA6136">/</span></span>
+<label style="flex:1;max-width:420px;display:flex;align-items:center;gap:9px;padding:0 12px;height:34px;border:1px solid #E0DFDA;border-radius:8px;background:#FCFBF9">
+<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#A3A29D" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4.6"></circle><path d="M10.6 10.6 14 14"></path></svg>
+<input type="text" placeholder="Search the index" style="flex:1;min-width:0;background:none;border:0;outline:none;font:400 13px/1 'Helvetica Neue',sans-serif;color:#111110;padding:0" />
+</label>
+<span style="flex:1"></span>
+<a href="#1a" style="font:500 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;color:#8C8B86;text-decoration:none">ABOUT</a>
+</div>
+
+<div style="position:relative;display:flex;align-items:center;gap:14px;padding:12px 32px;border-bottom:1px solid #EFEEEA;background:#FCFBF9;z-index:30">
+<button type="button" onClick="{{ aToggle }}" style="{{ aTriggerStyle }}" style-focus="outline:2px solid #EA6136;outline-offset:2px">
+<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4h12M4.5 8h7M7 12h2"></path></svg>
+Filters<span style="{{ aBadgeStyle }}">{{ aBadge }}</span>
+<svg width="9" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="{{ aCaretStyle }}"><path d="M1 1.5 5 5 9 1.5"></path></svg>
+</button>
+<span style="width:1px;height:20px;background:#E5E4E0"></span>
+<span style="font:400 13px/1.3 'Helvetica Neue',sans-serif;color:#3A3A37;white-space:nowrap">{{ aCount }}</span>
+<sc-if value="{{ aHasChips }}" hint-placeholder-val="{{ true }}">
+<span style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;min-width:0">
+<sc-for list="{{ aChips }}" as="chip" hint-placeholder-count="2">
+<button type="button" onClick="{{ chip.fn }}" style="display:flex;align-items:center;gap:7px;background:#F6F1EE;border:1px solid #E2D3CB;border-radius:999px;padding:5px 10px;cursor:pointer;font:400 12px/1.2 'Helvetica Neue',sans-serif;color:#3A3A37;transition:background .14s" style-hover="background:#F0E4DD" style-focus="outline:2px solid #EA6136;outline-offset:1px">{{ chip.label }} <span style="color:#A3928A">✕</span></button>
+</sc-for>
+<button type="button" onClick="{{ aReset }}" style="background:none;border:0;padding:5px 4px;cursor:pointer;font:400 11.5px/1.2 'Helvetica Neue',sans-serif;color:#77766F;border-bottom:1px solid #DAD9D4;white-space:nowrap" style-hover="color:#EA6136;border-bottom-color:#EA6136">Clear all</button>
+</span>
+</sc-if>
+<span style="flex:1"></span>
+<span style="display:flex;align-items:center;gap:7px">
+<span style="font:500 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;color:#8C8B86">SORT</span>
+<button type="button" onClick="{{ sortPick.stars }}" style="{{ sortStyle.stars }}" style-focus="outline:2px solid #EA6136;outline-offset:2px">Stars</button>
+<button type="button" onClick="{{ sortPick.recent }}" style="{{ sortStyle.recent }}" style-focus="outline:2px solid #EA6136;outline-offset:2px">Recent</button>
+</span>
+<sc-if value="{{ aOpen }}" hint-placeholder-val="{{ true }}">
+<div style="position:absolute;top:calc(100% + 8px);left:32px;z-index:40;width:430px;background:#fff;border:1px solid #E0DFDA;border-radius:13px;box-shadow:0 18px 44px rgba(0,0,0,.16);display:flex;flex-direction:column;overflow:hidden">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid #F0EFEB">
+<span style="font:500 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;color:#8C8B86">FILTERS</span>
+<span style="display:flex;align-items:center;gap:10px">
+<sc-if value="{{ aHasChips }}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{ aReset }}" style="background:none;border:0;padding:2px 0;cursor:pointer;font:400 11.5px/1.2 'Helvetica Neue',sans-serif;color:#77766F;border-bottom:1px solid #DAD9D4" style-hover="color:#EA6136;border-bottom-color:#EA6136">Reset</button>
+</sc-if>
+<button type="button" onClick="{{ aToggle }}" aria-label="Close filters" style="background:none;border:0;padding:4px;margin:-4px;cursor:pointer;display:flex;border-radius:6px" style-hover="background:#F3F2EE">
+<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#77766F" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"></path></svg>
+</button>
+</span>
+</div>
+<div style="padding:13px 14px;display:flex;flex-direction:column;gap:7px;border-bottom:1px solid #F0EFEB">
+<span style="font:500 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;color:#8C8B86">TYPE — ONE</span>
+<div style="display:flex;flex-wrap:wrap;gap:5px">
+<sc-for list="{{ aTypes }}" as="ty" hint-placeholder-count="5">
+<button type="button" onClick="{{ ty.fn }}" style="{{ ty.style }}" style-focus="outline:2px solid #EA6136;outline-offset:1px">{{ ty.label }} <span style="{{ ty.ctStyle }}">{{ ty.n }}</span></button>
+</sc-for>
+</div>
+</div>
+<div style="padding:13px 14px;display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+<span style="font:500 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;color:#8C8B86">TAGS — ANY</span>
+<span style="font:400 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.08em;color:#8C8B86">{{ aTagCount }}</span>
+</div>
+<label style="display:flex;align-items:center;gap:8px;padding:0 10px;height:30px;border:1px solid #E5E4E0;border-radius:7px">
+<svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="#B4B3AF" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.6"></circle><path d="M10.6 10.6 14 14"></path></svg>
+<input type="text" placeholder="Filter tags" onInput="{{ aQuery }}" style="flex:1;min-width:0;background:none;border:0;outline:none;font:400 12.5px/1 'Helvetica Neue',sans-serif;color:#111110;padding:0" />
+</label>
+<div style="display:flex;flex-wrap:wrap;gap:6px;max-height:186px;overflow:auto;padding:3px;margin:-3px">
+<sc-for list="{{ aTags }}" as="tag" hint-placeholder-count="9">
+<button type="button" onClick="{{ tag.fn }}" style="{{ tag.style }}" style-focus="outline:2px solid #EA6136;outline-offset:1px">{{ tag.t }} <span style="{{ tag.ctStyle }}">{{ tag.n }}</span></button>
+</sc-for>
+</div>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-top:1px solid #F0EFEB;background:#FCFBF9">
+<span style="font:400 11.5px/1.3 'Helvetica Neue',sans-serif;color:#77766F">{{ aCount }}</span>
+<button type="button" onClick="{{ aToggle }}" style="background:#141413;border:0;border-radius:999px;padding:8px 16px;cursor:pointer;font:500 11.5px/1 'Helvetica Neue',sans-serif;color:#fff;transition:background .15s" style-hover="background:#EA6136" style-focus="outline:2px solid #EA6136;outline-offset:2px">Done</button>
+</div>
+</div>
+</sc-if>
+</div>
+
+<div style="flex:1;padding:22px 32px 40px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start">
+<sc-for list="{{ aCards }}" as="card" hint-placeholder-count="6">
+<article onMouseEnter="{{ card.enter }}" onMouseLeave="{{ card.leave }}" style="position:relative;background:#fff;border:1px solid #E5E4E0;border-radius:13px;overflow:hidden;display:flex;flex-direction:column;transition:border-color .16s,box-shadow .16s" style-hover="border-color:#D3D2CD;box-shadow:0 6px 18px rgba(0,0,0,.06)">
+<span style="{{ card.bmStyle }}">
+<button type="button" onClick="{{ card.save }}" aria-label="Save" style="background:#fff;border:0;padding:5px;cursor:pointer;display:flex;border-radius:6px;transition:background .14s" style-hover="background:#F3F2EE" style-focus="outline:2px solid #EA6136;outline-offset:1px">
+<svg width="15" height="15" viewBox="0 0 16 16" fill="{{ card.f }}" stroke="{{ card.st }}" stroke-width="1.4" stroke-linejoin="round"><path d="M3.6 2.2h8.8v11.6L8 10.4l-4.4 3.4z"></path></svg>
+</button>
+</span>
+<a href="#1a" style="display:flex;flex-direction:column;text-decoration:none;color:inherit;transition:background .16s" style-hover="background:#FCFBF9">
+<span style="display:flex;flex-direction:column;padding:14px 15px 0">
+<span style="font:500 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;color:#8C8B86;padding:5px 0">{{ card.type }}</span>
+<span style="margin:6px 0 0;font:500 19px/1.24 'Helvetica Neue',sans-serif;letter-spacing:-.015em;color:#111110;text-wrap:pretty">{{ card.title }}</span>
+<span style="margin:7px 0 0;font:400 13px/1.5 'Helvetica Neue',sans-serif;color:#5E5E59;text-wrap:pretty">{{ card.summary }}</span>
+<span style="display:flex;flex-wrap:wrap;gap:5px;margin:11px 0 0">
+<sc-for list="{{ card.tags }}" as="tag" hint-placeholder-count="2">
+<span style="font:400 11.5px/1.2 'Helvetica Neue',sans-serif;color:#4E4E4A;border:1px solid #E5E4E0;border-radius:999px;padding:4px 9px">{{ tag }}</span>
+</sc-for>
+</span>
+</span>
+<span style="display:flex;align-items:center;gap:12px;margin:13px 0 0;padding:9px 15px;border-top:1px solid #F0EFEB">
+<span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="font:400 11.5px/1.3 'Helvetica Neue',sans-serif;color:#57574F;white-space:nowrap">{{ card.date }}</span><span style="font:400 11.5px/1.3 'Helvetica Neue',sans-serif;color:#C7C6C1">·</span><span style="display:flex;align-items:center;gap:5px;font:400 11.5px/1.3 'Helvetica Neue',sans-serif;color:#57574F;white-space:nowrap"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#57574F" stroke-width="1.3" stroke-linejoin="round" style="flex:none"><path d="M8 1.9l1.85 3.75 4.15.6-3 2.93.71 4.13L8 11.4l-3.71 1.91.71-4.13-3-2.93 4.15-.6z"></path></svg>{{ card.stars }}</span></span>
+</span>
+</a>
+</article>
+</sc-for>
+</div>
+</div>
+</x-import>
+<p class="dv-cap">One trigger, one panel, everything inside it. The button carries a count so you can see filtering is on without opening anything, and the active set is restated as removable chips in the page — the panel is never the only place your filters live. Cheapest to build, and the panel has room to grow (channel, date, saved) without touching the toolbar.</p>
+</div>
+
+<div class="dv-opt" id="1b"><div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Facet buttons — each opens its own small popover</div>
+<x-import component-from-global-scope="ChromeWindow" from="./browser-window.jsx" width="{{ frameW }}" height="{{ frameH }}" url="findthatproject.io" tabs="{{ tabs }}" hint-size="1160px,740px">
+<div style="min-height:100%;background:#fff;display:flex;flex-direction:column">
+<div style="display:flex;align-items:center;gap:20px;padding:14px 32px;border-bottom:1px solid #EFEEEA">
+<span style="font:500 17px/1 'Helvetica Neue',sans-serif;letter-spacing:-.015em;color:#111110">FindThatProject<span style="color:#EA6136">/</span></span>
+<label style="flex:1;max-width:420px;display:flex;align-items:center;gap:9px;padding:0 12px;height:34px;border:1px solid #E0DFDA;border-radius:8px;background:#FCFBF9">
+<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#A3A29D" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4.6"></circle><path d="M10.6 10.6 14 14"></path></svg>
+<input type="text" placeholder="Search the index" style="flex:1;min-width:0;background:none;border:0;outline:none;font:400 13px/1 'Helvetica Neue',sans-serif;color:#111110;padding:0" />
+</label>
+<span style="flex:1"></span>
+<a href="#1b" style="font:500 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;color:#8C8B86;text-decoration:none">ABOUT</a>
+</div>
+
+<div style="position:relative;display:flex;align-items:center;gap:8px;padding:12px 32px;border-bottom:1px solid #EFEEEA;background:#FCFBF9;z-index:30">
+<span style="position:relative;display:flex">
+<button type="button" onClick="{{ bToggle.type }}" style="{{ bTrigger.type }}" style-focus="outline:2px solid #EA6136;outline-offset:2px">{{ bLabel.type }}
+<svg width="9" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="{{ bCaret.type }}"><path d="M1 1.5 5 5 9 1.5"></path></svg>
+</button>
+<sc-if value="{{ bClear.type }}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{ bReset.type }}" aria-label="Clear type" style="position:absolute;right:-2px;top:-6px;z-index:2;width:17px;height:17px;display:flex;align-items:center;justify-content:center;background:#141413;border:2px solid #FCFBF9;border-radius:50%;cursor:pointer;padding:0" style-hover="background:#EA6136">
+<svg width="7" height="7" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"></path></svg>
+</button>
+</sc-if>
+<sc-if value="{{ bOpen.type }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;top:calc(100% + 8px);left:0;z-index:40;width:230px;background:#fff;border:1px solid #E0DFDA;border-radius:12px;box-shadow:0 18px 44px rgba(0,0,0,.16);overflow:hidden">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:1px solid #F0EFEB">
+<span style="font:500 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;color:#8C8B86">TYPE — ONE</span>
+<button type="button" onClick="{{ bToggle.type }}" aria-label="Close" style="background:none;border:0;padding:3px;margin:-3px;cursor:pointer;display:flex;border-radius:5px" style-hover="background:#F3F2EE">
+<svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="#77766F" stroke-width="1.6" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"></path></svg>
+</button>
+</div>
+<div style="padding:6px;display:flex;flex-direction:column;gap:1px">
+<sc-for list="{{ bTypes }}" as="ty" hint-placeholder-count="5">
+<button type="button" onClick="{{ ty.fn }}" style="{{ ty.rowStyle }}" style-hover="background:#F6F5F2" style-focus="outline:2px solid #EA6136;outline-offset:-2px">
+<span style="{{ ty.dotStyle }}"></span>
+<span style="flex:1;min-width:0;text-align:left">{{ ty.label }}</span>
+<span style="font:400 10px/1 ui-monospace,Menlo,monospace;color:#8C8B86">{{ ty.n }}</span>
+</button>
+</sc-for>
+</div>
+</div>
+</sc-if>
+</span>
+<span style="position:relative;display:flex">
+<button type="button" onClick="{{ bToggle.tags }}" style="{{ bTrigger.tags }}" style-focus="outline:2px solid #EA6136;outline-offset:2px">{{ bLabel.tags }}
+<svg width="9" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="{{ bCaret.tags }}"><path d="M1 1.5 5 5 9 1.5"></path></svg>
+</button>
+<sc-if value="{{ bClear.tags }}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{ bReset.tags }}" aria-label="Clear tags" style="position:absolute;right:-2px;top:-6px;z-index:2;width:17px;height:17px;display:flex;align-items:center;justify-content:center;background:#141413;border:2px solid #FCFBF9;border-radius:50%;cursor:pointer;padding:0" style-hover="background:#EA6136">
+<svg width="7" height="7" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"></path></svg>
+</button>
+</sc-if>
+<sc-if value="{{ bOpen.tags }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;top:calc(100% + 8px);left:0;z-index:40;width:300px;background:#fff;border:1px solid #E0DFDA;border-radius:12px;box-shadow:0 18px 44px rgba(0,0,0,.16);overflow:hidden">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:1px solid #F0EFEB">
+<span style="font:500 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;color:#8C8B86">TAGS — ANY</span>
+<button type="button" onClick="{{ bToggle.tags }}" aria-label="Close" style="background:none;border:0;padding:3px;margin:-3px;cursor:pointer;display:flex;border-radius:5px" style-hover="background:#F3F2EE">
+<svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="#77766F" stroke-width="1.6" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"></path></svg>
+</button>
+</div>
+<div style="padding:11px 12px;display:flex;flex-direction:column;gap:9px">
+<label style="display:flex;align-items:center;gap:8px;padding:0 10px;height:30px;border:1px solid #E5E4E0;border-radius:7px">
+<svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="#B4B3AF" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.6"></circle><path d="M10.6 10.6 14 14"></path></svg>
+<input type="text" placeholder="Filter tags" onInput="{{ bQuery }}" style="flex:1;min-width:0;background:none;border:0;outline:none;font:400 12.5px/1 'Helvetica Neue',sans-serif;color:#111110;padding:0" />
+</label>
+<div style="display:flex;flex-direction:column;gap:1px;max-height:196px;overflow:auto">
+<sc-for list="{{ bTags }}" as="tag" hint-placeholder-count="8">
+<button type="button" onClick="{{ tag.fn }}" style="{{ tag.rowStyle }}" style-hover="background:#F6F5F2" style-focus="outline:2px solid #EA6136;outline-offset:-2px">
+<span style="{{ tag.boxStyle }}"><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="{{ tag.markStyle }}"><path d="M2 6.2 4.7 9 10 3.2"></path></svg></span>
+<span style="flex:1;min-width:0;text-align:left">{{ tag.t }}</span>
+<span style="font:400 10px/1 ui-monospace,Menlo,monospace;color:#8C8B86">{{ tag.n }}</span>
+</button>
+</sc-for>
+</div>
+</div>
+</div>
+</sc-if>
+</span>
+<span style="position:relative;display:flex">
+<button type="button" onClick="{{ bToggle.channel }}" style="{{ bTrigger.channel }}" style-focus="outline:2px solid #EA6136;outline-offset:2px">{{ bLabel.channel }}
+<svg width="9" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="{{ bCaret.channel }}"><path d="M1 1.5 5 5 9 1.5"></path></svg>
+</button>
+<sc-if value="{{ bClear.channel }}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{ bReset.channel }}" aria-label="Clear channel" style="position:absolute;right:-2px;top:-6px;z-index:2;width:17px;height:17px;display:flex;align-items:center;justify-content:center;background:#141413;border:2px solid #FCFBF9;border-radius:50%;cursor:pointer;padding:0" style-hover="background:#EA6136">
+<svg width="7" height="7" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"></path></svg>
+</button>
+</sc-if>
+<sc-if value="{{ bOpen.channel }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;top:calc(100% + 8px);left:0;z-index:40;width:220px;background:#fff;border:1px solid #E0DFDA;border-radius:12px;box-shadow:0 18px 44px rgba(0,0,0,.16);overflow:hidden">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:1px solid #F0EFEB">
+<span style="font:500 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;color:#8C8B86">CHANNEL</span>
+<button type="button" onClick="{{ bToggle.channel }}" aria-label="Close" style="background:none;border:0;padding:3px;margin:-3px;cursor:pointer;display:flex;border-radius:5px" style-hover="background:#F3F2EE">
+<svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="#77766F" stroke-width="1.6" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"></path></svg>
+</button>
+</div>
+<div style="padding:6px;display:flex;flex-direction:column;gap:1px">
+<sc-for list="{{ bChannels }}" as="ch" hint-placeholder-count="2">
+<button type="button" onClick="{{ ch.fn }}" style="{{ ch.rowStyle }}" style-hover="background:#F6F5F2" style-focus="outline:2px solid #EA6136;outline-offset:-2px">
+<span style="{{ ch.dotStyle }}"></span>
+<span style="flex:1;min-width:0;text-align:left">{{ ch.label }}</span>
+<span style="font:400 10px/1 ui-monospace,Menlo,monospace;color:#8C8B86">{{ ch.n }}</span>
+</button>
+</sc-for>
+</div>
+</div>
+</sc-if>
+</span>
+<sc-if value="{{ bAny }}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{ bResetAll }}" style="background:none;border:0;padding:7px 6px;cursor:pointer;font:400 11.5px/1.2 'Helvetica Neue',sans-serif;color:#77766F;border-bottom:1px solid #DAD9D4;margin-left:4px" style-hover="color:#EA6136;border-bottom-color:#EA6136">Reset</button>
+</sc-if>
+<span style="flex:1"></span>
+<span style="font:400 13px/1.3 'Helvetica Neue',sans-serif;color:#3A3A37">{{ bCount }}</span>
+</div>
+
+<div style="flex:1;padding:22px 32px 40px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start">
+<sc-for list="{{ bCards }}" as="card" hint-placeholder-count="6">
+<article onMouseEnter="{{ card.enter }}" onMouseLeave="{{ card.leave }}" style="position:relative;background:#fff;border:1px solid #E5E4E0;border-radius:13px;overflow:hidden;display:flex;flex-direction:column;transition:border-color .16s,box-shadow .16s" style-hover="border-color:#D3D2CD;box-shadow:0 6px 18px rgba(0,0,0,.06)">
+<span style="{{ card.bmStyle }}">
+<button type="button" onClick="{{ card.save }}" aria-label="Save" style="background:#fff;border:0;padding:5px;cursor:pointer;display:flex;border-radius:6px;transition:background .14s" style-hover="background:#F3F2EE" style-focus="outline:2px solid #EA6136;outline-offset:1px">
+<svg width="15" height="15" viewBox="0 0 16 16" fill="{{ card.f }}" stroke="{{ card.st }}" stroke-width="1.4" stroke-linejoin="round"><path d="M3.6 2.2h8.8v11.6L8 10.4l-4.4 3.4z"></path></svg>
+</button>
+</span>
+<a href="#1b" style="display:flex;flex-direction:column;text-decoration:none;color:inherit;transition:background .16s" style-hover="background:#FCFBF9">
+<span style="display:flex;flex-direction:column;padding:14px 15px 0">
+<span style="font:500 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;color:#8C8B86;padding:5px 0">{{ card.type }}</span>
+<span style="margin:6px 0 0;font:500 19px/1.24 'Helvetica Neue',sans-serif;letter-spacing:-.015em;color:#111110;text-wrap:pretty">{{ card.title }}</span>
+<span style="margin:7px 0 0;font:400 13px/1.5 'Helvetica Neue',sans-serif;color:#5E5E59;text-wrap:pretty">{{ card.summary }}</span>
+<span style="display:flex;flex-wrap:wrap;gap:5px;margin:11px 0 0">
+<sc-for list="{{ card.tags }}" as="tag" hint-placeholder-count="2">
+<span style="font:400 11.5px/1.2 'Helvetica Neue',sans-serif;color:#4E4E4A;border:1px solid #E5E4E0;border-radius:999px;padding:4px 9px">{{ tag }}</span>
+</sc-for>
+</span>
+</span>
+<span style="display:flex;align-items:center;gap:12px;margin:13px 0 0;padding:9px 15px;border-top:1px solid #F0EFEB">
+<span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="font:400 11.5px/1.3 'Helvetica Neue',sans-serif;color:#57574F;white-space:nowrap">{{ card.date }}</span><span style="font:400 11.5px/1.3 'Helvetica Neue',sans-serif;color:#C7C6C1">·</span><span style="display:flex;align-items:center;gap:5px;font:400 11.5px/1.3 'Helvetica Neue',sans-serif;color:#57574F;white-space:nowrap"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#57574F" stroke-width="1.3" stroke-linejoin="round" style="flex:none"><path d="M8 1.9l1.85 3.75 4.15.6-3 2.93.71 4.13L8 11.4l-3.71 1.91.71-4.13-3-2.93 4.15-.6z"></path></svg>{{ card.stars }}</span></span>
+</span>
+</a>
+</article>
+</sc-for>
+</div>
+</div>
+</x-import>
+<p class="dv-cap">No separate chip row: each facet button <em>is</em> its own chip. Set a value and the button goes dark, states the value in its label (“Type · Tool”, “Tags · 2”) and grows a ✕ badge to clear just that facet. One click reaches any facet — no panel to open first — at the cost of a wider toolbar as facets multiply.</p>
+</div>
+
+<div class="dv-opt" id="1c"><div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Token field — filters live inside the search bar</div>
+<x-import component-from-global-scope="ChromeWindow" from="./browser-window.jsx" width="{{ frameW }}" height="{{ frameH }}" url="findthatproject.io" tabs="{{ tabs }}" hint-size="1160px,740px">
+<div style="min-height:100%;background:#fff;display:flex;flex-direction:column">
+<div style="display:flex;align-items:center;gap:20px;padding:14px 32px 13px;border-bottom:1px solid #EFEEEA">
+<span style="font:500 17px/1 'Helvetica Neue',sans-serif;letter-spacing:-.015em;color:#111110">FindThatProject<span style="color:#EA6136">/</span></span>
+<span style="flex:1"></span>
+<a href="#1c" style="font:500 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;color:#8C8B86;text-decoration:none">ABOUT</a>
+</div>
+
+<div style="position:relative;padding:16px 32px 14px;border-bottom:1px solid #EFEEEA;background:#FCFBF9;z-index:30">
+<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 8px 7px 12px;min-height:40px;background:#fff;border:1px solid #E0DFDA;border-radius:10px;box-sizing:border-box">
+<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#A3A29D" stroke-width="1.5" stroke-linecap="round" style="flex:none"><circle cx="7" cy="7" r="4.6"></circle><path d="M10.6 10.6 14 14"></path></svg>
+<sc-for list="{{ cChips }}" as="chip" hint-placeholder-count="2">
+<button type="button" onClick="{{ chip.fn }}" style="display:flex;align-items:center;gap:7px;background:#F6F1EE;border:1px solid #E2D3CB;border-radius:7px;padding:4px 8px;cursor:pointer;font:400 12px/1.2 'Helvetica Neue',sans-serif;color:#3A3A37;transition:background .14s" style-hover="background:#F0E4DD" style-focus="outline:2px solid #EA6136;outline-offset:1px"><span style="font:500 9px/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;color:#A3928A">{{ chip.facet }}</span>{{ chip.label }} <span style="color:#A3928A">✕</span></button>
+</sc-for>
+<input type="text" placeholder="{{ cPlaceholder }}" style="flex:1;min-width:120px;background:none;border:0;outline:none;font:400 13.5px/1 'Helvetica Neue',sans-serif;color:#111110;padding:6px 0" />
+<button type="button" onClick="{{ cToggle }}" style="{{ cTriggerStyle }}" style-focus="outline:2px solid #EA6136;outline-offset:2px">＋ Filter</button>
+</div>
+<div style="display:flex;align-items:center;gap:12px;margin:11px 2px 0">
+<span style="font:400 13px/1.3 'Helvetica Neue',sans-serif;color:#3A3A37">{{ cCount }}</span>
+<sc-if value="{{ cAny }}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{ cResetAll }}" style="background:none;border:0;padding:2px 0;cursor:pointer;font:400 11.5px/1.2 'Helvetica Neue',sans-serif;color:#77766F;border-bottom:1px solid #DAD9D4" style-hover="color:#EA6136;border-bottom-color:#EA6136">Clear all</button>
+</sc-if>
+<span style="flex:1"></span>
+<span style="font:400 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;color:#8C8B86">ESC TO CLOSE</span>
+</div>
+<sc-if value="{{ cOpen }}" hint-placeholder-val="{{ true }}">
+<div style="position:absolute;top:calc(100% - 6px);right:32px;z-index:40;width:470px;background:#fff;border:1px solid #E0DFDA;border-radius:13px;box-shadow:0 18px 44px rgba(0,0,0,.16);display:flex;overflow:hidden">
+<div style="flex:none;width:148px;background:#FBFAF8;border-right:1px solid #F0EFEB;padding:8px;display:flex;flex-direction:column;gap:1px">
+<sc-for list="{{ cFacets }}" as="fc" hint-placeholder-count="4">
+<button type="button" onClick="{{ fc.fn }}" style="{{ fc.style }}" style-hover="background:#F1F0EC" style-focus="outline:2px solid #EA6136;outline-offset:-2px">
+<span style="flex:1;min-width:0;text-align:left">{{ fc.label }}</span>
+<span style="{{ fc.badgeStyle }}">{{ fc.badge }}</span>
+</button>
+</sc-for>
+</div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:1px solid #F0EFEB">
+<span style="font:500 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;color:#8C8B86">{{ cFacetTitle }}</span>
+<button type="button" onClick="{{ cToggle }}" aria-label="Close" style="background:none;border:0;padding:3px;margin:-3px;cursor:pointer;display:flex;border-radius:5px" style-hover="background:#F3F2EE">
+<svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="#77766F" stroke-width="1.6" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"></path></svg>
+</button>
+</div>
+<div style="padding:10px 12px 12px;display:flex;flex-direction:column;gap:9px">
+<sc-if value="{{ cShowSearch }}" hint-placeholder-val="{{ true }}">
+<label style="display:flex;align-items:center;gap:8px;padding:0 10px;height:30px;border:1px solid #E5E4E0;border-radius:7px">
+<svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="#B4B3AF" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.6"></circle><path d="M10.6 10.6 14 14"></path></svg>
+<input type="text" placeholder="Filter values" onInput="{{ cQuery }}" style="flex:1;min-width:0;background:none;border:0;outline:none;font:400 12.5px/1 'Helvetica Neue',sans-serif;color:#111110;padding:0" />
+</label>
+</sc-if>
+<div style="display:flex;flex-direction:column;gap:1px;max-height:212px;overflow:auto">
+<sc-for list="{{ cValues }}" as="v" hint-placeholder-count="8">
+<button type="button" onClick="{{ v.fn }}" style="{{ v.rowStyle }}" style-hover="background:#F6F5F2" style-focus="outline:2px solid #EA6136;outline-offset:-2px">
+<span style="{{ v.boxStyle }}"><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="{{ v.markStyle }}"><path d="M2 6.2 4.7 9 10 3.2"></path></svg></span>
+<span style="flex:1;min-width:0;text-align:left">{{ v.label }}</span>
+<span style="font:400 10px/1 ui-monospace,Menlo,monospace;color:#8C8B86">{{ v.n }}</span>
+</button>
+</sc-for>
+</div>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+
+<div style="flex:1;padding:22px 32px 40px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start">
+<sc-for list="{{ cCards }}" as="card" hint-placeholder-count="6">
+<article onMouseEnter="{{ card.enter }}" onMouseLeave="{{ card.leave }}" style="position:relative;background:#fff;border:1px solid #E5E4E0;border-radius:13px;overflow:hidden;display:flex;flex-direction:column;transition:border-color .16s,box-shadow .16s" style-hover="border-color:#D3D2CD;box-shadow:0 6px 18px rgba(0,0,0,.06)">
+<span style="{{ card.bmStyle }}">
+<button type="button" onClick="{{ card.save }}" aria-label="Save" style="background:#fff;border:0;padding:5px;cursor:pointer;display:flex;border-radius:6px;transition:background .14s" style-hover="background:#F3F2EE" style-focus="outline:2px solid #EA6136;outline-offset:1px">
+<svg width="15" height="15" viewBox="0 0 16 16" fill="{{ card.f }}" stroke="{{ card.st }}" stroke-width="1.4" stroke-linejoin="round"><path d="M3.6 2.2h8.8v11.6L8 10.4l-4.4 3.4z"></path></svg>
+</button>
+</span>
+<a href="#1c" style="display:flex;flex-direction:column;text-decoration:none;color:inherit;transition:background .16s" style-hover="background:#FCFBF9">
+<span style="display:flex;flex-direction:column;padding:14px 15px 0">
+<span style="font:500 9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;color:#8C8B86;padding:5px 0">{{ card.type }}</span>
+<span style="margin:6px 0 0;font:500 19px/1.24 'Helvetica Neue',sans-serif;letter-spacing:-.015em;color:#111110;text-wrap:pretty">{{ card.title }}</span>
+<span style="margin:7px 0 0;font:400 13px/1.5 'Helvetica Neue',sans-serif;color:#5E5E59;text-wrap:pretty">{{ card.summary }}</span>
+<span style="display:flex;flex-wrap:wrap;gap:5px;margin:11px 0 0">
+<sc-for list="{{ card.tags }}" as="tag" hint-placeholder-count="2">
+<span style="font:400 11.5px/1.2 'Helvetica Neue',sans-serif;color:#4E4E4A;border:1px solid #E5E4E0;border-radius:999px;padding:4px 9px">{{ tag }}</span>
+</sc-for>
+</span>
+</span>
+<span style="display:flex;align-items:center;gap:12px;margin:13px 0 0;padding:9px 15px;border-top:1px solid #F0EFEB">
+<span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="font:400 11.5px/1.3 'Helvetica Neue',sans-serif;color:#57574F;white-space:nowrap">{{ card.date }}</span><span style="font:400 11.5px/1.3 'Helvetica Neue',sans-serif;color:#C7C6C1">·</span><span style="display:flex;align-items:center;gap:5px;font:400 11.5px/1.3 'Helvetica Neue',sans-serif;color:#57574F;white-space:nowrap"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#57574F" stroke-width="1.3" stroke-linejoin="round" style="flex:none"><path d="M8 1.9l1.85 3.75 4.15.6-3 2.93.71 4.13L8 11.4l-3.71 1.91.71-4.13-3-2.93 4.15-.6z"></path></svg>{{ card.stars }}</span></span>
+</span>
+</a>
+</article>
+</sc-for>
+</div>
+</div>
+</x-import>
+<p class="dv-cap">Query and filters become one object. Tokens sit inside the search field, each removable in place, and the panel is a two-pane browser — facets on the left with live counts, values on the right — so a fifth or sixth facet costs nothing but a row. Closest to how people actually search: type a word, then narrow it.</p>
+</div>
+
+</div>
+<p class="dv-next">Try next: “in <a class="dv-oid" href="#1a">1a</a>, dock the panel open while scrolling” · “add saved / unread to <a class="dv-oid" href="#1b">1b</a>” · “give <a class="dv-oid" href="#1c">1c</a> keyboard nav (⌘K, arrows, enter)” · “show the empty-result state”</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;frameWidth&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:1160,&quot;min&quot;:900,&quot;max&quot;:1600,&quot;step&quot;:20,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Frame&quot;},&quot;frameHeight&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:740,&quot;min&quot;:560,&quot;max&quot;:1000,&quot;step&quot;:20,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Frame&quot;}}">
+const TYPES = [['guide','Guide',2],['library','Library',2],['product','Product',2],['project','Project',3],['tool','Tool',3]];
+const TAGS = [['AI agents',12],['developer workflow',9],['creative tool',7],['beginner guide',6],['inference',5],['agent skills',5],['LLM tooling',4],['evaluation',4],['orchestration',3],['retrieval',3],['open weights',2],['tool use',1]];
+const CHANNELS = [['ai-tools','#ai-tools',8],['dev-daily','#dev-daily',4]];
+const CARDS = [
+  { type:'TOOL', title:'Claude Code', summary:'Terminal-native coding agent that reads a repository, plans changes and runs the edits it proposes.', tags:['developer workflow','agent skills'], date:'3 months', stars:'41.2k' },
+  { type:'PRODUCT', title:'NotebookLM', summary:'Research notebook that grounds answers in your uploaded sources and generates audio overviews.', tags:['research','retrieval'], date:'9 months', stars:'2.8k' },
+  { type:'LIBRARY', title:'LangGraph', summary:'Graph runtime for stateful agents — you own the nodes, the edges and every retry in between.', tags:['agent frameworks','orchestration'], date:'5 months', stars:'18.6k' },
+  { type:'TOOL', title:'Ollama', summary:'Runs open-weight models locally behind one command and a small HTTP API.', tags:['inference','open weights'], date:'11 months', stars:'152.4k' },
+  { type:'PROJECT', title:'Model Context Protocol', summary:'Open protocol for giving assistants a consistent way to reach tools, files and data sources.', tags:['tool use','standards'], date:'4 months', stars:'9.7k' },
+  { type:'GUIDE', title:'Build Your First AI Agent', summary:'Practical beginner guide for scoping, wiring, testing and iterating on a first AI agent.', tags:['beginner guide','AI agents'], date:'10 months', stars:'643' }
+];
+const PILL = "display:flex;align-items:center;gap:7px;border-radius:999px;padding:5px 10px;cursor:pointer;font:400 12px/1.2 'Helvetica Neue',sans-serif;";
+const ROW = "display:flex;align-items:center;gap:9px;border:0;background:none;border-radius:7px;padding:7px 8px;cursor:pointer;font:400 12.5px/1.2 'Helvetica Neue',sans-serif;transition:background .13s;";
+const TRIG = "display:flex;align-items:center;gap:8px;border-radius:999px;padding:8px 14px;cursor:pointer;white-space:nowrap;flex:none;font:500 12.5px/1 'Helvetica Neue',sans-serif;transition:background .15s,border-color .15s,color .15s;";
+
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    this.state = {
+      open: 'a', a: { type: null, tags: { 'AI agents': true } }, aq: '',
+      bOpen: null, b: { type: 'tool', tags: { 'developer workflow': true, 'agent skills': true }, channel: null }, bq: '',
+      cOpen: true, c: { type: null, tags: { 'inference': true }, channel: { 'ai-tools': true } }, cq: '', cFacet: 'tags',
+      saved: { a3: true, b1: true, c2: true }, hov: {}, sort: 'stars'
+    };
+    this.aToggle = () => this.setState(s => ({ open: s.open === 'a' ? null : 'a' }));
+    this.aReset = () => this.setState({ a: { type: null, tags: {} } });
+    this.aQuery = e => this.setState({ aq: e.target.value });
+    this.aPickType = k => () => this.setState(s => ({ a: { ...s.a, type: s.a.type === k ? null : k } }));
+    this.aTogTag = t => () => this.setState(s => {
+      const n = { ...s.a.tags }; if (n[t]) delete n[t]; else n[t] = true;
+      return { a: { ...s.a, tags: n } };
+    });
+    this.bToggle = {}; this.bReset = {};
+    ['type','tags','channel'].forEach(f => {
+      this.bToggle[f] = () => this.setState(s => ({ bOpen: s.bOpen === f ? null : f }));
+      this.bReset[f] = () => this.setState(s => ({ b: { ...s.b, [f]: f === 'tags' ? {} : null } }));
+    });
+    this.bResetAll = () => this.setState({ b: { type: null, tags: {}, channel: null } });
+    this.bQuery = e => this.setState({ bq: e.target.value });
+    this.bPickType = k => () => this.setState(s => ({ b: { ...s.b, type: s.b.type === k ? null : k } }));
+    this.bPickChannel = k => () => this.setState(s => ({ b: { ...s.b, channel: s.b.channel === k ? null : k } }));
+    this.bTogTag = t => () => this.setState(s => {
+      const n = { ...s.b.tags }; if (n[t]) delete n[t]; else n[t] = true;
+      return { b: { ...s.b, tags: n } };
+    });
+    this.cToggle = () => this.setState(s => ({ cOpen: !s.cOpen }));
+    this.cResetAll = () => this.setState({ c: { type: null, tags: {}, channel: {} } });
+    this.cQuery = e => this.setState({ cq: e.target.value });
+    this.cFacetPick = {};
+    ['type','tags','channel'].forEach(f => { this.cFacetPick[f] = () => this.setState({ cFacet: f, cq: '' }); });
+    this.cPickType = k => () => this.setState(s => ({ c: { ...s.c, type: s.c.type === k ? null : k } }));
+    this.cTog = (facet, k) => () => this.setState(s => {
+      const n = { ...s.c[facet] }; if (n[k]) delete n[k]; else n[k] = true;
+      return { c: { ...s.c, [facet]: n } };
+    });
+    this.sortPick = {};
+    ['stars','recent'].forEach(k => { this.sortPick[k] = () => this.setState({ sort: k }); });
+    this.cardFns = {};
+    ['a','b','c'].forEach(pre => CARDS.forEach((_, i) => {
+      const k = pre + (i + 1);
+      this.cardFns[k] = {
+        save: () => this.setState(s => ({ saved: { ...s.saved, [k]: !s.saved[k] } })),
+        enter: () => this.setState(s => ({ hov: { ...s.hov, [k]: true } })),
+        leave: () => this.setState(s => ({ hov: { ...s.hov, [k]: false } }))
+      };
+    }));
+    this.onKey = e => { if (e.key === 'Escape') this.setState({ open: null, bOpen: null, cOpen: false }); };
+  }
+  componentDidMount() { document.addEventListener('keydown', this.onKey); }
+  componentWillUnmount() { document.removeEventListener('keydown', this.onKey); }
+  pad(n) { return n < 10 ? '0' + n : String(n); }
+  cards(pre) {
+    return CARDS.map((c, i) => {
+      const k = pre + (i + 1);
+      const sv = !!this.state.saved[k];
+      return Object.assign({}, c, this.cardFns[k], {
+        f: sv ? '#EA6136' : 'none',
+        st: sv ? '#EA6136' : '#B4B3AF',
+        bmStyle: 'position:absolute;top:11px;right:11px;z-index:2;display:flex;transition:opacity .16s;opacity:' + ((sv || this.state.hov[k]) ? 1 : 0)
+      });
+    });
+  }
+  count(type, tags) {
+    const narrowed = !!type || Object.keys(tags).length > 0;
+    return narrowed ? CARDS.length + ' of 12 entries' : '12 entries';
+  }
+  renderVals() {
+    const p = n => this.pad(n);
+    // ——— 1a
+    const aTypes = TYPES.map(([k, label, n]) => {
+      const on = this.state.a.type === k;
+      return { label, n: p(n), fn: this.aPickType(k),
+        style: PILL + 'background:' + (on ? '#141413' : 'transparent') + ';border:1px solid ' + (on ? '#141413' : '#E5E4E0') + ';color:' + (on ? '#fff' : '#3A3A37'),
+        ctStyle: 'font:400 10px/1 ui-monospace,Menlo,monospace;color:' + (on ? 'rgba(255,255,255,.72)' : '#8C8B86') };
+    });
+    const aq = this.state.aq.trim().toLowerCase();
+    const aFiltered = TAGS.filter(([t]) => !aq || t.toLowerCase().includes(aq));
+    const aTags = aFiltered.map(([t, n]) => {
+      const on = !!this.state.a.tags[t];
+      return { t, n: p(n), fn: this.aTogTag(t),
+        style: PILL + 'background:' + (on ? '#F6F1EE' : 'transparent') + ';border:1px solid ' + (on ? '#D9C3B8' : '#E5E4E0') + ';color:' + (on ? '#111110' : '#3A3A37'),
+        ctStyle: 'font:400 10px/1 ui-monospace,Menlo,monospace;color:' + (on ? '#96806F' : '#8C8B86') };
+    });
+    const aChips = [];
+    if (this.state.a.type) aChips.push({ label: TYPES.find(t => t[0] === this.state.a.type)[1], fn: this.aPickType(this.state.a.type) });
+    Object.keys(this.state.a.tags).forEach(t => aChips.push({ label: t, fn: this.aTogTag(t) }));
+    const aOpen = this.state.open === 'a';
+    const sortStyle = {};
+    ['stars','recent'].forEach(k => {
+      const on = this.state.sort === k;
+      sortStyle[k] = "border-radius:999px;padding:7px 13px;cursor:pointer;font:500 12px/1 'Helvetica Neue',sans-serif;transition:background .15s,border-color .15s,color .15s;background:" +
+        (on ? '#141413' : 'transparent') + ';border:1px solid ' + (on ? '#141413' : '#E0DFDA') + ';color:' + (on ? '#fff' : '#3A3A37');
+    });
+    // ——— 1b
+    const bTrigger = {}, bLabel = {}, bCaret = {}, bClear = {}, bOpenMap = {};
+    const bTypeSel = this.state.b.type ? TYPES.find(t => t[0] === this.state.b.type)[1] : null;
+    const bTagN = Object.keys(this.state.b.tags).length;
+    const bChSel = this.state.b.channel ? CHANNELS.find(c => c[0] === this.state.b.channel)[1] : null;
+    const bSet = { type: bTypeSel, tags: bTagN ? bTagN + ' selected' : null, channel: bChSel };
+    const bBase = { type: 'Type', tags: 'Tags', channel: 'Channel' };
+    ['type','tags','channel'].forEach(f => {
+      const on = !!bSet[f];
+      const opened = this.state.bOpen === f;
+      bTrigger[f] = TRIG + 'background:' + (on ? '#141413' : (opened ? '#F1F0EC' : 'transparent')) + ';border:1px solid ' + (on ? '#141413' : '#E0DFDA') + ';color:' + (on ? '#fff' : '#3A3A37');
+      bLabel[f] = on ? bBase[f] + ' · ' + bSet[f] : bBase[f];
+      bCaret[f] = 'transition:transform .18s;transform:rotate(' + (opened ? '180deg' : '0deg') + ')';
+      bClear[f] = on;
+      bOpenMap[f] = opened;
+    });
+    const bTypes = TYPES.map(([k, label, n]) => {
+      const on = this.state.b.type === k;
+      return { label, n: p(n), fn: this.bPickType(k),
+        rowStyle: ROW + 'color:' + (on ? '#111110' : '#3A3A37') + ';background:' + (on ? '#F6F1EE' : 'transparent'),
+        dotStyle: 'flex:none;width:13px;height:13px;border-radius:50%;box-sizing:border-box;border:' + (on ? '4px solid #EA6136' : '1px solid #CFCEC9') };
+    });
+    const bq = this.state.bq.trim().toLowerCase();
+    const bTags = TAGS.filter(([t]) => !bq || t.toLowerCase().includes(bq)).map(([t, n]) => {
+      const on = !!this.state.b.tags[t];
+      return { t, n: p(n), fn: this.bTogTag(t),
+        rowStyle: ROW + 'color:' + (on ? '#111110' : '#3A3A37') + ';background:' + (on ? '#F6F1EE' : 'transparent'),
+        boxStyle: 'flex:none;width:14px;height:14px;border-radius:4px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;background:' + (on ? '#EA6136' : 'transparent') + ';border:1px solid ' + (on ? '#EA6136' : '#CFCEC9'),
+        markStyle: 'opacity:' + (on ? 1 : 0) };
+    });
+    const bChannels = CHANNELS.map(([k, label, n]) => {
+      const on = this.state.b.channel === k;
+      return { label, n: p(n), fn: this.bPickChannel(k),
+        rowStyle: ROW + 'color:' + (on ? '#111110' : '#3A3A37') + ';background:' + (on ? '#F6F1EE' : 'transparent'),
+        dotStyle: 'flex:none;width:13px;height:13px;border-radius:50%;box-sizing:border-box;border:' + (on ? '4px solid #EA6136' : '1px solid #CFCEC9') };
+    });
+    // ——— 1c
+    const cFacetDefs = [['type','Type'],['tags','Tags'],['channel','Channel']];
+    const cSelCount = { type: this.state.c.type ? 1 : 0, tags: Object.keys(this.state.c.tags).length, channel: Object.keys(this.state.c.channel).length };
+    const cFacets = cFacetDefs.map(([k, label]) => {
+      const on = this.state.cFacet === k;
+      const n = cSelCount[k];
+      return { label, fn: this.cFacetPick[k], badge: n ? String(n) : '',
+        style: ROW + 'width:100%;box-sizing:border-box;color:' + (on ? '#111110' : '#57574F') + ';background:' + (on ? '#fff' : 'transparent') + ';box-shadow:' + (on ? '0 1px 2px rgba(0,0,0,.06)' : 'none'),
+        badgeStyle: n ? "font:500 9.5px/1 ui-monospace,Menlo,monospace;color:#fff;background:#EA6136;border-radius:999px;padding:3px 6px" : 'display:none' };
+    });
+    const cq = this.state.cq.trim().toLowerCase();
+    let cValues;
+    if (this.state.cFacet === 'type') {
+      cValues = TYPES.map(([k, label, n]) => {
+        const on = this.state.c.type === k;
+        return { label, n: p(n), fn: this.cPickType(k),
+          rowStyle: ROW + 'color:' + (on ? '#111110' : '#3A3A37') + ';background:' + (on ? '#F6F1EE' : 'transparent'),
+          boxStyle: 'flex:none;width:14px;height:14px;border-radius:50%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;background:transparent;border:' + (on ? '4px solid #EA6136' : '1px solid #CFCEC9'),
+          markStyle: 'opacity:0' };
+      });
+    } else if (this.state.cFacet === 'channel') {
+      cValues = CHANNELS.map(([k, label, n]) => {
+        const on = !!this.state.c.channel[k];
+        return { label, n: p(n), fn: this.cTog('channel', k),
+          rowStyle: ROW + 'color:' + (on ? '#111110' : '#3A3A37') + ';background:' + (on ? '#F6F1EE' : 'transparent'),
+          boxStyle: 'flex:none;width:14px;height:14px;border-radius:4px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;background:' + (on ? '#EA6136' : 'transparent') + ';border:1px solid ' + (on ? '#EA6136' : '#CFCEC9'),
+          markStyle: 'opacity:' + (on ? 1 : 0) };
+      });
+    } else {
+      cValues = TAGS.filter(([t]) => !cq || t.toLowerCase().includes(cq)).map(([t, n]) => {
+        const on = !!this.state.c.tags[t];
+        return { label: t, n: p(n), fn: this.cTog('tags', t),
+          rowStyle: ROW + 'color:' + (on ? '#111110' : '#3A3A37') + ';background:' + (on ? '#F6F1EE' : 'transparent'),
+          boxStyle: 'flex:none;width:14px;height:14px;border-radius:4px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;background:' + (on ? '#EA6136' : 'transparent') + ';border:1px solid ' + (on ? '#EA6136' : '#CFCEC9'),
+          markStyle: 'opacity:' + (on ? 1 : 0) };
+      });
+    }
+    const cChips = [];
+    if (this.state.c.type) cChips.push({ facet: 'TYPE', label: TYPES.find(t => t[0] === this.state.c.type)[1], fn: this.cPickType(this.state.c.type) });
+    Object.keys(this.state.c.tags).forEach(t => cChips.push({ facet: 'TAG', label: t, fn: this.cTog('tags', t) }));
+    Object.keys(this.state.c.channel).forEach(k => cChips.push({ facet: 'CH', label: CHANNELS.find(c => c[0] === k)[1], fn: this.cTog('channel', k) }));
+    const cFacetTitles = { type: 'TYPE — ONE', tags: 'TAGS — ANY', channel: 'CHANNEL — ANY' };
+    return {
+      frameW: this.props.frameWidth ?? 1160,
+      frameH: this.props.frameHeight ?? 740,
+      tabs: [{ title: 'FindThatProject — index' }, { title: 'Telegram' }],
+      sortStyle, sortPick: this.sortPick,
+      aOpen, aTypes, aTags, aChips, aHasChips: aChips.length > 0,
+      aToggle: this.aToggle, aReset: this.aReset, aQuery: this.aQuery,
+      aBadge: aChips.length ? String(aChips.length) : '',
+      aBadgeStyle: aChips.length
+        ? 'display:flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:999px;background:rgba(255,255,255,.22);font:500 10.5px/1 ui-monospace,Menlo,monospace;color:#fff'
+        : 'display:none',
+      aTagCount: aq ? aFiltered.length + ' FOUND' : String(TAGS.length),
+      aCount: this.count(this.state.a.type, this.state.a.tags),
+      aCards: this.cards('a'),
+      aTriggerStyle: TRIG + 'background:' + (aChips.length ? '#141413' : (aOpen ? '#F1F0EC' : 'transparent')) + ';border:1px solid ' + (aChips.length ? '#141413' : '#E0DFDA') + ';color:' + (aChips.length ? '#fff' : '#3A3A37'),
+      aCaretStyle: 'transition:transform .18s;transform:rotate(' + (aOpen ? '180deg' : '0deg') + ')',
+      bTrigger, bLabel, bCaret, bClear, bOpen: bOpenMap, bTypes, bTags, bChannels,
+      bToggle: this.bToggle, bReset: this.bReset, bResetAll: this.bResetAll, bQuery: this.bQuery,
+      bAny: !!(bTypeSel || bTagN || bChSel),
+      bCount: this.count(this.state.b.type, this.state.b.tags),
+      bCards: this.cards('b'),
+      cOpen: this.state.cOpen, cToggle: this.cToggle, cResetAll: this.cResetAll, cQuery: this.cQuery,
+      cFacets, cValues, cChips, cAny: cChips.length > 0,
+      cShowSearch: this.state.cFacet === 'tags',
+      cFacetTitle: cFacetTitles[this.state.cFacet],
+      cPlaceholder: cChips.length ? 'Refine…' : 'Search the index',
+      cCount: this.count(this.state.c.type, this.state.c.tags),
+      cCards: this.cards('c'),
+      cTriggerStyle: TRIG + 'flex:none;padding:7px 12px;background:' + (this.state.cOpen ? '#141413' : 'transparent') + ';border:1px solid ' + (this.state.cOpen ? '#141413' : '#E0DFDA') + ';color:' + (this.state.cOpen ? '#fff' : '#3A3A37')
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -81,7 +81,7 @@
   --sidebar-accent-foreground: #f2f5f3;
   --sidebar-border: rgb(255 255 255 / 16%);
   --sidebar-ring: #f0653c;
-  --techdex-orange: #f0653c;
+  --findthatproject-orange: #f0653c;
 }
 
 .dark {
@@ -159,7 +159,7 @@
 }
 
 .catalog-brand span {
-  color: var(--techdex-orange);
+  color: var(--findthatproject-orange);
 }
 
 .index-search {
@@ -217,7 +217,7 @@
 }
 
 .catalog-about-link:hover {
-  color: var(--techdex-orange);
+  color: var(--findthatproject-orange);
 }
 
 .index-main {
@@ -514,23 +514,37 @@
   top: 10px;
   right: 10px;
   color: #a4a19a;
+  opacity: 0;
   transition:
     color 140ms ease,
     background-color 140ms ease,
+    opacity 140ms ease,
     transform 140ms ease;
 }
 
+.tool-card:hover .tool-save-button,
+.tool-save-button:focus-visible,
+.tool-save-button[data-saved="true"] {
+  opacity: 1;
+}
+
 .tool-save-button[data-slot="button"]:hover {
-  color: var(--techdex-orange);
+  color: var(--findthatproject-orange);
   transform: translateY(-1px);
 }
 
 .tool-save-button[data-saved="true"] {
-  color: var(--techdex-orange);
+  color: var(--findthatproject-orange);
 }
 
 .tool-save-button[data-saved="true"] svg {
   fill: currentcolor;
+}
+
+@media (hover: none) {
+  .tool-save-button[data-slot="button"] {
+    opacity: 1;
+  }
 }
 
 .tool-card-body {
@@ -664,7 +678,7 @@
 }
 
 .tool-detail-link:hover {
-  color: var(--techdex-orange);
+  color: var(--findthatproject-orange);
   transform: translate(2px, -2px);
 }
 

@@ -1,6 +1,6 @@
 import { Pool, type PoolClient } from "pg";
 
-const LOCK_NAME = "techdex:telegram-analysis-sync";
+const LOCK_NAME = "findthatproject:telegram-analysis-sync";
 
 export interface AdvisoryLock {
   readonly acquired: boolean;

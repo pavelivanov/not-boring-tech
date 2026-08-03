@@ -1,10 +1,10 @@
-import type { CatalogListResponse } from "@techdex/contracts";
+import type { CatalogListResponse } from "@findthatproject/contracts";
 import {
   AnalyzedPostStatus,
   createDbClient,
   type DbClient,
   type PresentationKind,
-} from "@techdex/db";
+} from "@findthatproject/db";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { projectCandidateIds } from "../src/catalog/projector";
@@ -16,10 +16,10 @@ const assertDisposableDatabase = (databaseUrl: string): void => {
   const url = new URL(databaseUrl);
   if (
     !["127.0.0.1", "localhost", "::1"].includes(url.hostname) ||
-    url.pathname !== "/techdex_test"
+    url.pathname !== "/findthatproject_test"
   ) {
     throw new Error(
-      "TEST_DATABASE_URL must target local database techdex_test",
+      "TEST_DATABASE_URL must target local database findthatproject_test",
     );
   }
 };
@@ -197,6 +197,51 @@ describe.skipIf(!testDatabaseUrl)("catalog API integration", () => {
     );
     expect(changedSort.status).toBe(400);
     expect((await app.request("/v1/catalog?unknown=value")).status).toBe(400);
+  });
+
+  it("sorts known GitHub star counts first and paginates into unknown counts", async () => {
+    await seedCatalog(database);
+    const unknownStarsCandidate = await seedCandidate(database, {
+      handle: "@channel_three",
+      title: "Channel Three",
+      messageId: 4n,
+      kind: "LIBRARY",
+      category: "Infrastructure",
+      name: "Gamma Library",
+      subjectUrl: "https://example.com/gamma",
+      tags: ["gamma"],
+      publishedAt: new Date("2026-08-04T10:00:00.000Z"),
+    });
+    await database.$transaction((transaction) =>
+      projectCandidateIds(transaction, [unknownStarsCandidate]),
+    );
+    await database.catalogItem.updateMany({
+      where: { slug: { in: ["alpha-project", "beta-tool"] } },
+      data: { githubStars: 1_000 },
+    });
+    await database.catalogItem.update({
+      where: { slug: "beta-tool" },
+      data: { githubStars: 2_000 },
+    });
+    const app = createServerApp(database);
+
+    const first = await app.request("/v1/catalog?sort=stars&limit=2");
+    const firstBody = (await first.json()) as CatalogListResponse;
+    expect(firstBody.items.map((item) => item.slug)).toEqual([
+      "beta-tool",
+      "alpha-project",
+    ]);
+    expect(firstBody.filters.sort).toBe("stars");
+    expect(firstBody.nextCursor).toEqual(expect.any(String));
+
+    const second = await app.request(
+      `/v1/catalog?sort=stars&limit=2&cursor=${encodeURIComponent(firstBody.nextCursor!)}`,
+    );
+    const secondBody = (await second.json()) as CatalogListResponse;
+    expect(secondBody.items.map((item) => item.slug)).toEqual([
+      "gamma-library",
+    ]);
+    expect(secondBody.nextCursor).toBeNull();
   });
 
   it("serves detail provenance plus live facets and channels without internals", async () => {

@@ -2,7 +2,7 @@ import type {
   CatalogActiveFilters,
   CatalogSort,
   TechnologyKind,
-} from "@techdex/contracts"
+} from "@findthatproject/contracts"
 
 export type SearchFilters = {
   readonly query: string

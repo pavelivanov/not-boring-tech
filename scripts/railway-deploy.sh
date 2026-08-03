@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Deploy selected TechDex Railway services and wait for completion.
+Deploy selected FindThatProject Railway services and wait for completion.
 
 Usage:
   npm run deploy:railway -- [options]

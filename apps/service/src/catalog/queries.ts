@@ -14,8 +14,12 @@ import {
   type CatalogListResponse,
   type CatalogSort,
   type TechnologyKind,
-} from "@techdex/contracts";
-import { AnalyzedPostStatus, type DbClient, type Prisma } from "@techdex/db";
+} from "@findthatproject/contracts";
+import {
+  AnalyzedPostStatus,
+  type DbClient,
+  type Prisma,
+} from "@findthatproject/db";
 import { z } from "zod";
 
 const DEFAULT_LIMIT = 24;
@@ -182,23 +186,44 @@ const cursorWhere = async (
   const decoded = decodeCursor(cursor, sort);
   const item = await database.catalogItem.findFirst({
     where: { AND: [...activeConditions, { slug: decoded.slug }] },
-    select: { id: true, nameSortKey: true, lastMentionedAt: true },
+    select: {
+      id: true,
+      nameSortKey: true,
+      lastMentionedAt: true,
+      githubStars: true,
+    },
   });
   if (item === null) throw new CatalogQueryError();
 
-  return sort === "latest"
-    ? {
-        OR: [
-          { lastMentionedAt: { lt: item.lastMentionedAt } },
-          { lastMentionedAt: item.lastMentionedAt, id: { gt: item.id } },
-        ],
-      }
-    : {
-        OR: [
-          { nameSortKey: { gt: item.nameSortKey } },
-          { nameSortKey: item.nameSortKey, id: { gt: item.id } },
-        ],
-      };
+  if (sort === "latest") {
+    return {
+      OR: [
+        { lastMentionedAt: { lt: item.lastMentionedAt } },
+        { lastMentionedAt: item.lastMentionedAt, id: { gt: item.id } },
+      ],
+    };
+  }
+
+  if (sort === "name") {
+    return {
+      OR: [
+        { nameSortKey: { gt: item.nameSortKey } },
+        { nameSortKey: item.nameSortKey, id: { gt: item.id } },
+      ],
+    };
+  }
+
+  if (item.githubStars === null) {
+    return { githubStars: null, id: { gt: item.id } };
+  }
+
+  return {
+    OR: [
+      { githubStars: { lt: item.githubStars } },
+      { githubStars: item.githubStars, id: { gt: item.id } },
+      { githubStars: null },
+    ],
+  };
 };
 
 export const listCatalog = async (
@@ -246,7 +271,9 @@ export const listCatalog = async (
     orderBy:
       filters.sort === "latest"
         ? [{ lastMentionedAt: "desc" }, { id: "asc" }]
-        : [{ nameSortKey: "asc" }, { id: "asc" }],
+        : filters.sort === "name"
+          ? [{ nameSortKey: "asc" }, { id: "asc" }]
+          : [{ githubStars: { sort: "desc", nulls: "last" } }, { id: "asc" }],
     take: filters.limit + 1,
     select: {
       slug: true,

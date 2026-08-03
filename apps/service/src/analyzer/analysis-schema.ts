@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CATALOG_CATEGORIES } from "@techdex/contracts";
+import { CATALOG_CATEGORIES } from "@findthatproject/contracts";
 
 import {
   PRESENTATION_KINDS,

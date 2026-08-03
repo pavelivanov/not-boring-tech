@@ -5,7 +5,7 @@ import {
   type Channel,
   type DbClient,
   type DbTransaction,
-} from "@techdex/db";
+} from "@findthatproject/db";
 
 import {
   PROMPT_VERSION,

@@ -70,12 +70,12 @@ const postForCase = (
   evaluationCase: ExtractionEvalCase,
   ordinal: number,
 ): TransientPostInput => ({
-  channelHandle: "@techdex_eval",
+  channelHandle: "@findthatproject_eval",
   messageId: BigInt(ordinal + 1),
   text: evaluationCase.text,
   publishedAt: new Date("2026-07-30T12:00:00Z"),
   editedAt: null,
-  sourceUrl: `https://t.me/techdex_eval/${ordinal + 1}`,
+  sourceUrl: `https://t.me/findthatproject_eval/${ordinal + 1}`,
   links: evaluationCase.links,
 });
 

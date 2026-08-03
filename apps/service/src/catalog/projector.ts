@@ -1,12 +1,12 @@
 import {
   catalogCategorySchema,
   type CatalogCategory,
-} from "@techdex/contracts";
+} from "@findthatproject/contracts";
 import {
   AnalyzedPostStatus,
   type DbClient,
   type DbTransaction,
-} from "@techdex/db";
+} from "@findthatproject/db";
 
 import {
   deriveCatalogIdentity,

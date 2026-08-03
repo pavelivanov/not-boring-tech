@@ -2,7 +2,7 @@ import {
   TECHNOLOGY_KINDS,
   type CatalogCategory,
   type TechnologyKind,
-} from "@techdex/contracts";
+} from "@findthatproject/contracts";
 
 export const PRESENTATION_KINDS = TECHNOLOGY_KINDS;
 

@@ -5,5 +5,5 @@ export default defineConfig({
   format: ["esm"],
   clean: true,
   sourcemap: true,
-  noExternal: ["@techdex/contracts"],
+  noExternal: ["@findthatproject/contracts"],
 });

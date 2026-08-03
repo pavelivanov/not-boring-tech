@@ -1,4 +1,4 @@
-import type { CatalogListItem } from "@techdex/contracts"
+import type { CatalogListItem } from "@findthatproject/contracts"
 import { ArrowUpRightIcon, BookmarkIcon, StarIcon } from "lucide-react"
 import { Link } from "react-router"
 

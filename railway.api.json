@@ -5,7 +5,7 @@
     "dockerfilePath": "apps/service/Dockerfile"
   },
   "deploy": {
-    "preDeployCommand": "npm run migrate:deploy --workspace=@techdex/db",
+    "preDeployCommand": "npm run migrate:deploy --workspace=@findthatproject/db",
     "startCommand": "node apps/service/dist/server.js",
     "healthcheckPath": "/ready",
     "healthcheckTimeout": 120,

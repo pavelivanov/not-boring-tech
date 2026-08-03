@@ -1,4 +1,4 @@
-import type { CatalogActiveFilters } from "@techdex/contracts"
+import type { CatalogActiveFilters } from "@findthatproject/contracts"
 import { describe, expect, it } from "vitest"
 
 import {
@@ -58,5 +58,15 @@ describe("search URL state", () => {
         sort: "latest",
       }).toString()
     ).toBe("")
+  })
+
+  it("serializes GitHub stars sorting", () => {
+    expect(
+      serializeSearchParams({
+        query: "",
+        tags: [],
+        sort: "stars",
+      }).toString()
+    ).toBe("sort=stars")
   })
 })

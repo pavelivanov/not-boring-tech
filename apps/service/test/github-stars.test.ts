@@ -1,4 +1,4 @@
-import type { DbClient } from "@techdex/db";
+import type { DbClient } from "@findthatproject/db";
 import { describe, expect, it, vi } from "vitest";
 
 import {

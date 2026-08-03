@@ -126,7 +126,7 @@ the operator establishes initial history. After that, use
 
 Create a private root `package.json` with:
 
-- package name `techdex`;
+- package name `findthatproject`;
 - `packageManager` set to `npm@11.9.0`;
 - Node engine `>=22.22.0`;
 - workspaces `apps/*` and `packages/*`;
@@ -194,7 +194,7 @@ Expected: exit 0; versions meet the floor and all files exist.
 
 ### Step 2: Add shared TypeScript configuration
 
-Create workspace `@techdex/typescript-config` under
+Create workspace `@findthatproject/typescript-config` under
 `packages/typescript-config`.
 
 - `base.json`: strict TypeScript defaults, `noUncheckedIndexedAccess`,

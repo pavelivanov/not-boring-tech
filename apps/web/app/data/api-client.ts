@@ -9,7 +9,7 @@ import {
   type CatalogDetailResponse,
   type CatalogFacetsResponse,
   type CatalogListResponse,
-} from "@techdex/contracts"
+} from "@findthatproject/contracts"
 
 const API_QUERY_KEYS = [
   "q",

@@ -9,7 +9,7 @@ import {
 
 const SECRET_SENTINELS = {
   DATABASE_URL:
-    "postgresql://secret-user:secret-password@localhost:5432/techdex",
+    "postgresql://secret-user:secret-password@localhost:5432/findthatproject",
   TELEGRAM_API_HASH: "telegram-hash-sentinel",
   TELEGRAM_SESSION: "telegram-session-sentinel",
   OPENAI_API_KEY: "openai-key-sentinel",
@@ -39,9 +39,10 @@ describe("parseServerConfig", () => {
     expect(
       parseServerConfig({
         DATABASE_URL: SECRET_SENTINELS.DATABASE_URL,
-        API_ALLOWED_ORIGINS: "https://techdex.example, http://localhost:5173/",
+        API_ALLOWED_ORIGINS:
+          "https://findthatproject.example, http://localhost:5173/",
       }).API_ALLOWED_ORIGINS,
-    ).toEqual(["https://techdex.example", "http://localhost:5173"]);
+    ).toEqual(["https://findthatproject.example", "http://localhost:5173"]);
     expect(() =>
       parseServerConfig({
         DATABASE_URL: SECRET_SENTINELS.DATABASE_URL,
@@ -51,7 +52,7 @@ describe("parseServerConfig", () => {
     expect(() =>
       parseServerConfig({
         DATABASE_URL: SECRET_SENTINELS.DATABASE_URL,
-        API_ALLOWED_ORIGINS: "https://techdex.example/private",
+        API_ALLOWED_ORIGINS: "https://findthatproject.example/private",
       }),
     ).toThrow(ConfigError);
   });
