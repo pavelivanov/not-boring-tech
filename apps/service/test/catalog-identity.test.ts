@@ -26,7 +26,7 @@ describe("catalog identity", () => {
     expect(canonicalizeSubjectUrl("not a URL")).toBeNull();
   });
 
-  it("uses canonical URLs ahead of names and never merges different URLs", () => {
+  it("creates aliases for both canonical URLs and normalized names", () => {
     const first = deriveCatalogIdentity({
       kind: "PROJECT",
       name: "Demo",
@@ -48,6 +48,10 @@ describe("catalog identity", () => {
 
     expect(first.identityKey).toBe(renamed.identityKey);
     expect(first.identityKey).not.toBe(differentUrl.identityKey);
+    expect(first.identityKeys).toContain(renamed.identityKey);
+    expect(
+      first.identityKeys.some((key) => differentUrl.identityKeys.includes(key)),
+    ).toBe(true);
   });
 
   it("normalizes Unicode fallback tuples and creates safe slug bases", () => {

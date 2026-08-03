@@ -4,7 +4,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   backfillCatalogProjection,
   projectCandidateIds,
+  reconcileCatalogProjection,
 } from "../src/catalog/projector";
+import { deriveCatalogIdentity } from "../src/catalog/identity";
 import { reconcileChannels } from "../src/collector/reconcile-channels";
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
@@ -26,6 +28,8 @@ interface CandidateInput {
   readonly messageId: bigint;
   readonly name: string;
   readonly subjectUrl: string | null;
+  readonly kind?: "PROJECT" | "PRODUCT" | "FEATURE";
+  readonly parentName?: string | null;
   readonly confidence?: number;
   readonly publishedAt?: Date;
   readonly tags?: readonly string[];
@@ -62,10 +66,10 @@ const createCandidate = async (
     data: {
       analyzedPostId: post.id,
       ordinal: 0,
-      kind: "PROJECT",
+      kind: input.kind ?? "PROJECT",
       category: "Developer tools",
       name: input.name,
-      parentName: null,
+      parentName: input.parentName ?? null,
       subjectUrl: input.subjectUrl,
       descriptionEn: `${input.name} synthetic description.`,
       tags: [...(input.tags ?? ["Synthetic"])],
@@ -80,6 +84,41 @@ const project = (database: DbClient, candidateIds: readonly string[]) =>
   database.$transaction((transaction) =>
     projectCandidateIds(transaction, candidateIds),
   );
+
+const linkLegacyCatalogItem = async (
+  database: DbClient,
+  candidateId: string,
+  slug: string,
+): Promise<string> => {
+  const candidate = await database.presentationCandidate.findUniqueOrThrow({
+    where: { id: candidateId },
+    include: { analyzedPost: { select: { publishedAt: true } } },
+  });
+  const identity = deriveCatalogIdentity(candidate);
+  const item = await database.catalogItem.create({
+    data: {
+      identityKey: identity.identityKey,
+      slug,
+      kind: candidate.kind,
+      category: candidate.category,
+      name: candidate.name,
+      nameSortKey: identity.nameSortKey,
+      parentName: candidate.parentName,
+      canonicalUrl: identity.canonicalUrl,
+      descriptionEn: candidate.descriptionEn,
+      tags: candidate.tags,
+      searchText: candidate.name.toLocaleLowerCase("en"),
+      firstMentionedAt: candidate.analyzedPost.publishedAt,
+      lastMentionedAt: candidate.analyzedPost.publishedAt,
+    },
+    select: { id: true },
+  });
+  await database.presentationCandidate.update({
+    where: { id: candidateId },
+    data: { catalogItemId: item.id },
+  });
+  return item.id;
+};
 
 describe.skipIf(!testDatabaseUrl)("catalog projection integration", () => {
   let database: DbClient;
@@ -142,7 +181,7 @@ describe.skipIf(!testDatabaseUrl)("catalog projection integration", () => {
     ).toBe(1);
   });
 
-  it("keeps different non-null URLs separate and resolves slug collisions", async () => {
+  it("merges exact normalized titles across different URLs and kinds", async () => {
     const first = await createCandidate(database, {
       handle: "@channel_one",
       messageId: 3n,
@@ -154,19 +193,77 @@ describe.skipIf(!testDatabaseUrl)("catalog projection integration", () => {
       messageId: 4n,
       name: "Same Name",
       subjectUrl: "https://example.com/two",
+      kind: "PRODUCT",
     });
 
     await project(database, [first, second]);
 
-    const items = await database.catalogItem.findMany({
-      orderBy: { slug: "asc" },
-      select: { slug: true },
-    });
-    expect(items).toHaveLength(2);
-    expect(items.map((item) => item.slug)).toContain("same-name");
+    expect(await database.catalogItem.count()).toBe(1);
+    expect(await database.catalogIdentityAlias.count()).toBe(3);
     expect(
-      items.some((item) => /^same-name-[a-f0-9]{8}$/u.test(item.slug)),
-    ).toBe(true);
+      new Set(
+        (
+          await database.presentationCandidate.findMany({
+            select: { catalogItemId: true },
+          })
+        ).map((candidate) => candidate.catalogItemId),
+      ).size,
+    ).toBe(1);
+  });
+
+  it("keeps same-named child features of different parents separate", async () => {
+    const first = await createCandidate(database, {
+      handle: "@channel_one",
+      messageId: 30n,
+      name: "Canvas",
+      parentName: "Product One",
+      kind: "FEATURE",
+      subjectUrl: "https://example.com/product-one/canvas",
+    });
+    const second = await createCandidate(database, {
+      handle: "@channel_two",
+      messageId: 31n,
+      name: "Canvas",
+      parentName: "Product Two",
+      kind: "FEATURE",
+      subjectUrl: "https://example.com/product-two/canvas",
+    });
+
+    await project(database, [first, second]);
+
+    expect(await database.catalogItem.count()).toBe(2);
+  });
+
+  it("reconciles duplicate catalog rows created before aliases existed", async () => {
+    const first = await createCandidate(database, {
+      handle: "@channel_one",
+      messageId: 40n,
+      name: "Legacy Duplicate",
+      subjectUrl: "https://example.com/legacy-repository",
+    });
+    const second = await createCandidate(database, {
+      handle: "@channel_two",
+      messageId: 41n,
+      name: "Legacy Duplicate",
+      subjectUrl: "https://legacy.example.com/",
+    });
+    await linkLegacyCatalogItem(database, first, "legacy-duplicate");
+    await linkLegacyCatalogItem(database, second, "legacy-duplicate-old");
+    expect(await database.catalogItem.count()).toBe(2);
+
+    await expect(reconcileCatalogProjection(database)).resolves.toBe(2);
+
+    expect(await database.catalogItem.count()).toBe(1);
+    expect(await database.catalogIdentityAlias.count()).toBe(3);
+    expect(
+      new Set(
+        (
+          await database.presentationCandidate.findMany({
+            select: { catalogItemId: true },
+          })
+        ).map((candidate) => candidate.catalogItemId),
+      ).size,
+    ).toBe(1);
   });
 
   it("merges normalized fallback identities and backfills idempotently", async () => {

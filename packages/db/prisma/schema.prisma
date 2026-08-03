@@ -74,11 +74,21 @@ model CatalogItem {
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
   presentations    PresentationCandidate[]
+  identityAliases  CatalogIdentityAlias[]
 
   @@index([lastMentionedAt, id])
   @@index([nameSortKey, id])
   @@index([kind])
   @@index([category])
+}
+
+model CatalogIdentityAlias {
+  identityKey   String      @id @db.VarChar(69)
+  catalogItemId String      @db.Uuid
+  createdAt     DateTime    @default(now())
+  catalogItem   CatalogItem @relation(fields: [catalogItemId], references: [id], onDelete: Cascade)
+
+  @@index([catalogItemId])
 }
 
 model AnalyzedPost {

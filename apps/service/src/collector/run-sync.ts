@@ -1,7 +1,7 @@
 import { IngestionRunStatus, type DbClient } from "@techdex/db";
 
 import type { PostAnalyzer } from "../analyzer/types";
-import { backfillCatalogProjection } from "../catalog/projector";
+import { reconcileCatalogProjection } from "../catalog/projector";
 import { collectChannel, FatalAnalysisError } from "./collect-channel";
 import { reconcileChannels } from "./reconcile-channels";
 import type { TelegramSource } from "./types";
@@ -45,7 +45,7 @@ export const runSync = async (
     dependencies.database,
     config.channels,
   );
-  await backfillCatalogProjection(dependencies.database);
+  await reconcileCatalogProjection(dependencies.database);
   const run = await dependencies.database.ingestionRun.create({
     data: {
       configuredChannelCount: channels.length,

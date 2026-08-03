@@ -77,6 +77,7 @@ const slugBaseForName = (name: string): string => {
 
 export interface CatalogIdentity {
   readonly identityKey: string;
+  readonly identityKeys: readonly string[];
   readonly canonicalUrl: string | null;
   readonly nameSortKey: string;
   readonly slugBase: string;
@@ -91,18 +92,23 @@ export const deriveCatalogIdentity = (input: {
 }): CatalogIdentity => {
   const canonicalUrl =
     input.subjectUrl === null ? null : canonicalizeSubjectUrl(input.subjectUrl);
-  const identityPayload =
-    canonicalUrl === null
-      ? JSON.stringify([
-          input.kind,
-          normalizeIdentityText(input.parentName ?? ""),
-          normalizeIdentityText(input.name),
-        ])
-      : canonicalUrl;
-  const digest = sha256(identityPayload);
+  const nameIdentityKey = `name:${sha256(
+    JSON.stringify([
+      normalizeIdentityText(input.parentName ?? ""),
+      normalizeIdentityText(input.name),
+    ]),
+  )}`;
+  const urlIdentityKey =
+    canonicalUrl === null ? null : `url:${sha256(canonicalUrl)}`;
+  const identityKey = urlIdentityKey ?? nameIdentityKey;
+  const digest = identityKey.slice(identityKey.indexOf(":") + 1);
 
   return {
-    identityKey: `${canonicalUrl === null ? "name" : "url"}:${digest}`,
+    identityKey,
+    identityKeys:
+      urlIdentityKey === null
+        ? [nameIdentityKey]
+        : [urlIdentityKey, nameIdentityKey],
     canonicalUrl,
     nameSortKey: normalizeIdentityText(input.name),
     slugBase: slugBaseForName(input.name),
