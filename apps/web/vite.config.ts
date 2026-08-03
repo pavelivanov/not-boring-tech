@@ -2,12 +2,7 @@ import { reactRouter } from "@react-router/dev/vite"
 import tailwindcss from "@tailwindcss/vite"
 import { defineConfig, type Plugin } from "vite"
 
-import { tools } from "./app/data/tools"
-
-const prerenderedPaths = new Set([
-  "/about",
-  ...tools.map((tool) => `/tools/${tool.slug}`),
-])
+const prerenderedPaths = new Set(["/about"])
 
 function previewPrerenderedRoutes(): Plugin {
   return {

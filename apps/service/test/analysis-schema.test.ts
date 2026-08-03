@@ -14,6 +14,7 @@ import {
 
 const presentation = {
   kind: "PROJECT" as const,
+  category: "Learning resources" as const,
   name: "  Nanochat  ",
   parentName: null,
   subjectUrl: "https://github.com/karpathy/nanochat",
@@ -61,6 +62,24 @@ describe("postAnalysisSchema", () => {
       postAnalysisSchema.parse({
         relevant: true,
         presentations: Array.from({ length: 6 }, () => presentation),
+      }),
+    ).toThrow();
+  });
+
+  it("requires one controlled category per presentation", () => {
+    const { category: _category, ...withoutCategory } = presentation;
+    expect(() =>
+      postAnalysisSchema.parse({
+        relevant: true,
+        presentations: [withoutCategory],
+      }),
+    ).toThrow();
+    expect(() =>
+      postAnalysisSchema.parse({
+        relevant: true,
+        presentations: [
+          { ...presentation, category: "Model-authored category" },
+        ],
       }),
     ).toThrow();
   });
@@ -143,6 +162,8 @@ describe("prompt boundary", () => {
       allowedHttpLinks: [],
     });
     expect(EXTRACTION_DEVELOPER_PROMPT).toContain("untrusted source data");
+    expect(EXTRACTION_DEVELOPER_PROMPT).toContain("AI development");
+    expect(EXTRACTION_DEVELOPER_PROMPT).toContain("never invent a category");
   });
 
   it("combines prompt, schema, and model identity", () => {

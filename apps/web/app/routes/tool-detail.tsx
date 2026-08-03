@@ -1,49 +1,84 @@
 import {
+  AlertCircleIcon,
   ArrowLeftIcon,
   ArrowUpRightIcon,
   CalendarDaysIcon,
   MessageCircleMoreIcon,
 } from "lucide-react"
-import { Link, useLocation, useParams } from "react-router"
+import { Link, useLocation, useRevalidator } from "react-router"
 
+import type { Route } from "./+types/tool-detail"
 import { RelativeDate } from "~/components/relative-date"
-import { Badge } from "~/components/ui/badge"
-import { Separator } from "~/components/ui/separator"
-import { channelsById } from "~/data/channels"
-import { toolsByName, toolsBySlug } from "~/data/tools"
-import { formatAbsoluteDate } from "~/domain/dates"
 import {
-  distinctChannelCount,
-  firstPresentation,
-  formatTechnologyKind,
-  newestMentionsFirst,
-} from "~/domain/tools"
+  Alert,
+  AlertAction,
+  AlertDescription,
+  AlertTitle,
+} from "~/components/ui/alert"
+import { Badge } from "~/components/ui/badge"
+import { Button } from "~/components/ui/button"
+import { Separator } from "~/components/ui/separator"
+import { Skeleton } from "~/components/ui/skeleton"
+import { CatalogApiError, loadCatalogDetail } from "~/data/api-client"
+import { formatAbsoluteDate } from "~/domain/dates"
+import { formatTechnologyKind } from "~/domain/tools"
 import { canonicalMeta } from "~/domain/urls"
 
-export function meta({ params }: { params: { slug?: string } }) {
-  const tool = params.slug ? toolsBySlug.get(params.slug) : undefined
-
-  if (!tool) {
-    return [
-      { title: "Subject not found · TechDex" },
-      {
-        name: "description",
-        content: "The requested subject is not in the TechDex index.",
-      },
-    ]
-  }
-
+export function meta({ params }: Route.MetaArgs) {
   return [
-    { title: `${tool.name} · TechDex` },
-    { name: "description", content: tool.description },
-    ...canonicalMeta(`/tools/${tool.slug}`),
+    { title: "Technology subject · TechDex" },
+    {
+      name: "description",
+      content: "A technology subject with Telegram source provenance.",
+    },
+    ...(params.slug ? canonicalMeta(`/tools/${params.slug}`) : []),
   ]
 }
 
-export default function ToolDetail() {
-  const { slug } = useParams()
+export async function clientLoader({
+  params,
+  request,
+}: Route.ClientLoaderArgs) {
+  const response = params.slug
+    ? await loadCatalogDetail(params.slug, request.signal)
+    : null
+
+  return {
+    item: response?.item ?? null,
+  }
+}
+clientLoader.hydrate = true as const
+
+function NotFound({ slug }: { readonly slug: string | undefined }) {
+  return (
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="page-width flex min-h-[65svh] flex-col justify-center py-16"
+    >
+      <p className="font-mono text-sm text-muted-foreground">
+        Unknown subject / {slug ?? "missing-slug"}
+      </p>
+      <h1 className="mt-4 max-w-3xl font-heading text-5xl font-semibold tracking-[-0.05em] md:text-7xl">
+        This subject is not in the index.
+      </h1>
+      <Link
+        to="/"
+        className="mt-8 inline-flex w-fit items-center gap-1.5 font-medium underline decoration-primary decoration-2 underline-offset-4"
+      >
+        <ArrowLeftIcon aria-hidden="true" />
+        Return to index
+      </Link>
+    </main>
+  )
+}
+
+export default function ToolDetail({
+  loaderData,
+  params,
+}: Route.ComponentProps) {
   const location = useLocation()
-  const tool = slug ? toolsBySlug.get(slug) : undefined
+  const item = loaderData.item
   const originState = location.state as { from?: unknown } | null
   const originSearch =
     typeof originState?.from === "string" && originState.from.startsWith("?")
@@ -51,35 +86,9 @@ export default function ToolDetail() {
       : ""
   const backTarget = `/${originSearch}`
 
-  if (!tool) {
-    return (
-      <main
-        id="main-content"
-        tabIndex={-1}
-        className="page-width flex min-h-[65svh] flex-col justify-center py-16"
-      >
-        <p className="font-mono text-sm text-muted-foreground">
-          Unknown subject / {slug ?? "missing-slug"}
-        </p>
-        <h1 className="mt-4 max-w-3xl font-heading text-5xl font-semibold tracking-[-0.05em] md:text-7xl">
-          This subject is not in the index.
-        </h1>
-        <Link
-          to="/"
-          className="mt-8 inline-flex w-fit items-center gap-1.5 font-medium underline decoration-primary decoration-2 underline-offset-4"
-        >
-          <ArrowLeftIcon aria-hidden="true" />
-          Return to index
-        </Link>
-      </main>
-    )
-  }
+  if (!item) return <NotFound slug={params.slug} />
 
-  const firstMention = firstPresentation(tool)
-  const channelCount = distinctChannelCount(tool)
-  const mentions = newestMentionsFirst(tool.mentions)
-  const parent = tool.parentName ? toolsByName.get(tool.parentName) : undefined
-  const kindLabel = formatTechnologyKind(tool.kind)
+  const kindLabel = formatTechnologyKind(item.kind)
 
   return (
     <main id="main-content" tabIndex={-1} className="page-width py-12 md:py-20">
@@ -95,61 +104,54 @@ export default function ToolDetail() {
         <div className="min-w-0">
           <div className="flex flex-wrap gap-2">
             <Badge variant="secondary">{kindLabel}</Badge>
-            <Badge variant="outline">{tool.category}</Badge>
-            {tool.tags.map((tag) => (
+            <Badge variant="outline">{item.category}</Badge>
+            {item.tags.map((tag) => (
               <Badge key={tag} variant="outline">
                 {tag}
               </Badge>
             ))}
           </div>
           <h1 className="mt-5 font-heading text-5xl font-semibold tracking-[-0.05em] md:text-7xl">
-            {tool.name}
+            {item.name}
           </h1>
           <p className="mt-5 max-w-3xl text-lg leading-relaxed text-muted-foreground md:text-xl">
-            {tool.description}
+            {item.descriptionEn}
           </p>
-          {tool.parentName ? (
+          {item.parentName ? (
             <p className="mt-4 text-sm text-muted-foreground">
               Feature of{" "}
-              {parent ? (
-                <Link
-                  to={`/tools/${parent.slug}`}
-                  className="font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-primary"
-                >
-                  {parent.name}
-                </Link>
-              ) : (
-                <span className="font-medium text-foreground">
-                  {tool.parentName}
-                </span>
-              )}
+              <span className="font-medium text-foreground">
+                {item.parentName}
+              </span>
             </p>
           ) : null}
         </div>
 
-        <a
-          href={tool.canonicalUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex h-fit items-center gap-1.5 font-medium underline decoration-primary decoration-2 underline-offset-4 md:justify-self-end"
-        >
-          Open {kindLabel.toLocaleLowerCase("en")}
-          <ArrowUpRightIcon aria-hidden="true" />
-          <span className="sr-only">(opens in a new tab)</span>
-        </a>
+        {item.canonicalUrl ? (
+          <a
+            href={item.canonicalUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-fit items-center gap-1.5 font-medium underline decoration-primary decoration-2 underline-offset-4 md:justify-self-end"
+          >
+            Open {kindLabel.toLocaleLowerCase("en")}
+            <ArrowUpRightIcon aria-hidden="true" />
+            <span className="sr-only">(opens in a new tab)</span>
+          </a>
+        ) : null}
       </header>
 
       <div className="mt-10 flex flex-wrap gap-x-6 gap-y-2 border-y py-5 text-sm text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
           <CalendarDaysIcon aria-hidden="true" />
-          First presented {formatAbsoluteDate(firstMention.publishedAt)} ·{" "}
-          <RelativeDate value={firstMention.publishedAt} />
+          First presented {formatAbsoluteDate(item.firstMentionedAt)} ·{" "}
+          <RelativeDate value={item.firstMentionedAt} />
         </span>
         <span className="inline-flex items-center gap-1.5">
           <MessageCircleMoreIcon aria-hidden="true" />
-          {channelCount} {channelCount === 1 ? "channel" : "channels"} ·{" "}
-          {tool.mentions.length}{" "}
-          {tool.mentions.length === 1 ? "mention" : "mentions"}
+          {item.channelCount} {item.channelCount === 1 ? "channel" : "channels"}{" "}
+          · {item.mentionCount}{" "}
+          {item.mentionCount === 1 ? "mention" : "mentions"}
         </span>
       </div>
 
@@ -170,38 +172,81 @@ export default function ToolDetail() {
         </div>
 
         <div className="mt-6">
-          {mentions.map((mention, index) => {
-            const channel = channelsById.get(mention.channelId)
-
-            return (
-              <div key={mention.sourceUrl}>
-                {index > 0 ? <Separator /> : null}
-                <article className="grid gap-4 py-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-                  <div>
-                    <h3 className="text-lg font-medium">
-                      {channel?.name ?? mention.channelId}
-                    </h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {formatAbsoluteDate(mention.publishedAt)} ·{" "}
-                      <RelativeDate value={mention.publishedAt} />
-                    </p>
-                  </div>
-                  <a
-                    href={mention.sourceUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm font-medium underline decoration-border underline-offset-4 hover:decoration-primary sm:justify-self-end"
-                  >
-                    Open Telegram source
-                    <ArrowUpRightIcon aria-hidden="true" />
-                    <span className="sr-only">(opens in a new tab)</span>
-                  </a>
-                </article>
-              </div>
-            )
-          })}
+          {item.mentions.map((mention, index) => (
+            <div key={mention.sourceUrl}>
+              {index > 0 ? <Separator /> : null}
+              <article className="grid gap-4 py-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                <div>
+                  <h3 className="text-lg font-medium">
+                    {mention.channelTitle ?? mention.channelHandle}
+                  </h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {formatAbsoluteDate(mention.publishedAt)} ·{" "}
+                    <RelativeDate value={mention.publishedAt} /> ·{" "}
+                    {Math.round(mention.confidence * 100)}% confidence
+                  </p>
+                </div>
+                <a
+                  href={mention.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium underline decoration-border underline-offset-4 hover:decoration-primary sm:justify-self-end"
+                >
+                  Open Telegram source
+                  <ArrowUpRightIcon aria-hidden="true" />
+                  <span className="sr-only">(opens in a new tab)</span>
+                </a>
+              </article>
+            </div>
+          ))}
         </div>
       </section>
+    </main>
+  )
+}
+
+export function HydrateFallback() {
+  return (
+    <main
+      id="main-content"
+      className="page-width flex min-h-[65svh] flex-col justify-center gap-5 py-16"
+      aria-label="Loading catalog item"
+    >
+      <Skeleton className="h-4 w-32" />
+      <Skeleton className="h-16 w-2/3" />
+      <Skeleton className="h-24 w-full max-w-3xl" />
+      <Skeleton className="h-14 w-full" />
+    </main>
+  )
+}
+
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  const revalidator = useRevalidator()
+  const requestId = error instanceof CatalogApiError ? error.requestId : null
+
+  return (
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="page-width flex min-h-[65svh] items-center py-16"
+    >
+      <Alert variant="destructive" className="max-w-2xl">
+        <AlertCircleIcon aria-hidden="true" />
+        <AlertTitle>The subject could not be loaded</AlertTitle>
+        <AlertDescription>
+          Retry the live catalog request.
+          {requestId ? ` Request ID: ${requestId}.` : ""}
+        </AlertDescription>
+        <AlertAction>
+          <Button
+            variant="outline"
+            disabled={revalidator.state !== "idle"}
+            onClick={() => revalidator.revalidate()}
+          >
+            {revalidator.state === "idle" ? "Retry" : "Retrying…"}
+          </Button>
+        </AlertAction>
+      </Alert>
     </main>
   )
 }

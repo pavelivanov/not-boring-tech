@@ -3,23 +3,28 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Deploy selected Railway services and wait for each deployment to finish.
+Deploy selected TechDex Railway services and wait for completion.
 
 Usage:
   npm run deploy:railway -- [options]
+
+Code services:
+  web      Long-running public SPA; health path /
+  api      Long-running read API; migration owner; health path /ready
+  parser   One-shot scheduled parser; must exit successfully
 
 Options:
   --services <csv>           Services to deploy (default: api,web)
   --message <text>           Railway deployment message
   --timeout <seconds>        Maximum wait per service (default: 900)
   --poll-interval <seconds>  Seconds between status checks (default: 5)
-  --health-url <url>         Override the API health URL
+  --api-health-url <url>     Override the API readiness URL
   --health-timeout <seconds> Maximum wait per health check (default: 120)
-  --push-env <target>        Push .env.production first: api|web|all|none
-  --project <id>             Railway project ID (requires --environment)
-  --environment <name|id>    Railway environment name or ID
-  --skip-health-check        Do not check public endpoints after deployment
-  -h, --help                 Show this help
+  --push-env <target>        Push env first: api|web|parser|all|none
+  --project <id>             Expected Railway project ID
+  --environment production  Target environment (production only)
+  --skip-health-check        Skip public web/API health checks
+  -h, --help                 Show this help without contacting Railway
 EOF
 }
 
@@ -41,12 +46,15 @@ is_failure_status() {
   esac
 }
 
+is_allowed_service() {
+  case "$1" in
+    web | api | parser) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 railway_with_scope() {
-  if [[ -n "$PROJECT" || -n "$ENVIRONMENT" ]]; then
-    railway "$@" "${RAILWAY_SCOPE_ARGS[@]}"
-  else
-    railway "$@"
-  fi
+  railway "$@" "${RAILWAY_SCOPE_ARGS[@]}"
 }
 
 latest_deployment() {
@@ -100,7 +108,7 @@ wait_for_deployment() {
       previous_status="$latest_status"
     fi
 
-    if [[ "$latest_status" == "SUCCESS" ]]; then
+    if [[ "$latest_status" == "SUCCESS" || ( "$service" == "parser" && "$latest_status" == "COMPLETED" ) ]]; then
       LAST_DEPLOYMENT_ID="$deployment_id"
       return 0
     fi
@@ -162,7 +170,7 @@ HEALTH_TIMEOUT_SECONDS=120
 API_HEALTH_URL=""
 PUSH_ENV_TARGET="none"
 PROJECT=""
-ENVIRONMENT=""
+ENVIRONMENT="production"
 SKIP_HEALTH_CHECK=0
 LAST_DEPLOYMENT_ID=""
 
@@ -172,7 +180,7 @@ while [[ $# -gt 0 ]]; do
     --message) MESSAGE="${2:-}"; shift 2 ;;
     --timeout) DEPLOY_TIMEOUT_SECONDS="${2:-}"; shift 2 ;;
     --poll-interval) POLL_INTERVAL_SECONDS="${2:-}"; shift 2 ;;
-    --health-url) API_HEALTH_URL="${2:-}"; shift 2 ;;
+    --api-health-url | --health-url) API_HEALTH_URL="${2:-}"; shift 2 ;;
     --health-timeout) HEALTH_TIMEOUT_SECONDS="${2:-}"; shift 2 ;;
     --push-env) PUSH_ENV_TARGET="${2:-}"; shift 2 ;;
     --project) PROJECT="${2:-}"; shift 2 ;;
@@ -184,49 +192,65 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ -n "$SERVICES_CSV" ]] || { echo "--services cannot be empty" >&2; exit 1; }
+[[ "$ENVIRONMENT" == "production" ]] || {
+  echo "Refusing unknown environment: $ENVIRONMENT (expected production)." >&2
+  exit 1
+}
 is_positive_integer "$DEPLOY_TIMEOUT_SECONDS" || { echo "--timeout must be a positive integer" >&2; exit 1; }
 is_positive_integer "$POLL_INTERVAL_SECONDS" || { echo "--poll-interval must be a positive integer" >&2; exit 1; }
 is_positive_integer "$HEALTH_TIMEOUT_SECONDS" || { echo "--health-timeout must be a positive integer" >&2; exit 1; }
 
 case "$PUSH_ENV_TARGET" in
-  api | web | all | none) ;;
-  *) echo "--push-env must be api, web, all, or none" >&2; exit 1 ;;
+  api | web | parser | all | none) ;;
+  *) echo "--push-env must be api, web, parser, all, or none" >&2; exit 1 ;;
 esac
-
-if [[ -n "$PROJECT" && -z "$ENVIRONMENT" ]]; then
-  echo "--project requires --environment" >&2
-  exit 1
-fi
-
-require_command railway
-require_command node
-require_command curl
-
-RAILWAY_SCOPE_ARGS=()
-[[ -n "$PROJECT" ]] && RAILWAY_SCOPE_ARGS+=(--project "$PROJECT")
-[[ -n "$ENVIRONMENT" ]] && RAILWAY_SCOPE_ARGS+=(--environment "$ENVIRONMENT")
 
 SERVICES=()
 IFS=',' read -r -a raw_services <<<"$SERVICES_CSV"
 for raw_service in "${raw_services[@]}"; do
   service="${raw_service//[[:space:]]/}"
-  [[ -n "$service" ]] && SERVICES+=("$service")
+  [[ -n "$service" ]] || continue
+  is_allowed_service "$service" || {
+    echo "Refusing unknown service: $service" >&2
+    exit 1
+  }
+  if [[ " ${SERVICES[*]-} " == *" $service "* ]]; then
+    echo "Duplicate service: $service" >&2
+    exit 1
+  fi
+  SERVICES+=("$service")
 done
 [[ "${#SERVICES[@]}" -gt 0 ]] || { echo "No services were selected." >&2; exit 1; }
 
-if [[ -z "$MESSAGE" ]]; then
-  revision="$(git rev-parse --short HEAD 2>/dev/null || printf 'working-tree')"
-  MESSAGE="Deploy $revision at $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-fi
+require_command railway
+require_command node
+require_command curl
 
-echo "Railway deployment"
-echo "Services: ${SERVICES[*]}"
-echo "Message:  $MESSAGE"
+RAILWAY_SCOPE_ARGS=(--environment "$ENVIRONMENT")
+[[ -n "$PROJECT" ]] && RAILWAY_SCOPE_ARGS+=(--project "$PROJECT")
 
 railway whoami --json >/dev/null
-if [[ -z "$PROJECT" && -z "$ENVIRONMENT" ]]; then
-  railway status --json >/dev/null
-fi
+status_json="$(railway_with_scope status --json)"
+EXPECTED_PROJECT="$PROJECT" EXPECTED_PROJECT_NAME="not-boring-tech" EXPECTED_ENVIRONMENT="$ENVIRONMENT" node -e '
+  const fs = require("node:fs");
+  const data = JSON.parse(fs.readFileSync(0, "utf8"));
+  const expectedProject = process.env.EXPECTED_PROJECT;
+  const expectedProjectName = process.env.EXPECTED_PROJECT_NAME;
+  const expectedEnvironment = process.env.EXPECTED_ENVIRONMENT;
+  if (expectedProject && data.id !== expectedProject) {
+    console.error(`Refusing project ${data.id}; expected ${expectedProject}.`);
+    process.exit(1);
+  }
+  if (data.name !== expectedProjectName) {
+    console.error(`Refusing project ${data.name}; expected ${expectedProjectName}.`);
+    process.exit(1);
+  }
+  const environments = data.environments?.edges?.map((edge) => edge.node?.name) ?? [];
+  if (!environments.includes(expectedEnvironment)) {
+    console.error(`Railway environment not found: ${expectedEnvironment}`);
+    process.exit(1);
+  }
+' <<<"$status_json"
 
 available_services="$(railway_with_scope service list --json)"
 for service in "${SERVICES[@]}"; do
@@ -240,12 +264,18 @@ for service in "${SERVICES[@]}"; do
   ' <<<"$available_services"
 done
 
+if [[ -z "$MESSAGE" ]]; then
+  revision="$(git rev-parse --short HEAD 2>/dev/null || printf 'working-tree')"
+  MESSAGE="Deploy $revision at $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+fi
+
+echo "Railway deployment"
+echo "Environment: $ENVIRONMENT"
+echo "Services:    ${SERVICES[*]}"
+echo "Message:     $MESSAGE"
+
 if [[ "$PUSH_ENV_TARGET" != "none" ]]; then
-  if [[ -n "$PROJECT" || -n "$ENVIRONMENT" ]]; then
-    bash scripts/railway-env-push.sh "$PUSH_ENV_TARGET" "${RAILWAY_SCOPE_ARGS[@]}"
-  else
-    bash scripts/railway-env-push.sh "$PUSH_ENV_TARGET"
-  fi
+  bash scripts/railway-env-push.sh "$PUSH_ENV_TARGET" "${RAILWAY_SCOPE_ARGS[@]}"
 fi
 
 DEPLOYED_SERVICES=()
@@ -256,7 +286,11 @@ for service in "${SERVICES[@]}"; do
   echo "[$service] Uploading source..."
   railway_with_scope up --service "$service" --detach --yes --message "$MESSAGE"
   wait_for_deployment "$service" "$baseline_id"
-  echo "[$service] Deployment succeeded ($LAST_DEPLOYMENT_ID)."
+  if [[ "$service" == "parser" ]]; then
+    echo "[$service] One-shot deployment completed ($LAST_DEPLOYMENT_ID)."
+  else
+    echo "[$service] Deployment succeeded ($LAST_DEPLOYMENT_ID)."
+  fi
   DEPLOYED_SERVICES+=("$service")
 done
 
@@ -265,13 +299,14 @@ if [[ "$SKIP_HEALTH_CHECK" -eq 0 ]]; then
     case "$service" in
       api)
         url="$API_HEALTH_URL"
-        [[ -n "$url" ]] || url="$(resolve_health_url api /health)"
+        [[ -n "$url" ]] || url="$(resolve_health_url api /ready)"
         wait_for_health api "$url"
         ;;
       web)
         url="$(resolve_health_url web /)"
         wait_for_health web "$url"
         ;;
+      parser) ;;
     esac
   done
 fi

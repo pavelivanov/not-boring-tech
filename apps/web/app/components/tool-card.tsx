@@ -1,18 +1,14 @@
-import type { Tool } from "@techdex/contracts"
+import type { CatalogListItem } from "@techdex/contracts"
 import { ArrowUpRightIcon, BookmarkIcon } from "lucide-react"
 import { Link } from "react-router"
 
 import { RelativeDate } from "~/components/relative-date"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
-import {
-  distinctChannelCount,
-  firstPresentation,
-  formatTechnologyKind,
-} from "~/domain/tools"
+import { formatTechnologyKind } from "~/domain/tools"
 
 type ToolCardProps = {
-  readonly tool: Tool
+  readonly tool: CatalogListItem
   readonly search: string
   readonly saved: boolean
   readonly onToggleSaved: (slug: string) => void
@@ -28,9 +24,8 @@ export function ToolCard({
   saved,
   onToggleSaved,
 }: ToolCardProps) {
-  const firstMention = firstPresentation(tool)
-  const channelCount = distinctChannelCount(tool)
-  const mentionCount = tool.mentions.length
+  const channelCount = tool.channelCount
+  const mentionCount = tool.mentionCount
   const kindLabel = formatTechnologyKind(tool.kind)
   const detailPath = `/tools/${tool.slug}`
 
@@ -65,7 +60,7 @@ export function ToolCard({
             {tool.name}
           </Link>
         </h3>
-        <p className="tool-card-description">{tool.description}</p>
+        <p className="tool-card-description">{tool.descriptionEn}</p>
         <div className="tool-card-tags" aria-label={`${tool.name} tags`}>
           {tool.tags.slice(0, 2).map((tag) => (
             <Badge key={tag} variant="outline">
@@ -76,17 +71,21 @@ export function ToolCard({
       </div>
 
       <footer className="tool-card-footer">
-        <a
-          href={tool.canonicalUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="tool-domain-link"
-        >
-          {hostLabel(tool.canonicalUrl)}
-          <span className="sr-only"> (opens in a new tab)</span>
-        </a>
+        {tool.canonicalUrl ? (
+          <a
+            href={tool.canonicalUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="tool-domain-link"
+          >
+            {hostLabel(tool.canonicalUrl)}
+            <span className="sr-only"> (opens in a new tab)</span>
+          </a>
+        ) : (
+          <span className="tool-domain-link">No canonical URL</span>
+        )}
         <span className="tool-card-meta">
-          <RelativeDate value={firstMention.publishedAt} compact /> ·{" "}
+          <RelativeDate value={tool.firstMentionedAt} compact /> ·{" "}
           {channelCount} CH
         </span>
         <Link

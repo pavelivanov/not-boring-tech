@@ -1,5 +1,5 @@
 import { Api, TelegramClient } from "telegram";
-import { StringSession } from "telegram/sessions";
+import { StringSession } from "telegram/sessions/index.js";
 
 import type { TransientPostInput } from "../analyzer/types";
 import type {

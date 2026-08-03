@@ -22,6 +22,7 @@ const parsedPresentation = {
   presentations: [
     {
       kind: "PROJECT",
+      category: "Learning resources",
       name: "Nanochat",
       parentName: null,
       subjectUrl: "https://github.com/karpathy/nanochat",

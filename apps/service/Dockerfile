@@ -7,6 +7,7 @@ RUN apt-get update \
 
 COPY package.json package-lock.json turbo.json ./
 COPY apps/service/package.json apps/service/package.json
+COPY packages/contracts/package.json packages/contracts/package.json
 COPY packages/db/package.json packages/db/package.json
 COPY packages/typescript-config/package.json packages/typescript-config/package.json
 RUN npm ci --no-audit --no-fund \
@@ -15,6 +16,7 @@ RUN npm ci --no-audit --no-fund \
     --fetch-retry-maxtimeout=120000
 
 COPY apps/service apps/service
+COPY packages/contracts packages/contracts
 COPY packages/db packages/db
 COPY packages/typescript-config packages/typescript-config
 RUN DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build \

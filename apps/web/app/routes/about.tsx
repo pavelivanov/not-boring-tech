@@ -47,9 +47,9 @@ export default function About() {
         <section className="flex flex-col gap-3">
           <h2 className="text-xl font-semibold">Corpus boundary</h2>
           <p className="leading-relaxed text-muted-foreground">
-            Only posts from an owner-approved set of public technology channels
-            belong in the index. Private chats, user-selected channels, ads, job
-            posts, and copied full post bodies are outside the boundary.
+            Only posts from the public handles configured for the parser belong
+            in the index. Private chats, user-selected channels, ads, job posts,
+            and copied full post bodies are outside the boundary.
           </p>
         </section>
 
@@ -74,10 +74,10 @@ export default function About() {
         <section className="flex flex-col gap-3">
           <h2 className="text-xl font-semibold">Corrections and removals</h2>
           <p className="leading-relaxed text-muted-foreground">
-            During the prototype, contact the owner who shared this index to
-            request a correction or removal. A public handling destination will
-            be listed here before launch; no unmonitored form is presented as a
-            working support channel.
+            Contact the owner who shared this index to request a correction or
+            removal. A public handling destination will be listed here when it
+            is monitored; no unmonitored form is presented as a working support
+            channel.
           </p>
         </section>
       </div>

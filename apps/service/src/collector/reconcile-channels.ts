@@ -1,10 +1,27 @@
 import type { DbClient } from "@techdex/db";
 
+import { refreshCatalogItems } from "../catalog/projector";
+
 export const reconcileChannels = async (
   database: DbClient,
   configuredHandles: readonly string[],
 ) =>
   database.$transaction(async (transaction) => {
+    const visibilityChanges = await transaction.presentationCandidate.findMany({
+      where: {
+        catalogItemId: { not: null },
+        analyzedPost: {
+          channel: {
+            OR: [
+              { enabled: true, handle: { notIn: [...configuredHandles] } },
+              { enabled: false, handle: { in: [...configuredHandles] } },
+            ],
+          },
+        },
+      },
+      select: { catalogItemId: true },
+    });
+
     await transaction.channel.updateMany({
       where: { enabled: true, handle: { notIn: [...configuredHandles] } },
       data: { enabled: false },
@@ -25,5 +42,11 @@ export const reconcileChannels = async (
         }),
       );
     }
+    await refreshCatalogItems(
+      transaction,
+      visibilityChanges.flatMap((candidate) =>
+        candidate.catalogItemId === null ? [] : [candidate.catalogItemId],
+      ),
+    );
     return channels;
   });

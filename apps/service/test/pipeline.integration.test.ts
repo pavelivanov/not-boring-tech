@@ -63,6 +63,7 @@ const success = (
       ? [
           {
             kind,
+            category: "Developer tools",
             name: kind === "FEATURE" ? "Channels" : `Project ${messageId}`,
             parentName: kind === "FEATURE" ? "Claude Code" : null,
             subjectUrl: `https://example.com/${messageId}`,
@@ -92,6 +93,7 @@ const multiPresentationSuccess = (messageId: bigint): AnalysisOutcome => ({
     presentations: [
       {
         kind: "FEATURE",
+        category: "Developer tools",
         name: "Review Mode",
         parentName: "CodeDock",
         subjectUrl: `https://example.com/${messageId}`,
@@ -102,6 +104,7 @@ const multiPresentationSuccess = (messageId: bigint): AnalysisOutcome => ({
       },
       {
         kind: "PLUGIN",
+        category: "Developer tools",
         name: "ReviewMate",
         parentName: null,
         subjectUrl: `https://example.com/${messageId}`,
@@ -139,6 +142,7 @@ describe.skipIf(!testDatabaseUrl)("pipeline database integration", () => {
 
   beforeEach(async () => {
     await database.presentationCandidate.deleteMany();
+    await database.catalogItem.deleteMany();
     await database.analyzedPost.deleteMany();
     await database.channel.deleteMany();
     await database.ingestionRun.deleteMany();
@@ -240,6 +244,7 @@ describe.skipIf(!testDatabaseUrl)("pipeline database integration", () => {
 
     expect(replayAnalyzer.calls).toHaveLength(0);
     expect(await database.presentationCandidate.count()).toBe(1);
+    expect(await database.catalogItem.count()).toBe(1);
     expect((await database.analyzedPost.findFirstOrThrow()).modelId).toBe(
       "model-a",
     );
@@ -255,6 +260,7 @@ describe.skipIf(!testDatabaseUrl)("pipeline database integration", () => {
         backfillPages: [page([original])],
       }),
     });
+    const originalCatalogItem = await database.catalogItem.findFirstOrThrow();
     await database.channel.update({
       where: { handle: "@notboring_tech" },
       data: {
@@ -281,6 +287,12 @@ describe.skipIf(!testDatabaseUrl)("pipeline database integration", () => {
 
     expect(editAnalyzer.calls).toHaveLength(1);
     expect(await database.presentationCandidate.count()).toBe(0);
+    expect(await database.catalogItem.findMany()).toEqual([
+      expect.objectContaining({
+        id: originalCatalogItem.id,
+        slug: originalCatalogItem.slug,
+      }),
+    ]);
     expect((await database.analyzedPost.findFirstOrThrow()).status).toBe(
       AnalyzedPostStatus.NOT_RELEVANT,
     );
@@ -392,20 +404,31 @@ describe.skipIf(!testDatabaseUrl)("pipeline database integration", () => {
     expect(
       await database.presentationCandidate.findMany({
         orderBy: { ordinal: "asc" },
-        select: { ordinal: true, kind: true, name: true, parentName: true },
+        select: {
+          ordinal: true,
+          kind: true,
+          category: true,
+          name: true,
+          parentName: true,
+          catalogItemId: true,
+        },
       }),
     ).toEqual([
       {
         ordinal: 0,
         kind: "FEATURE",
+        category: "Developer tools",
         name: "Review Mode",
         parentName: "CodeDock",
+        catalogItemId: expect.any(String),
       },
       {
         ordinal: 1,
         kind: "PLUGIN",
+        category: "Developer tools",
         name: "ReviewMate",
         parentName: null,
+        catalogItemId: expect.any(String),
       },
     ]);
   });

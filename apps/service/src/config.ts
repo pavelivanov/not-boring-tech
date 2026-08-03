@@ -3,6 +3,7 @@ import { z } from "zod";
 const POSTGRES_PROTOCOLS = new Set(["postgres:", "postgresql:"]);
 const TELEGRAM_HANDLE = /^@[a-z][a-z0-9_]{4,31}$/i;
 const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
+const LOCAL_API_ORIGINS = "http://localhost:3000,http://127.0.0.1:3000";
 
 const boundedInteger = (name: string, minimum: number, maximum: number) =>
   z
@@ -33,11 +34,56 @@ const databaseUrlSchema = z
     }
   });
 
+const allowedOriginsSchema = z
+  .string()
+  .default(LOCAL_API_ORIGINS)
+  .transform((value, context) => {
+    const origins = value
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+    const normalized: string[] = [];
+    for (const origin of origins) {
+      try {
+        const url = new URL(origin);
+        if (
+          !["http:", "https:"].includes(url.protocol) ||
+          url.pathname !== "/" ||
+          url.search ||
+          url.hash ||
+          origin === "*"
+        ) {
+          throw new Error("invalid origin");
+        }
+        normalized.push(url.origin);
+      } catch {
+        context.addIssue({
+          code: "custom",
+          message: "API_ALLOWED_ORIGINS must contain only HTTP(S) origins",
+        });
+        return z.NEVER;
+      }
+    }
+    const unique = [...new Set(normalized)];
+    if (unique.length < 1 || unique.length > 10) {
+      context.addIssue({
+        code: "custom",
+        message: "API_ALLOWED_ORIGINS must contain 1-10 unique origins",
+      });
+      return z.NEVER;
+    }
+    return unique;
+  });
+
 const commonSchema = z.object({
   DATABASE_URL: databaseUrlSchema,
   HOST: z.string().trim().min(1).default("0.0.0.0"),
   PORT: boundedInteger("PORT", 1, 65_535).default(3001),
   LOG_LEVEL: z.enum(LOG_LEVELS).default("info"),
+});
+
+const serverSchema = commonSchema.extend({
+  API_ALLOWED_ORIGINS: allowedOriginsSchema,
 });
 
 const syncSchema = commonSchema.extend({
@@ -102,7 +148,7 @@ const extractionEvalSchema = z.object({
   OPENAI_MAX_ATTEMPTS: boundedInteger("OPENAI_MAX_ATTEMPTS", 1, 3).default(3),
 });
 
-export type ServerConfig = z.infer<typeof commonSchema>;
+export type ServerConfig = z.infer<typeof serverSchema>;
 export type SyncConfig = z.infer<typeof syncSchema>;
 export type ExtractionEvalConfig = z.infer<typeof extractionEvalSchema>;
 
@@ -132,7 +178,7 @@ const parseWith = <Output>(
 
 export const parseServerConfig = (
   environment: NodeJS.ProcessEnv = process.env,
-): ServerConfig => parseWith(commonSchema, environment);
+): ServerConfig => parseWith(serverSchema, environment);
 
 export const parseSyncConfig = (
   environment: NodeJS.ProcessEnv = process.env,

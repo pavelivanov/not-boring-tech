@@ -31,8 +31,8 @@ This repository uses npm workspaces coordinated by Turborepo. It has one
 `@techdex/web` is the Plan 002 retrieval prototype in `apps/web`. It uses React
 Router Framework Mode on Vite, React, TypeScript, Tailwind CSS, and local
 shadcn/ui components. Runtime SSR is disabled: production builds pre-render the
-home page, the about page, and every known `/tools/:slug` page into
-`apps/web/build/client`, with an additional SPA fallback for unknown paths.
+home and about pages into `apps/web/build/client`, with an additional SPA
+fallback for runtime `/tools/:slug` paths.
 
 Run website tasks from the repository root:
 
@@ -63,42 +63,28 @@ The current shadcn CLI no longer accepts the plan's former `radix-nova` preset
 name. The equivalent scaffold used the `nova` preset with an explicit Radix
 base: `--preset nova --base radix`.
 
-### Fixture-only boundary
+### Dynamic catalog boundary
 
-The website has no backend or network data source. It reads checked-in
-TypeScript fixtures and runs deterministic local filtering over them. Text
-search is intentionally hidden for now and can return as a later feature.
-
-The current 58 subject identities and canonical URLs are real. The corpus uses
-verified public mentions from the owner-approved `@notboring_tech` and
-`@ctodaily` channels for every current record. `@ai_newz` and `@denissexy` are
-also registered as owner-approved sources for subsequent collection. The owner
-approved the audited corpus on 2026-07-31; cross-channel coverage is not a
-prototype requirement. Plan 002's website gate is complete.
+The production browser reads only the validated API configured by
+`VITE_API_BASE_URL`. Catalog rows, counts, categories, kinds, channels, tags,
+search results, and arbitrary detail slugs all come from PostgreSQL through that
+API. URL-backed filters remain shareable. An empty database has an explicit
+empty state, and an unavailable API has a retryable error state; neither state
+falls back to sample records.
 
 Subject identity is explicit: records are classified as tools, projects,
 libraries, services, products, features, plugins, skills, guides, cheat sheets,
-podcasts, or other technology. Features link to their parent record, but their
-source mentions are never inherited by that parent. Related projects, plugins,
-guides, and cheat sheets also remain separate records. Generic news and opinion
-do not create indexed records.
-
-`apps/web/app/data/subject-audit.ts` captures 59 source-level regression cases
-from the full corpus audit. The fixture invariant tests require each reviewed
-post to resolve to exactly its audited primary subject or to no subject. The
-current deterministic query cases remain dormant implementation notes for the
-future search feature and are not part of the Plan 002 gate.
-
-Cards expose their Telegram source channels as filter chips. Category, source
-channel, and tag filters are URL-backed and shareable. Do not use these fixtures
-as collector, API, or database seed data.
+podcasts, or other technology. Features retain a parent name without inheriting
+the parent's provenance. Generic news and opinion do not create catalog rows.
 
 ## Telegram analysis service
 
 `@techdex/service` is the Plan 003 collection and first-pass analysis service.
 It has two processes built into one image:
 
-- `server` exposes only `GET /health` and the database-backed `GET /ready`.
+- `server` exposes `GET /health`, the database-backed `GET /ready`, and
+  validated, read-only `/v1/catalog`, `/v1/facets`, and
+  `/v1/channels` resources.
 - `sync` runs one bounded Telegram collection and OpenAI analysis pass, then
   exits. Synchronization never runs inside the HTTP process.
 
@@ -131,7 +117,8 @@ candidate rows.
 ### Configuration
 
 Copy `.env.example` to an ignored local `.env` and replace every placeholder.
-The HTTP process requires only `DATABASE_URL`, `HOST`, `PORT`, and `LOG_LEVEL`.
+The HTTP process requires `DATABASE_URL` and `API_ALLOWED_ORIGINS`; `HOST`,
+`PORT`, and `LOG_LEVEL` have bounded defaults.
 `SERVICE_PORT` optionally changes only the Compose host binding.
 The sync process additionally requires:
 
@@ -200,8 +187,46 @@ OPENAI_MODEL=replace-with-an-explicit-compatible-model \
 
 Acceptance requires relevance precision of at least 0.90, relevance recall of
 at least 0.85, kind accuracy of at least 0.85, and zero URL-grounding violations.
-Canonicalization, cross-post deduplication, classification, embeddings, public
-search APIs, scheduling, and deployment remain separate follow-up work.
+The offline catalog projector and read API are implemented. Live credentialed
+collection and production provisioning remain explicit acceptance work.
+
+## Railway service layout
+
+All code services use the repository root as their shared monorepo build
+context. Set these absolute config-file paths in each Railway service's Settings
+panel:
+
+| Service  | Config path            | Runtime behavior                                              |
+| -------- | ---------------------- | ------------------------------------------------------------- |
+| `web`    | `/railway.web.json`    | public SPA, `/` health check                                  |
+| `api`    | `/railway.api.json`    | public read API, migration owner, `/ready` health check       |
+| `parser` | `/railway.parser.json` | private one-shot sync, `0 */12 * * *` UTC cron, never restart |
+
+The managed database service is named `Postgres`. Both `api` and `parser` must
+receive `DATABASE_URL=${{Postgres.DATABASE_URL}}` as a Railway reference
+variable; `web` never receives database or parser credentials. Only `parser`
+receives Telegram and OpenAI credentials, and it must not have a public domain.
+
+Railway environment files are local and ignored:
+
+- `.env.railway.web` accepts only public `VITE_` origins;
+- `.env.railway.api` accepts the database reference, CORS origins, and safe
+  server settings;
+- `.env.railway.parser` accepts the database reference and parser-only secrets.
+
+Validate a file and print key names without changing Railway:
+
+```sh
+npm run railway:env -- parser --dry-run
+```
+
+Deploy scripts accept only `web`, `api`, and `parser` in the `production`
+environment. The API waits on `/ready`; a parser deployment is treated as a
+one-shot process and receives no HTTP health check.
+
+```sh
+npm run deploy:railway -- --help
+```
 
 ## Commands
 

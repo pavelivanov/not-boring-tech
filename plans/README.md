@@ -49,7 +49,7 @@ verification gate, and update its status row when finished.
 | [001](001-setup-turborepo-monorepo.md)         | Establish the Turborepo monorepo                            | P1       | S      | —                               | DONE                               |
 | [002](002-build-retrieval-website.md)          | Build the retrieval website                                 | P1       | M      | 001                             | DONE                               |
 | [003](003-build-telegram-collector-service.md) | Analyze Telegram posts and persist structured presentations | P1       | L      | 001, 002 gate                   | BLOCKED: live credentials required |
-| [004](004-build-dynamic-production-stack.md)   | Build the dynamic four-service Railway production stack     | P1       | L      | 003 offline; 003 live to deploy | TODO                               |
+| [004](004-build-dynamic-production-stack.md)   | Build the dynamic four-service Railway production stack     | P1       | L      | 003 offline; 003 live to deploy | IN PROGRESS                        |
 
 Status values: `TODO` | `IN PROGRESS` | `DONE` | `BLOCKED: <reason>` |
 `REJECTED: <reason>`.

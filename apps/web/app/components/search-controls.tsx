@@ -1,4 +1,8 @@
-import type { Channel, TechnologyKind } from "@techdex/contracts"
+import type {
+  CatalogCategory,
+  CatalogChannel,
+  TechnologyKind,
+} from "@techdex/contracts"
 import { SearchIcon, XIcon } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
 import { Link } from "react-router"
@@ -24,12 +28,18 @@ export type TagFilterOption = {
   readonly count: number
 }
 
+export type CategoryFilterOption = {
+  readonly value: CatalogCategory
+  readonly count: number
+}
+
 type SearchControlsProps = {
   readonly filters: SearchFilters
   readonly resultCount: number
   readonly totalCount: number
   readonly channelCount: number
-  readonly channels: readonly Channel[]
+  readonly channels: readonly CatalogChannel[]
+  readonly categoryOptions: readonly CategoryFilterOption[]
   readonly kindOptions: readonly KindFilterOption[]
   readonly tagOptions: readonly TagFilterOption[]
   readonly enableShortcut?: boolean
@@ -40,16 +50,13 @@ function paddedCount(count: number): string {
   return String(count).padStart(2, "0")
 }
 
-function channelHandle(channel: Channel): string {
-  return `@${new URL(channel.publicUrl).pathname.replace(/^\//u, "")}`
-}
-
 export function SearchControls({
   filters,
   resultCount,
   totalCount,
   channelCount,
   channels,
+  categoryOptions,
   kindOptions,
   tagOptions,
   enableShortcut = false,
@@ -65,7 +72,7 @@ export function SearchControls({
     filters.query ||
     filters.kind ||
     filters.category ||
-    filters.channelId ||
+    filters.channel ||
     filters.tags.length
   )
   const normalizedTagQuery = tagQuery.trim().toLocaleLowerCase("en")
@@ -77,8 +84,8 @@ export function SearchControls({
   const visibleTags =
     showAllTags || normalizedTagQuery ? matchingTags : matchingTags.slice(0, 8)
   const hiddenTagCount = matchingTags.length - visibleTags.length
-  const activeChannel = filters.channelId
-    ? channels.find((channel) => channel.id === filters.channelId)
+  const activeChannel = filters.channel
+    ? channels.find((channel) => channel.handle === filters.channel)
     : undefined
 
   useEffect(() => {
@@ -111,6 +118,16 @@ export function SearchControls({
     setSearchQuery(filters.query)
   }, [filters.query])
 
+  useEffect(() => {
+    if (searchQuery === filters.query) return
+
+    const timeout = window.setTimeout(() => {
+      onChange({ ...filters, query: searchQuery }, true)
+    }, 200)
+
+    return () => window.clearTimeout(timeout)
+  }, [filters, onChange, searchQuery])
+
   function changeKind(kind?: TechnologyKind) {
     const { kind: _currentKind, ...remainingFilters } = filters
 
@@ -134,13 +151,23 @@ export function SearchControls({
     onChange(remainingFilters)
   }
 
+  function changeCategory(category?: CatalogCategory) {
+    const { category: _category, ...remainingFilters } = filters
+    onChange(category ? { ...remainingFilters, category } : remainingFilters)
+  }
+
+  function changeChannel(channel?: string) {
+    const { channel: _channel, ...remainingFilters } = filters
+    onChange(channel ? { ...remainingFilters, channel } : remainingFilters)
+  }
+
   function removeChannel() {
-    const { channelId: _channelId, ...remainingFilters } = filters
+    const { channel: _channel, ...remainingFilters } = filters
     onChange(remainingFilters)
   }
 
   function clearAll() {
-    onChange({ query: "", tags: [] })
+    onChange({ query: "", tags: [], sort: filters.sort })
   }
 
   return (
@@ -170,7 +197,6 @@ export function SearchControls({
           aria-keyshortcuts={enableShortcut ? "/" : undefined}
           onChange={(event) => {
             setSearchQuery(event.target.value)
-            onChange({ ...filters, query: event.target.value }, true)
           }}
         />
         {enableShortcut ? (
@@ -193,7 +219,7 @@ export function SearchControls({
 
       {filters.kind ||
       filters.category ||
-      filters.channelId ||
+      filters.channel ||
       filters.tags.length ? (
         <div className="active-filter-chips" aria-label="Active filters">
           {filters.kind ? (
@@ -222,10 +248,10 @@ export function SearchControls({
             <Button
               variant="ghost"
               size="xs"
-              aria-label={`Remove source filter ${activeChannel.name}`}
+              aria-label={`Remove source filter ${activeChannel.title ?? activeChannel.handle}`}
               onClick={removeChannel}
             >
-              {channelHandle(activeChannel)}
+              {activeChannel.handle}
               <XIcon data-icon="inline-end" aria-hidden="true" />
             </Button>
           ) : null}
@@ -281,6 +307,64 @@ export function SearchControls({
           </Button>
         </div>
       </FieldSet>
+
+      {categoryOptions.length > 0 ? (
+        <FieldSet className="filter-section tag-filter-section">
+          <FieldLegend>Categories — pick one</FieldLegend>
+          <div className="tag-filter-list">
+            {categoryOptions.map((option) => {
+              const active = filters.category === option.value
+
+              return (
+                <Button
+                  key={option.value}
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  className="tag-filter-button"
+                  data-active={active || undefined}
+                  aria-pressed={active}
+                  onClick={() =>
+                    changeCategory(active ? undefined : option.value)
+                  }
+                >
+                  {option.value}
+                  <span>{paddedCount(option.count)}</span>
+                </Button>
+              )
+            })}
+          </div>
+        </FieldSet>
+      ) : null}
+
+      {channels.length > 0 ? (
+        <FieldSet className="filter-section tag-filter-section">
+          <FieldLegend>Sources — pick one</FieldLegend>
+          <div className="tag-filter-list">
+            {channels.map((channel) => {
+              const active = filters.channel === channel.handle
+
+              return (
+                <Button
+                  key={channel.handle}
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  className="tag-filter-button"
+                  data-active={active || undefined}
+                  aria-pressed={active}
+                  onClick={() =>
+                    changeChannel(active ? undefined : channel.handle)
+                  }
+                >
+                  {channel.title ?? channel.handle}
+                  <span>{paddedCount(channel.itemCount)}</span>
+                </Button>
+              )
+            })}
+          </div>
+        </FieldSet>
+      ) : null}
 
       <FieldSet className="filter-section tag-filter-section">
         <div className="tag-filter-heading">
