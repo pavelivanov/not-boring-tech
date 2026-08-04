@@ -130,6 +130,54 @@ export interface HomeCatalogData {
   readonly channels: CatalogChannelsResponse
 }
 
+type HomeCatalogMetadata = Pick<HomeCatalogData, "facets" | "channels">
+
+type MetadataCacheEntry = {
+  readonly expiresAt: number
+  readonly value: HomeCatalogMetadata
+}
+
+const HOME_METADATA_CACHE_TTL_MS = 5 * 60 * 1_000
+const homeMetadataCache = new WeakMap<
+  typeof fetch,
+  Map<string, MetadataCacheEntry>
+>()
+
+const loadHomeMetadata = async (
+  signal: AbortSignal | undefined,
+  options: ApiClientOptions
+): Promise<HomeCatalogMetadata> => {
+  const fetcher = options.fetcher ?? fetch
+  const baseUrl = resolveBaseUrl(options.baseUrl).href
+  const fetcherCache = homeMetadataCache.get(fetcher)
+  const cached = fetcherCache?.get(baseUrl)
+  if (cached && cached.expiresAt > Date.now()) return cached.value
+
+  const requestOptions = { ...options, baseUrl, fetcher }
+  const [facets, channels] = await Promise.all([
+    requestJson(
+      "v1/facets",
+      catalogFacetsResponseSchema,
+      signal,
+      requestOptions
+    ),
+    requestJson(
+      "v1/channels",
+      catalogChannelsResponseSchema,
+      signal,
+      requestOptions
+    ),
+  ])
+  const value = { facets, channels }
+  const nextFetcherCache = fetcherCache ?? new Map<string, MetadataCacheEntry>()
+  nextFetcherCache.set(baseUrl, {
+    expiresAt: Date.now() + HOME_METADATA_CACHE_TTL_MS,
+    value,
+  })
+  if (!fetcherCache) homeMetadataCache.set(fetcher, nextFetcherCache)
+  return value
+}
+
 export const loadHomeCatalog = async (
   pageUrl: string,
   signal?: AbortSignal,
@@ -137,17 +185,16 @@ export const loadHomeCatalog = async (
 ): Promise<HomeCatalogData> => {
   const params = listParamsFromPageUrl(pageUrl)
   const query = params.size > 0 ? `?${params.toString()}` : ""
-  const [catalog, facets, channels] = await Promise.all([
+  const [catalog, metadata] = await Promise.all([
     requestJson(
       `v1/catalog${query}`,
       catalogListResponseSchema,
       signal,
       options
     ),
-    requestJson("v1/facets", catalogFacetsResponseSchema, signal, options),
-    requestJson("v1/channels", catalogChannelsResponseSchema, signal, options),
+    loadHomeMetadata(signal, options),
   ])
-  return { catalog, facets, channels }
+  return { catalog, ...metadata }
 }
 
 export const loadNextCatalogPage = (

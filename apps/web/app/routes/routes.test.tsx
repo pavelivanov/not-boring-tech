@@ -264,6 +264,7 @@ function renderAt(initialEntry: InitialEntry = "/") {
 }
 
 beforeEach(() => {
+  vi.spyOn(Date, "now").mockReturnValue(Date.parse(now))
   vi.stubEnv("VITE_API_BASE_URL", apiOrigin)
   catalogUnavailable = false
   databaseEmpty = false
@@ -271,6 +272,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  vi.restoreAllMocks()
   vi.unstubAllEnvs()
   vi.unstubAllGlobals()
 })
@@ -309,25 +311,32 @@ describe("home route", () => {
     expect(screen.getByRole("button", { name: /^runtime 01$/ })).toBeVisible()
   })
 
-  it("keeps live type, category, source, and search filters in the URL", async () => {
+  it("batches facet changes into one catalog request and keeps URL state", async () => {
     const user = userEvent.setup()
     const router = renderAt()
 
     await screen.findByRole("link", { name: /Dynamic Signal project/ })
+    const initialRequestCount = fetchSpy.mock.calls.length
     await user.click(screen.getByRole("button", { name: /^Filters/ }))
     await user.click(screen.getByRole("button", { name: /^Library 01$/ }))
-    await waitFor(() =>
-      expect(router.state.location.search).toBe("?kind=LIBRARY")
-    )
     await user.click(
       screen.getByRole("button", { name: /^Developer tools 01$/ })
     )
-    await waitFor(() =>
-      expect(router.state.location.search).toBe(
-        "?kind=LIBRARY&category=Developer+tools"
-      )
-    )
     await user.click(screen.getByRole("button", { name: /^Signal Lab 01$/ }))
+
+    expect(router.state.location.search).toBe("")
+    expect(fetchSpy).toHaveBeenCalledTimes(initialRequestCount)
+    expect(
+      screen.getByRole("button", { name: /^Library 01$/ })
+    ).toHaveAttribute("aria-pressed", "true")
+    expect(
+      screen.getByRole("button", { name: /^Developer tools 01$/ })
+    ).toHaveAttribute("aria-pressed", "true")
+    expect(
+      screen.getByRole("button", { name: /^Signal Lab 01$/ })
+    ).toHaveAttribute("aria-pressed", "true")
+
+    await user.click(screen.getByRole("button", { name: "Apply filters" }))
     await waitFor(() =>
       expect(router.state.location.search).toBe(
         "?kind=LIBRARY&category=Developer+tools&channel=%40signal_lab"
@@ -341,9 +350,21 @@ describe("home route", () => {
       expect(router.state.location.search).toContain("q=runtime")
     )
 
+    const requestedUrls = fetchSpy.mock.calls.map(
+      ([input]) => new URL(input.toString())
+    )
     expect(
-      fetchSpy.mock.calls.some(([input]) =>
-        input.toString().includes("channel=%40signal_lab")
+      requestedUrls.filter((url) => url.pathname === "/v1/facets")
+    ).toHaveLength(1)
+    expect(
+      requestedUrls.filter((url) => url.pathname === "/v1/channels")
+    ).toHaveLength(1)
+    expect(
+      requestedUrls.filter((url) => url.pathname === "/v1/catalog")
+    ).toHaveLength(3)
+    expect(
+      requestedUrls.some((url) =>
+        url.searchParams.getAll("channel").includes("@signal_lab")
       )
     ).toBe(true)
   })
@@ -369,8 +390,9 @@ describe("home route", () => {
     await user.click(screen.getByRole("button", { name: /^Filters/ }))
     await user.click(screen.getByRole("button", { name: "Reset" }))
 
+    expect(router.state.location.search).toBe("?q=runtime&kind=LIBRARY")
+    await user.click(screen.getByRole("button", { name: "Apply filters" }))
     await waitFor(() => expect(router.state.location.search).toBe("?q=runtime"))
-    expect(screen.getByRole("heading", { name: "Filters" })).toBeVisible()
     expect(screen.getByRole("searchbox", { name: "Search index" })).toHaveValue(
       "runtime"
     )
@@ -387,6 +409,7 @@ describe("home route", () => {
     unmount()
 
     databaseEmpty = false
+    installApiFake()
     renderAt("/?q=missing")
     expect(
       await screen.findByText("No entries match this combination")

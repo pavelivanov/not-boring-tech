@@ -80,7 +80,7 @@ model CatalogItem {
   presentations        PresentationCandidate[]
   identityAliases      CatalogIdentityAlias[]
 
-  @@index([lastMentionedAt, id])
+  @@index([firstMentionedAt, id])
   @@index([nameSortKey, id])
   @@index([kind])
   @@index([category])

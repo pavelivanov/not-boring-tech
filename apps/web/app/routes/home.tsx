@@ -12,6 +12,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import {
   Link,
   useLocation,
+  useNavigation,
   useRevalidator,
   useSearchParams,
 } from "react-router"
@@ -89,6 +90,7 @@ const kindOrder: readonly TechnologyKind[] = [
 function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const location = useLocation()
+  const navigation = useNavigation()
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [items, setItems] = useState<readonly CatalogListItem[]>(
     () => data.catalog.items
@@ -117,6 +119,10 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
     Number(Boolean(filters.category)) +
     Number(Boolean(filters.channel)) +
     filters.tags.length
+  const isFiltering =
+    navigation.state === "loading" &&
+    navigation.location?.pathname === location.pathname &&
+    navigation.location.search !== location.search
 
   useEffect(
     () => () => {
@@ -200,8 +206,11 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
     categoryOptions,
     kindOptions,
     tagOptions,
-    onChange: updateFilters,
-    onDone: () => setFiltersOpen(false),
+    onApply: (next: SearchFilters) => {
+      updateFilters(next)
+      setFiltersOpen(false)
+    },
+    onCancel: () => setFiltersOpen(false),
   } as const
 
   return (
@@ -269,8 +278,14 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
 
             <Separator orientation="vertical" className="toolbar-separator" />
 
-            <h2 id="results-heading" className="toolbar-result-count">
-              {items.length} of {totalCount} entries
+            <h2
+              id="results-heading"
+              className="toolbar-result-count"
+              aria-live="polite"
+            >
+              {isFiltering
+                ? "Updating entries…"
+                : `${items.length} of ${totalCount} entries`}
             </h2>
 
             <div className="toolbar-active-filters" aria-label="Active filters">
@@ -351,7 +366,7 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
           </div>
         </section>
 
-        <div className="index-surface">
+        <div className="index-surface" aria-busy={isFiltering}>
           <ToolList
             tools={items}
             search={location.search}

@@ -63,6 +63,25 @@ describe("service probes", () => {
     expect(denied.headers.get("access-control-allow-origin")).toBeNull();
   });
 
+  it("serves stable catalog metadata with a bounded browser cache", async () => {
+    const app = createServerApp({
+      catalogItem: { findMany: vi.fn().mockResolvedValue([]) },
+      channel: { findMany: vi.fn().mockResolvedValue([]) },
+    } as never);
+
+    const facets = await app.request("/v1/facets");
+    const channels = await app.request("/v1/channels");
+
+    expect(facets.status).toBe(200);
+    expect(channels.status).toBe(200);
+    expect(facets.headers.get("cache-control")).toBe(
+      "public, max-age=300, stale-while-revalidate=300",
+    );
+    expect(channels.headers.get("cache-control")).toBe(
+      "public, max-age=300, stale-while-revalidate=300",
+    );
+  });
+
   it("sanitizes unexpected database failures", async () => {
     const app = createServerApp({
       catalogItem: {

@@ -242,7 +242,7 @@ Minimum endpoints:
 - `sort=latest|name|stars`;
 - opaque `cursor` and bounded `limit` (default 24, maximum 100).
 
-Use stable keyset pagination (`lastMentionedAt` plus `id` for latest, normalized
+Use stable keyset pagination (`firstMentionedAt` plus `id` for latest, normalized
 name plus `id` for name, and nulls-last `githubStars` plus `id` for stars), never
 offset pagination. A malformed query returns a safe `400`; an unknown or hidden
 slug returns `404`; unexpected failures return a non-sensitive request ID and

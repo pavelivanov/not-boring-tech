@@ -16,7 +16,7 @@ function jsonResponse(payload: unknown, status = 200): Response {
 }
 
 describe("catalog API client", () => {
-  it("forwards only supported filters and validates parallel home responses", async () => {
+  it("forwards supported filters and reuses validated home metadata", async () => {
     const fetcher = vi.fn(async (input: string | URL | Request) => {
       const url = new URL(
         input instanceof Request ? input.url : input.toString()
@@ -81,6 +81,21 @@ describe("catalog API client", () => {
       "q=signal&kind=LIBRARY&tag=runtime&sort=name"
     )
     expect(requestedUrls.join("\n")).not.toContain("admin")
+
+    await loadHomeCatalog("https://web.example.test/?kind=TOOL", undefined, {
+      baseUrl,
+      fetcher: fetcher as typeof fetch,
+    })
+
+    const repeatedUrls = fetcher.mock.calls.map(([input]) => input.toString())
+    expect(repeatedUrls).toHaveLength(4)
+    expect(
+      repeatedUrls.filter((url) => url.includes("/v1/facets"))
+    ).toHaveLength(1)
+    expect(
+      repeatedUrls.filter((url) => url.includes("/v1/channels"))
+    ).toHaveLength(1)
+    expect(repeatedUrls.at(-1)).toContain("/v1/catalog?kind=TOOL")
   })
 
   it("passes cancellation signals to fetch", async () => {

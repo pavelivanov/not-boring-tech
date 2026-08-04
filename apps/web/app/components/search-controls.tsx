@@ -4,7 +4,14 @@ import type {
   TechnologyKind,
 } from "@findthatproject/contracts"
 import { SearchIcon, XIcon } from "lucide-react"
-import { useEffect, useId, useRef, useState } from "react"
+import {
+  useDeferredValue,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 
 import { Button } from "~/components/ui/button"
 import { FieldLegend, FieldSet } from "~/components/ui/field"
@@ -14,8 +21,11 @@ import {
   InputGroupInput,
 } from "~/components/ui/input-group"
 import { Separator } from "~/components/ui/separator"
-import type { SearchFilters } from "~/domain/search"
+import { serializeSearchParams, type SearchFilters } from "~/domain/search"
 import { formatTechnologyKind } from "~/domain/tools"
+
+const INITIAL_TAG_LIMIT = 12
+const TAG_BATCH_SIZE = 48
 
 export type KindFilterOption = {
   readonly value: TechnologyKind
@@ -46,8 +56,8 @@ type SearchControlsProps = {
   readonly categoryOptions: readonly CategoryFilterOption[]
   readonly kindOptions: readonly KindFilterOption[]
   readonly tagOptions: readonly TagFilterOption[]
-  readonly onChange: (filters: SearchFilters, replace?: boolean) => void
-  readonly onDone: () => void
+  readonly onApply: (filters: SearchFilters) => void
+  readonly onCancel: () => void
 }
 
 function paddedCount(count: number): string {
@@ -136,53 +146,73 @@ export function SearchControls({
   categoryOptions,
   kindOptions,
   tagOptions,
-  onChange,
-  onDone,
+  onApply,
+  onCancel,
 }: SearchControlsProps) {
+  const [draftFilters, setDraftFilters] = useState(filters)
   const [tagQuery, setTagQuery] = useState("")
-  const [showAllTags, setShowAllTags] = useState(false)
+  const [visibleTagLimit, setVisibleTagLimit] = useState(INITIAL_TAG_LIMIT)
   const tagInputId = useId()
   const hasFilters = Boolean(
-    filters.kind || filters.category || filters.channel || filters.tags.length
+    draftFilters.kind ||
+    draftFilters.category ||
+    draftFilters.channel ||
+    draftFilters.tags.length
   )
-  const normalizedTagQuery = tagQuery.trim().toLocaleLowerCase("en")
-  const matchingTags = normalizedTagQuery
-    ? tagOptions.filter((option) =>
-        option.value.toLocaleLowerCase("en").includes(normalizedTagQuery)
-      )
-    : tagOptions
-  const visibleTags =
-    showAllTags || normalizedTagQuery ? matchingTags : matchingTags.slice(0, 12)
+  const hasChanges =
+    serializeSearchParams(draftFilters).toString() !==
+    serializeSearchParams(filters).toString()
+  const deferredTagQuery = useDeferredValue(tagQuery)
+  const normalizedTagQuery = deferredTagQuery.trim().toLocaleLowerCase("en")
+  const matchingTags = useMemo(
+    () =>
+      normalizedTagQuery
+        ? tagOptions.filter((option) =>
+            option.value.toLocaleLowerCase("en").includes(normalizedTagQuery)
+          )
+        : tagOptions,
+    [normalizedTagQuery, tagOptions]
+  )
+  const visibleTags = matchingTags.slice(0, visibleTagLimit)
   const hiddenTagCount = matchingTags.length - visibleTags.length
+  const nextTagCount = Math.min(TAG_BATCH_SIZE, hiddenTagCount)
 
   function changeKind(kind?: TechnologyKind) {
-    const { kind: _currentKind, ...remainingFilters } = filters
-    onChange(
-      kind && kind !== filters.kind
+    const { kind: _currentKind, ...remainingFilters } = draftFilters
+    setDraftFilters(
+      kind && kind !== draftFilters.kind
         ? { ...remainingFilters, kind }
         : remainingFilters
     )
   }
 
   function toggleTag(tag: string) {
-    const nextTags = filters.tags.includes(tag)
-      ? filters.tags.filter((selectedTag) => selectedTag !== tag)
-      : [...filters.tags, tag]
-    onChange({ ...filters, tags: nextTags })
+    const nextTags = draftFilters.tags.includes(tag)
+      ? draftFilters.tags.filter((selectedTag) => selectedTag !== tag)
+      : [...draftFilters.tags, tag]
+    setDraftFilters({ ...draftFilters, tags: nextTags })
   }
 
   function changeCategory(category?: CatalogCategory) {
-    const { category: _category, ...remainingFilters } = filters
-    onChange(category ? { ...remainingFilters, category } : remainingFilters)
+    const { category: _category, ...remainingFilters } = draftFilters
+    setDraftFilters(
+      category ? { ...remainingFilters, category } : remainingFilters
+    )
   }
 
   function changeChannel(channel?: string) {
-    const { channel: _channel, ...remainingFilters } = filters
-    onChange(channel ? { ...remainingFilters, channel } : remainingFilters)
+    const { channel: _channel, ...remainingFilters } = draftFilters
+    setDraftFilters(
+      channel ? { ...remainingFilters, channel } : remainingFilters
+    )
   }
 
   function clearAll() {
-    onChange({ query: filters.query, tags: [], sort: filters.sort })
+    setDraftFilters({
+      query: draftFilters.query,
+      tags: [],
+      sort: draftFilters.sort,
+    })
   }
 
   return (
@@ -202,7 +232,7 @@ export function SearchControls({
             variant="ghost"
             size="icon-sm"
             aria-label="Close filters"
-            onClick={onDone}
+            onClick={onCancel}
           >
             <XIcon aria-hidden="true" />
           </Button>
@@ -216,7 +246,7 @@ export function SearchControls({
           <FieldLegend>Type — one</FieldLegend>
           <div className="facet-filter-list">
             {kindOptions.map((option) => {
-              const active = filters.kind === option.value
+              const active = draftFilters.kind === option.value
               const label = formatTechnologyKind(option.value)
 
               return (
@@ -243,7 +273,7 @@ export function SearchControls({
             <FieldLegend>Categories — one</FieldLegend>
             <div className="facet-filter-list">
               {categoryOptions.map((option) => {
-                const active = filters.category === option.value
+                const active = draftFilters.category === option.value
 
                 return (
                   <Button
@@ -272,7 +302,7 @@ export function SearchControls({
             <FieldLegend>Sources — one</FieldLegend>
             <div className="facet-filter-list">
               {channels.map((channel) => {
-                const active = filters.channel === channel.handle
+                const active = draftFilters.channel === channel.handle
 
                 return (
                   <Button
@@ -313,12 +343,18 @@ export function SearchControls({
               type="search"
               value={tagQuery}
               placeholder="Filter tags"
-              onChange={(event) => setTagQuery(event.target.value)}
+              onChange={(event) => {
+                const value = event.target.value
+                setTagQuery(value)
+                setVisibleTagLimit(
+                  value.trim() ? TAG_BATCH_SIZE : INITIAL_TAG_LIMIT
+                )
+              }}
             />
           </InputGroup>
           <div className="facet-filter-list">
             {visibleTags.map((option) => {
-              const active = filters.tags.includes(option.value)
+              const active = draftFilters.tags.includes(option.value)
 
               return (
                 <Button
@@ -337,15 +373,28 @@ export function SearchControls({
               )
             })}
           </div>
-          {!normalizedTagQuery && tagOptions.length > 12 ? (
+          {hiddenTagCount > 0 ? (
             <Button
               type="button"
               variant="link"
               size="sm"
               className="more-tags-button"
-              onClick={() => setShowAllTags((current) => !current)}
+              onClick={() =>
+                setVisibleTagLimit((current) => current + TAG_BATCH_SIZE)
+              }
             >
-              {showAllTags ? "Show fewer" : `${hiddenTagCount} more tags`}
+              Show {nextTagCount} more
+            </Button>
+          ) : visibleTagLimit > INITIAL_TAG_LIMIT &&
+            matchingTags.length > INITIAL_TAG_LIMIT ? (
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="more-tags-button"
+              onClick={() => setVisibleTagLimit(INITIAL_TAG_LIMIT)}
+            >
+              Show fewer
             </Button>
           ) : null}
           {normalizedTagQuery && matchingTags.length === 0 ? (
@@ -358,10 +407,18 @@ export function SearchControls({
 
       <div className="filter-popover-footer">
         <span>
-          {resultCount} of {totalCount} entries
+          {hasChanges
+            ? "Apply to update results"
+            : `${resultCount} of ${totalCount} entries`}
         </span>
-        <Button variant="ink" size="pill" onClick={onDone}>
-          Done
+        <Button
+          type="button"
+          variant="ink"
+          size="pill"
+          disabled={!hasChanges}
+          onClick={() => onApply(draftFilters)}
+        >
+          Apply filters
         </Button>
       </div>
     </div>

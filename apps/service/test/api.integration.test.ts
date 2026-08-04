@@ -199,6 +199,39 @@ describe.skipIf(!testDatabaseUrl)("catalog API integration", () => {
     expect((await app.request("/v1/catalog?unknown=value")).status).toBe(400);
   });
 
+  it("orders recent entries by first presentation, not a later repeat mention", async () => {
+    await seedCatalog(database);
+    const repeatedAlpha = await seedCandidate(database, {
+      handle: "@channel_three",
+      title: "Channel Three",
+      messageId: 4n,
+      kind: "PROJECT",
+      category: "Developer tools",
+      name: "Alpha Project",
+      subjectUrl: "https://example.com/alpha",
+      tags: ["alpha", "repeat-mention"],
+      publishedAt: new Date("2026-08-04T10:00:00.000Z"),
+    });
+    await database.$transaction((transaction) =>
+      projectCandidateIds(transaction, [repeatedAlpha]),
+    );
+    const app = createServerApp(database);
+
+    const first = await app.request("/v1/catalog?sort=latest&limit=1");
+    const firstBody = (await first.json()) as CatalogListResponse;
+    expect(firstBody.items.map((item) => item.slug)).toEqual(["beta-tool"]);
+    expect(firstBody.nextCursor).toEqual(expect.any(String));
+
+    const second = await app.request(
+      `/v1/catalog?sort=latest&limit=1&cursor=${encodeURIComponent(firstBody.nextCursor!)}`,
+    );
+    const secondBody = (await second.json()) as CatalogListResponse;
+    expect(secondBody.items.map((item) => item.slug)).toEqual([
+      "alpha-project",
+    ]);
+    expect(secondBody.nextCursor).toBeNull();
+  });
+
   it("sorts known GitHub star counts first and paginates into unknown counts", async () => {
     await seedCatalog(database);
     const unknownStarsCandidate = await seedCandidate(database, {

@@ -189,7 +189,7 @@ const cursorWhere = async (
     select: {
       id: true,
       nameSortKey: true,
-      lastMentionedAt: true,
+      firstMentionedAt: true,
       githubStars: true,
     },
   });
@@ -198,8 +198,8 @@ const cursorWhere = async (
   if (sort === "latest") {
     return {
       OR: [
-        { lastMentionedAt: { lt: item.lastMentionedAt } },
-        { lastMentionedAt: item.lastMentionedAt, id: { gt: item.id } },
+        { firstMentionedAt: { lt: item.firstMentionedAt } },
+        { firstMentionedAt: item.firstMentionedAt, id: { gt: item.id } },
       ],
     };
   }
@@ -270,7 +270,7 @@ export const listCatalog = async (
     where: { AND: conditions },
     orderBy:
       filters.sort === "latest"
-        ? [{ lastMentionedAt: "desc" }, { id: "asc" }]
+        ? [{ firstMentionedAt: "desc" }, { id: "asc" }]
         : filters.sort === "name"
           ? [{ nameSortKey: "asc" }, { id: "asc" }]
           : [{ githubStars: { sort: "desc", nulls: "last" } }, { id: "asc" }],

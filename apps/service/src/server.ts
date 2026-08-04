@@ -22,6 +22,9 @@ interface ServerOptions {
   readonly allowedOrigins?: readonly string[];
 }
 
+const CATALOG_METADATA_CACHE_CONTROL =
+  "public, max-age=300, stale-while-revalidate=300";
+
 const safeError = (
   context: Context<{ Variables: RequestIdVariables }>,
   status: 400 | 404 | 500 | 503,
@@ -85,12 +88,14 @@ export const createServerApp = (
         )
       : context.json(item);
   });
-  app.get("/v1/facets", async (context) =>
-    context.json(await getCatalogFacets(database)),
-  );
-  app.get("/v1/channels", async (context) =>
-    context.json(await getCatalogChannels(database)),
-  );
+  app.get("/v1/facets", async (context) => {
+    context.header("Cache-Control", CATALOG_METADATA_CACHE_CONTROL);
+    return context.json(await getCatalogFacets(database));
+  });
+  app.get("/v1/channels", async (context) => {
+    context.header("Cache-Control", CATALOG_METADATA_CACHE_CONTROL);
+    return context.json(await getCatalogChannels(database));
+  });
 
   app.notFound((context) =>
     safeError(context, 404, "NOT_FOUND", "The requested route was not found."),
