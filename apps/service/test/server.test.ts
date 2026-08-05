@@ -74,6 +74,11 @@ describe("service probes", () => {
 
     expect(facets.status).toBe(200);
     expect(channels.status).toBe(200);
+    expect(await facets.json()).toEqual({
+      categories: [],
+      kinds: [],
+      channels: [],
+    });
     expect(facets.headers.get("cache-control")).toBe(
       "public, max-age=300, stale-while-revalidate=300",
     );

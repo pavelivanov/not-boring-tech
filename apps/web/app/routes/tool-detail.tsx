@@ -106,11 +106,6 @@ export default function ToolDetail({
           <div className="flex flex-wrap gap-2">
             <Badge variant="secondary">{kindLabel}</Badge>
             <Badge variant="outline">{item.category}</Badge>
-            {item.tags.map((tag) => (
-              <Badge key={tag} variant="outline">
-                {tag}
-              </Badge>
-            ))}
           </div>
           <h1 className="mt-5 font-heading text-5xl font-semibold tracking-[-0.05em] md:text-7xl">
             {item.name}

@@ -114,12 +114,6 @@ function installApiFake() {
         channels: databaseEmpty
           ? []
           : [{ value: "@signal_lab", label: "Signal Lab", count: 1 }],
-        tags: databaseEmpty
-          ? []
-          : [
-              { value: "runtime", count: 1 },
-              { value: "signal", count: 1 },
-            ],
       })
     }
 
@@ -278,8 +272,7 @@ afterEach(() => {
 })
 
 describe("home route", () => {
-  it("renders synthetic records and filter choices from the live API", async () => {
-    const user = userEvent.setup()
+  it("renders the traction-led ledger from the live API", async () => {
     renderAt()
 
     const projectLink = await screen.findByRole("link", {
@@ -292,55 +285,35 @@ describe("home route", () => {
     expect(
       screen.getByRole("link", { name: "View Dynamic Signal provenance" })
     ).toHaveAttribute("href", "/tools/dynamic-signal")
-    expect(
-      screen.getByText(
-        (_, element) =>
-          element?.classList.contains("tool-card-meta") === true &&
-          element.textContent === "2 days ago"
-      )
-    ).toBeVisible()
-    await user.click(screen.getByRole("button", { name: /^Filters/ }))
-    expect(screen.getByRole("heading", { name: "Filters" })).toBeVisible()
-    expect(screen.getByRole("button", { name: /^Library 01$/ })).toBeVisible()
-    expect(
-      screen.getByRole("button", { name: /^Developer tools 01$/ })
-    ).toBeVisible()
-    expect(
-      screen.getByRole("button", { name: /^Signal Lab 01$/ })
-    ).toBeVisible()
-    expect(screen.getByRole("button", { name: /^runtime 01$/ })).toBeVisible()
+    expect(screen.getByText("highest traction in this view")).toBeVisible()
+    expect(screen.getByRole("radio", { name: "Unseen" })).toBeChecked()
+    expect(screen.getByRole("button", { name: /^Library 1$/ })).toBeVisible()
+    expect(screen.getByText("Showing 1 of 1")).toBeVisible()
   })
 
-  it("batches facet changes into one catalog request and keeps URL state", async () => {
+  it("marks opened rows seen and lets Index reveal them again", async () => {
+    const user = userEvent.setup()
+    renderAt()
+
+    await user.click(
+      await screen.findByRole("link", { name: /Dynamic Signal project/ })
+    )
+    expect(await screen.findByText("You are caught up.")).toBeVisible()
+
+    await user.click(screen.getByRole("radio", { name: "Index" }))
+    expect(
+      await screen.findByRole("link", { name: /Dynamic Signal project/ })
+    ).toBeVisible()
+  })
+
+  it("keeps type and search filters in URL state", async () => {
     const user = userEvent.setup()
     const router = renderAt()
 
     await screen.findByRole("link", { name: /Dynamic Signal project/ })
-    const initialRequestCount = fetchSpy.mock.calls.length
-    await user.click(screen.getByRole("button", { name: /^Filters/ }))
-    await user.click(screen.getByRole("button", { name: /^Library 01$/ }))
-    await user.click(
-      screen.getByRole("button", { name: /^Developer tools 01$/ })
-    )
-    await user.click(screen.getByRole("button", { name: /^Signal Lab 01$/ }))
-
-    expect(router.state.location.search).toBe("")
-    expect(fetchSpy).toHaveBeenCalledTimes(initialRequestCount)
-    expect(
-      screen.getByRole("button", { name: /^Library 01$/ })
-    ).toHaveAttribute("aria-pressed", "true")
-    expect(
-      screen.getByRole("button", { name: /^Developer tools 01$/ })
-    ).toHaveAttribute("aria-pressed", "true")
-    expect(
-      screen.getByRole("button", { name: /^Signal Lab 01$/ })
-    ).toHaveAttribute("aria-pressed", "true")
-
-    await user.click(screen.getByRole("button", { name: "Apply filters" }))
+    await user.click(screen.getByRole("button", { name: /^Library 1$/ }))
     await waitFor(() =>
-      expect(router.state.location.search).toBe(
-        "?kind=LIBRARY&category=Developer+tools&channel=%40signal_lab"
-      )
+      expect(router.state.location.search).toBe("?kind=LIBRARY")
     )
     await user.type(
       screen.getByRole("searchbox", { name: "Search index" }),
@@ -362,37 +335,35 @@ describe("home route", () => {
     expect(
       requestedUrls.filter((url) => url.pathname === "/v1/catalog")
     ).toHaveLength(3)
-    expect(
-      requestedUrls.some((url) =>
-        url.searchParams.getAll("channel").includes("@signal_lab")
-      )
-    ).toBe(true)
+    expect(screen.getByRole("button", { name: /^Library 1$/ })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    )
   })
 
-  it("sorts entries by GitHub stars through URL state", async () => {
+  it("mark all seen drains the queue and Reset restores it", async () => {
     const user = userEvent.setup()
-    const router = renderAt()
+    renderAt()
 
     await screen.findByRole("link", { name: /Dynamic Signal project/ })
-    await user.click(screen.getByRole("radio", { name: "GitHub Stars" }))
+    await user.click(screen.getByRole("button", { name: "Mark all seen" }))
+    expect(await screen.findByText("You are caught up.")).toBeVisible()
 
-    await waitFor(() =>
-      expect(router.state.location.search).toBe("?sort=stars")
-    )
-    expect(screen.getByRole("radio", { name: "GitHub Stars" })).toBeChecked()
+    await user.click(screen.getByRole("button", { name: "Reset" }))
+    expect(
+      await screen.findByRole("link", { name: /Dynamic Signal project/ })
+    ).toBeVisible()
   })
 
-  it("resets popover facets without erasing the global search", async () => {
+  it("read-state actions do not erase active index filters", async () => {
     const user = userEvent.setup()
     const router = renderAt("/?q=runtime&kind=LIBRARY")
 
     await screen.findByRole("link", { name: /Dynamic Signal project/ })
-    await user.click(screen.getByRole("button", { name: /^Filters/ }))
+    await user.click(screen.getByRole("button", { name: "Mark all seen" }))
     await user.click(screen.getByRole("button", { name: "Reset" }))
 
     expect(router.state.location.search).toBe("?q=runtime&kind=LIBRARY")
-    await user.click(screen.getByRole("button", { name: "Apply filters" }))
-    await waitFor(() => expect(router.state.location.search).toBe("?q=runtime"))
     expect(screen.getByRole("searchbox", { name: "Search index" })).toHaveValue(
       "runtime"
     )

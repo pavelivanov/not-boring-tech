@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#EEEDE8; font-family:Archivo, Helvetica, sans-serif; color:#14130F; -webkit-font-smoothing:antialiased; }
+  a { color:#14130F; text-decoration:none; }
+  a:hover { color:#E8590C; }
+  input { font-family:Archivo, Helvetica, sans-serif; }
+  input:focus { outline:none; border-color:#14130F !important; }
+  button { font-family:Archivo, Helvetica, sans-serif; border:none; cursor:pointer; }
+  @keyframes ftpPulse { 0%,100% { opacity:1 } 50% { opacity:.35 } }
+</style>
+</helmet>
+
+<section style="display:flex;flex-wrap:nowrap;width:max-content;gap:64px;align-items:flex-start;padding:64px 64px 120px">
+
+  <div id="1a" style="width:1180px;flex:none">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;letter-spacing:.1em;background:#14130F;color:#FBFAF8;padding:5px 9px;border-radius:4px">1a</span>
+      <span style="font-size:20px;font-weight:700;letter-spacing:-.02em">The Ledger</span>
+    </div>
+    <p style="max-width:720px;margin:0 0 22px;font-size:14px;line-height:1.55;color:#6E6B62;text-wrap:pretty">Rows instead of cards. Two jobs are split into two modes: <strong style="font-weight:600;color:#14130F">Unseen</strong> answers "what happened since I was here," <strong style="font-weight:600;color:#14130F">Index</strong> answers "find me a thing." Hierarchy is derived, not written: the highest-traction entry gets the lead slot, star magnitude is a bar, and each row carries one machine-generated reason it's worth a look. Clicking a row marks it seen — reading empties the queue.</p>
+
+    <div style="background:#FBFAF8;border:1px solid #DCD9D2;border-radius:6px;overflow:hidden">
+
+      <div style="display:flex;align-items:center;gap:22px;padding:16px 26px;border-bottom:1px solid #E4E2DD;background:#FFFFFF">
+        <div style="font-size:19px;font-weight:700;letter-spacing:-.025em;white-space:nowrap">FindThatProject<span style="color:#E8590C">/</span></div>
+        <div style="flex:1;position:relative;display:flex">
+          <input value="{{ aQ }}" onInput="{{ onAQ }}" placeholder="Search the index" style="width:100%;height:40px;box-sizing:border-box;border:1px solid #DCD9D2;border-radius:20px;background:#F7F6F3;padding:0 52px 0 18px;font-size:14px;color:#14130F" />
+          <span style="position:absolute;right:9px;top:9px;width:22px;height:22px;border:1px solid #DCD9D2;border-radius:5px;background:#FFFFFF;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6E6B62;display:flex;align-items:center;justify-content:center">/</span>
+        </div>
+        <a href="#1a" style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.11em;color:#6E6B62">@FINDTHATPROJECT</a>
+        <a href="#1a" style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.11em;color:#6E6B62">ABOUT</a>
+      </div>
+
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:40px;padding:40px 26px 26px">
+        <div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;letter-spacing:.13em;color:#6E6B62;text-transform:uppercase">Since you were last here &middot; 28 Jul</div>
+          <div style="display:flex;align-items:baseline;gap:14px;margin-top:8px">
+            <span style="font-size:76px;font-weight:700;letter-spacing:-.05em;line-height:.85">{{ unseenCount }}</span>
+            <span style="font-size:27px;font-weight:600;letter-spacing:-.02em">unseen entries</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding-bottom:6px">
+          <button onClick="{{ markAll }}" style="background:#14130F;color:#FBFAF8;border-radius:18px;padding:9px 16px;font-size:13px;font-weight:500">Mark all seen</button>
+          <button onClick="{{ reset }}" style="background:transparent;color:#6E6B62;border:1px solid #DCD9D2;border-radius:18px;padding:8px 15px;font-size:13px;font-weight:500">Reset</button>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:28px;padding:0 26px 16px;border-bottom:1px solid #E4E2DD">
+        <div style="display:flex;gap:22px">
+          <button onClick="{{ aModeNew }}" style="background:transparent;padding:0 0 10px;font-size:17px;font-weight:600;letter-spacing:-.01em;border-bottom:2px solid {{ aNewBd }};color:{{ aNewFg }}">Unseen</button>
+          <button onClick="{{ aModeAll }}" style="background:transparent;padding:0 0 10px;font-size:17px;font-weight:600;letter-spacing:-.01em;border-bottom:2px solid {{ aAllBd }};color:{{ aAllFg }}">Index</button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;flex:1">
+          <sc-for list="{{ aChips }}" as="c" hint-placeholder-count="7">
+            <button onClick="{{ c.onClick }}" style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.1em;padding:6px 10px;border-radius:4px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }}">{{ c.label }} <span style="opacity:.5">{{ c.count }}</span></button>
+          </sc-for>
+        </div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6E6B62;white-space:nowrap;padding-bottom:8px">SHOWING {{ aShown }} OF {{ total }}</div>
+      </div>
+
+      <sc-if value="{{ aEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:14px;padding:64px 26px 68px;background:#FFFFFF;border-bottom:1px solid #E4E2DD">
+          <div style="font-size:30px;font-weight:700;letter-spacing:-.03em;line-height:1.15;max-width:620px;text-wrap:pretty">{{ aEmpty.title }}</div>
+          <div style="font-size:15px;line-height:1.55;color:#4A4840;max-width:560px;text-wrap:pretty">{{ aEmpty.body }}</div>
+          <sc-if value="{{ aEmpty.showAction }}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{ aEmpty.action }}" style="background:#14130F;color:#FBFAF8;border-radius:18px;padding:10px 17px;font-size:13px;font-weight:500;margin-top:2px">{{ aEmpty.actionLabel }}</button>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ aLead }}" hint-placeholder-val="{{ true }}">
+        <div onClick="{{ aLead.onClick }}" style="display:grid;grid-template-columns:1fr 240px;gap:40px;align-items:end;padding:32px 26px;background:#FFFFFF;border-bottom:1px solid #E4E2DD;cursor:pointer">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.13em;color:#6E6B62">{{ aLead.type }}</span>
+              <sc-if value="{{ aLead.showLabel }}" hint-placeholder-val="{{ false }}">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.11em;color:#FBFAF8;background:#E8590C;padding:3px 6px;border-radius:3px">NEW</span>
+              </sc-if>
+              <sc-if value="{{ aLead.showDot }}" hint-placeholder-val="{{ true }}">
+                <span style="width:7px;height:7px;border-radius:50%;background:#E8590C;animation:ftpPulse 2.4s ease-in-out infinite"></span>
+              </sc-if>
+            </div>
+            <div style="font-size:46px;font-weight:700;letter-spacing:-.035em;line-height:1.02;margin-top:8px">{{ aLead.name }}</div>
+            <div style="font-size:16px;line-height:1.5;color:#4A4840;max-width:620px;margin-top:12px;text-wrap:pretty">{{ aLead.desc }}</div>
+            <sc-if value="{{ aLead.showWhy }}" hint-placeholder-val="{{ true }}">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.04em;margin-top:14px;color:{{ aLead.whyColor }}">{{ aLead.why }}</div>
+            </sc-if>
+          </div>
+          <div style="text-align:right">
+            <sc-if value="{{ aLead.hasStars }}" hint-placeholder-val="{{ true }}">
+              <div>
+                <div style="font-size:30px;font-weight:700;letter-spacing:-.03em">{{ aLead.starsLabel }}</div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;color:#6E6B62;margin-top:2px">GITHUB STARS</div>
+                <sc-if value="{{ aLead.showBar }}" hint-placeholder-val="{{ true }}">
+                  <div style="height:4px;background:#E4E2DD;border-radius:2px;margin-top:12px;overflow:hidden">
+                    <div style="height:4px;background:#14130F;width:{{ aLead.barW }}"></div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+            <div style="font-size:22px;color:#6E6B62;margin-top:14px">&#8599;</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-for list="{{ aRows }}" as="r" hint-placeholder-count="8">
+        <div onClick="{{ r.onClick }}" style="display:grid;grid-template-columns:104px minmax(220px,1fr) minmax(0,1.35fr) 150px 22px;gap:22px;align-items:center;padding:16px 26px;border-bottom:1px solid #EDEBE6;cursor:pointer;transition:background .14s ease" style-hover="background:#FFFFFF">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.13em;color:#6E6B62">{{ r.type }}</div>
+          <div style="min-width:0">
+            <div style="display:flex;align-items:center;gap:8px">
+              <sc-if value="{{ r.showDot }}" hint-placeholder-val="{{ true }}">
+                <span style="width:6px;height:6px;border-radius:50%;background:#E8590C;flex:none"></span>
+              </sc-if>
+              <span style="font-size:21px;font-weight:700;letter-spacing:-.025em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.name }}</span>
+              <sc-if value="{{ r.showLabel }}" hint-placeholder-val="{{ false }}">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;letter-spacing:.11em;color:#FBFAF8;background:#E8590C;padding:2px 5px;border-radius:3px;flex:none">NEW</span>
+              </sc-if>
+            </div>
+            <sc-if value="{{ r.showWhy }}" hint-placeholder-val="{{ true }}">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.04em;margin-top:5px;color:{{ r.whyColor }}">{{ r.why }}</div>
+            </sc-if>
+          </div>
+          <div style="font-size:13.5px;line-height:1.45;color:#6E6B62;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ r.desc }}</div>
+          <div style="display:flex;align-items:center;gap:10px;justify-content:flex-end">
+            <sc-if value="{{ r.showBar }}" hint-placeholder-val="{{ true }}">
+              <div style="flex:1;height:3px;background:#E4E2DD;border-radius:2px;overflow:hidden">
+                <div style="height:3px;background:#14130F;width:{{ r.barW }}"></div>
+              </div>
+            </sc-if>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#4A4840;min-width:44px;text-align:right">{{ r.starsLabel }}</div>
+          </div>
+          <div style="font-size:15px;color:#C4C0B6;text-align:right">&#8599;</div>
+        </div>
+      </sc-for>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:24px;padding:20px 26px;background:#FFFFFF">
+        <div style="font-size:13.5px;color:#6E6B62">Every new entry is announced in the aggregator channel <a href="#1a" style="font-weight:600;border-bottom:1px solid #DCD9D2">@findthatproject</a> — the site is where you catch up on all of them at once.</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#6E6B62;white-space:nowrap">{{ total }} INDEXED &middot; 6 TYPES</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="1b" style="width:1180px;flex:none">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;letter-spacing:.1em;background:#14130F;color:#FBFAF8;padding:5px 9px;border-radius:4px">1b</span>
+      <span style="font-size:20px;font-weight:700;letter-spacing:-.02em">Weight</span>
+    </div>
+    <p style="max-width:720px;margin:0 0 22px;font-size:14px;line-height:1.55;color:#6E6B62;text-wrap:pretty">Cards stay, uniformity goes. Size is a ranking: one lead entry, three seconds, then a dense tail of one-line chips — so the page has a shape you can read before you read any words. The mode switch is the headline itself. Same derived context lines, same seen-clearing click.</p>
+
+    <div style="background:#FBFAF8;border:1px solid #DCD9D2;border-radius:6px;overflow:hidden">
+
+      <div style="display:flex;align-items:center;gap:22px;padding:16px 26px;border-bottom:1px solid #E4E2DD;background:#FFFFFF">
+        <div style="font-size:19px;font-weight:700;letter-spacing:-.025em;white-space:nowrap">FindThatProject<span style="color:#E8590C">/</span></div>
+        <div style="flex:1;position:relative;display:flex">
+          <input value="{{ bQ }}" onInput="{{ onBQ }}" placeholder="Search every entry" style="width:100%;height:40px;box-sizing:border-box;border:1px solid #DCD9D2;border-radius:20px;background:#F7F6F3;padding:0 52px 0 18px;font-size:14px;color:#14130F" />
+          <span style="position:absolute;right:9px;top:9px;width:22px;height:22px;border:1px solid #DCD9D2;border-radius:5px;background:#FFFFFF;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6E6B62;display:flex;align-items:center;justify-content:center">/</span>
+        </div>
+        <a href="#1b" style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.11em;color:#6E6B62">@FINDTHATPROJECT</a>
+        <a href="#1b" style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.11em;color:#6E6B62">ABOUT</a>
+      </div>
+
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:40px;padding:44px 26px 22px">
+        <div style="display:grid;gap:2px">
+          <button onClick="{{ bModeNew }}" style="background:transparent;text-align:left;padding:0;font-size:44px;font-weight:700;letter-spacing:-.04em;line-height:1.08;color:{{ bNewFg }}">{{ unseenCount }} new since 28 Jul</button>
+          <button onClick="{{ bModeAll }}" style="background:transparent;text-align:left;padding:0;font-size:44px;font-weight:700;letter-spacing:-.04em;line-height:1.08;color:{{ bAllFg }}">All {{ total }} entries</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding-bottom:8px">
+          <button onClick="{{ markAll }}" style="background:#14130F;color:#FBFAF8;border-radius:18px;padding:9px 16px;font-size:13px;font-weight:500">Mark all seen</button>
+          <button onClick="{{ reset }}" style="background:transparent;color:#6E6B62;border:1px solid #DCD9D2;border-radius:18px;padding:8px 15px;font-size:13px;font-weight:500">Reset</button>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:6px;padding:0 26px 20px">
+        <sc-for list="{{ bChips }}" as="c" hint-placeholder-count="7">
+          <button onClick="{{ c.onClick }}" style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.1em;padding:7px 11px;border-radius:4px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }}">{{ c.label }} <span style="opacity:.5">{{ c.count }}</span></button>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{ bEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:14px;margin:0 26px 26px;padding:56px 26px 60px;background:#FFFFFF;border:1px solid #DCD9D2;border-radius:5px">
+          <div style="font-size:30px;font-weight:700;letter-spacing:-.03em;line-height:1.15;max-width:620px;text-wrap:pretty">{{ bEmpty.title }}</div>
+          <div style="font-size:15px;line-height:1.55;color:#4A4840;max-width:560px;text-wrap:pretty">{{ bEmpty.body }}</div>
+          <sc-if value="{{ bEmpty.showAction }}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{ bEmpty.action }}" style="background:#14130F;color:#FBFAF8;border-radius:18px;padding:10px 17px;font-size:13px;font-weight:500;margin-top:2px">{{ bEmpty.actionLabel }}</button>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ bLead }}" hint-placeholder-val="{{ true }}">
+        <div onClick="{{ bLead.onClick }}" style="margin:0 26px 12px;background:#FFFFFF;border:1px solid #DCD9D2;border-radius:5px;padding:26px;display:grid;grid-template-columns:96px 1fr 210px;gap:26px;align-items:start;cursor:pointer;transition:border-color .14s ease" style-hover="border-color:#14130F">
+          <div style="width:96px;height:96px;border:1px dashed #DCD9D2;border-radius:5px;background:repeating-linear-gradient(135deg,#F2F1EC 0 6px,#FBFAF8 6px 12px);display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;box-sizing:border-box">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.08em;color:#A8A49A">LOGO</span>
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.13em;color:#6E6B62">{{ bLead.type }}</span>
+              <sc-if value="{{ bLead.showDot }}" hint-placeholder-val="{{ true }}">
+                <span style="width:7px;height:7px;border-radius:50%;background:#E8590C;animation:ftpPulse 2.4s ease-in-out infinite"></span>
+              </sc-if>
+              <sc-if value="{{ bLead.showLabel }}" hint-placeholder-val="{{ false }}">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.11em;color:#FBFAF8;background:#E8590C;padding:3px 6px;border-radius:3px">NEW</span>
+              </sc-if>
+            </div>
+            <div style="font-size:40px;font-weight:700;letter-spacing:-.035em;line-height:1.04;margin-top:8px">{{ bLead.name }}</div>
+            <div style="font-size:16px;line-height:1.5;color:#4A4840;margin-top:10px;text-wrap:pretty">{{ bLead.desc }}</div>
+            <sc-if value="{{ bLead.showWhy }}" hint-placeholder-val="{{ true }}">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.04em;margin-top:14px;color:{{ bLead.whyColor }}">{{ bLead.why }}</div>
+            </sc-if>
+          </div>
+          <div style="text-align:right">
+            <sc-if value="{{ bLead.hasStars }}" hint-placeholder-val="{{ true }}">
+              <div>
+                <div style="font-size:30px;font-weight:700;letter-spacing:-.03em">{{ bLead.starsLabel }}</div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;color:#6E6B62;margin-top:2px">GITHUB STARS</div>
+                <sc-if value="{{ bLead.showBar }}" hint-placeholder-val="{{ true }}">
+                  <div style="height:4px;background:#E4E2DD;border-radius:2px;margin-top:12px;overflow:hidden">
+                    <div style="height:4px;background:#14130F;width:{{ bLead.barW }}"></div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+            <div style="font-size:22px;color:#6E6B62;margin-top:16px">&#8599;</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <div style="display:flex;flex-wrap:wrap;gap:12px;padding:0 26px 12px">
+        <sc-for list="{{ bMid }}" as="m" hint-placeholder-count="3">
+          <div onClick="{{ m.onClick }}" style="flex:1 1 320px;min-width:300px;box-sizing:border-box;background:#FFFFFF;border:1px solid #DCD9D2;border-radius:5px;padding:20px;display:flex;flex-direction:column;gap:8px;cursor:pointer;transition:border-color .14s ease" style-hover="border-color:#14130F">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.13em;color:#6E6B62">{{ m.type }}</span>
+              <sc-if value="{{ m.showDot }}" hint-placeholder-val="{{ true }}">
+                <span style="width:6px;height:6px;border-radius:50%;background:#E8590C"></span>
+              </sc-if>
+              <sc-if value="{{ m.showLabel }}" hint-placeholder-val="{{ false }}">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;letter-spacing:.11em;color:#FBFAF8;background:#E8590C;padding:2px 5px;border-radius:3px">NEW</span>
+              </sc-if>
+              <span style="flex:1"></span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#4A4840">{{ m.starsLabel }}</span>
+            </div>
+            <div style="font-size:24px;font-weight:700;letter-spacing:-.03em;line-height:1.1">{{ m.name }}</div>
+            <div style="font-size:13.5px;line-height:1.45;color:#6E6B62;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">{{ m.desc }}</div>
+            <sc-if value="{{ m.showWhy }}" hint-placeholder-val="{{ true }}">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.04em;margin-top:2px;color:{{ m.whyColor }}">{{ m.why }}</div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{ bHasTail }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;gap:10px;padding:14px 26px 10px">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.13em;color:#6E6B62">THE REST &middot; {{ bTailCount }}</span>
+          <span style="flex:1;height:1px;background:#E4E2DD"></span>
+        </div>
+      </sc-if>
+
+      <div style="display:flex;flex-wrap:wrap;gap:8px;padding:0 26px 26px">
+        <sc-for list="{{ bTail }}" as="t" hint-placeholder-count="9">
+          <div onClick="{{ t.onClick }}" style="flex:1 1 320px;min-width:280px;box-sizing:border-box;background:#FFFFFF;border:1px solid #E4E2DD;border-radius:4px;padding:11px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:border-color .14s ease" style-hover="border-color:#14130F">
+            <sc-if value="{{ t.showDot }}" hint-placeholder-val="{{ true }}">
+              <span style="width:6px;height:6px;border-radius:50%;background:#E8590C;flex:none"></span>
+            </sc-if>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;letter-spacing:.12em;color:#6E6B62;flex:none;width:58px">{{ t.type }}</span>
+            <span style="font-size:15px;font-weight:600;letter-spacing:-.015em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.name }}</span>
+            <span style="flex:1"></span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6E6B62;flex:none">{{ t.starsLabel }}</span>
+            <span style="font-size:13px;color:#C4C0B6;flex:none">&#8599;</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:24px;padding:20px 26px;background:#FFFFFF;border-top:1px solid #E4E2DD">
+        <div style="font-size:13.5px;color:#6E6B62">Announcements go out on <a href="#1b" style="font-weight:600;border-bottom:1px solid #DCD9D2">@findthatproject</a>. Come here weekly and the page tells you what you missed.</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#6E6B62;white-space:nowrap">{{ bShown }} SHOWN</div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showContext&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Hierarchy&quot;},&quot;unseenMarker&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dot&quot;,&quot;label&quot;],&quot;default&quot;:&quot;dot&quot;,&quot;tsType&quot;:&quot;'dot' | 'label'&quot;,&quot;section&quot;:&quot;Hierarchy&quot;},&quot;starDisplay&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;bar&quot;,&quot;number&quot;],&quot;default&quot;:&quot;bar&quot;,&quot;tsType&quot;:&quot;'bar' | 'number'&quot;,&quot;section&quot;:&quot;Hierarchy&quot;}}">
+class Component extends DCLogic {
+  state = { seen: [], aMode: 'new', aType: 'ALL', aQ: '', bMode: 'new', bType: 'ALL', bQ: '' };
+
+  entries = [
+    { id: 'pdf', type: 'TOOL', name: 'pdf-inspector', stars: 9200, week: 1400, unseen: true,
+      desc: 'An open-source Rust-based PDF parser that converts documents to Markdown, preserving headings, tables, and document structure for local workflows and RAG pipelines.' },
+    { id: 'dsf', type: 'SERVICE', name: 'DeepSeek V4 Flash', stars: null, week: 0, unseen: true,
+      desc: 'A newer DeepSeek model version available through an API, described as compatible with Codex and optimized for lower token and task costs.' },
+    { id: 'chess', type: 'PRODUCT', name: 'Chess Pretraining', stars: null, week: 0, unseen: true,
+      desc: 'An interactive chess training website that shows a position from a partially played game and asks users to choose the move most likely to lead to victory.' },
+    { id: 'proofs', type: 'PROJECT', name: 'OpenAI Ten Proofs', stars: 459, week: 459, unseen: true,
+      desc: "A repository containing Lean-formalized proofs for ten difficult mathematical problems reportedly solved by OpenAI's Astra multi-agent model." },
+    { id: 'cc', type: 'TOOL', name: 'Claude Code', stars: null, week: 0, unseen: true,
+      desc: 'An AI coding tool used to rapidly build and refine a project, process large volumes of audio recordings, and continue development remotely from a phone through dialogue.' },
+    { id: 'zz', type: 'PODCAST', name: 'Запуск завтра (Zapusk Zavtra)', stars: null, week: 0, unseen: true,
+      desc: 'A Russian-language technology podcast with 14 seasons and 289 episodes, offering full transcripts with timestamps, searchable episode text, and thematic series on companies, programming languages, and industries.' },
+    { id: 'waku', type: 'PROJECT', name: 'Waku Agent', stars: 1240, week: 210, unseen: false,
+      desc: 'A local AI assistant and agent framework that runs on a laptop through Telegram, a web interface, or the terminal. It combines memory, agent/tool/MCP execution, result evaluation, and skill development in a single system.' },
+    { id: 'seo', type: 'SKILL', name: 'Claude SEO', stars: 88, week: 40, unseen: false,
+      desc: 'An SEO automation skill set for Claude that runs specialized sub-skills and agents to audit websites, assess content quality, apply optimizations, compare competitors, and save results.' },
+    { id: 'ds731', type: 'PRODUCT', name: 'DeepSeek V4-Flash-0731', stars: null, week: 0, unseen: false,
+      desc: 'An API-only DeepSeek model update with 284B total parameters and 13B active parameters. It supports the Responses API and is compatible with Codex; model weights are not yet released.' },
+    { id: 'bun', type: 'PRODUCT', name: 'Bun 1.3', stars: 78000, week: 900, unseen: false,
+      desc: 'A runtime release adding a built-in SQL client, a test runner interface, and faster dependency resolution on install.' },
+    { id: 'uv', type: 'TOOL', name: 'uv', stars: 41000, week: 520, unseen: false,
+      desc: 'A Rust-based Python package and project manager that replaces pip, virtualenv, and pyenv in a single tool.' },
+    { id: 'tokei', type: 'TOOL', name: 'tokei', stars: 12400, week: 60, unseen: false,
+      desc: 'A command-line utility that counts lines of code across a directory and reports totals per language.' },
+    { id: 'rga', type: 'TOOL', name: 'ripgrep-all', stars: 8600, week: 40, unseen: false,
+      desc: 'A search tool that runs ripgrep inside PDFs, archives, ebooks, and other binary formats.' },
+    { id: 'mlxa', type: 'PROJECT', name: 'mlx-audio', stars: 2100, week: 130, unseen: false,
+      desc: 'A speech and audio toolkit for Apple silicon built on MLX, covering text-to-speech and voice cloning.' },
+    { id: 'exmcp', type: 'TOOL', name: 'Excalidraw MCP', stars: 640, week: 190, unseen: false,
+      desc: 'An MCP server that lets an agent create and edit diagrams on an Excalidraw canvas.' },
+    { id: 'otur', type: 'SERVICE', name: 'Ollama Turbo', stars: null, week: 0, unseen: false,
+      desc: 'A hosted inference tier for running larger Ollama models on remote GPUs instead of local hardware.' },
+    { id: 'zed', type: 'PRODUCT', name: 'Zed Agent Panel', stars: null, week: 0, unseen: false,
+      desc: 'An editor-native agent panel that runs multi-step edits with an inline review step before anything is applied.' },
+    { id: 'kagi', type: 'SERVICE', name: 'Kagi Assistant', stars: null, week: 0, unseen: false,
+      desc: 'A search-grounded assistant included with a subscription that cites the pages it draws from.' }
+  ];
+
+  TYPES = ['ALL', 'PROJECT', 'TOOL', 'SERVICE', 'PRODUCT', 'PODCAST', 'SKILL'];
+
+  componentDidMount() {
+    try {
+      const s = JSON.parse(window.localStorage.getItem('ftp.seen') || '[]');
+      if (Array.isArray(s) && s.length) this.setState({ seen: s });
+    } catch (e) {}
+  }
+
+  persist(seen) {
+    try { window.localStorage.setItem('ftp.seen', JSON.stringify(seen)); } catch (e) {}
+  }
+
+  markSeen(id) {
+    this.setState(s => {
+      if (s.seen.indexOf(id) !== -1) return null;
+      const seen = s.seen.concat([id]);
+      this.persist(seen);
+      return { seen };
+    });
+  }
+
+  markAll = () => {
+    const seen = this.entries.filter(e => e.unseen).map(e => e.id);
+    this.persist(seen);
+    this.setState({ seen });
+  };
+
+  reset = () => { this.persist([]); this.setState({ seen: [] }); };
+
+  fmt(n) {
+    if (n == null) return '—';
+    if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace('.0', '') + 'K';
+    return String(n);
+  }
+
+  barW(n) { return Math.max(6, Math.round(Math.log10(n + 1) / 5 * 100)) + '%'; }
+
+  ranks() {
+    const map = {};
+    const byType = {};
+    this.entries.forEach(e => {
+      if (e.stars == null) return;
+      (byType[e.type] = byType[e.type] || []).push(e);
+    });
+    Object.keys(byType).forEach(t => {
+      byType[t].sort((a, b) => b.stars - a.stars).forEach((e, i) => { map[e.id] = i + 1; });
+    });
+    return map;
+  }
+
+  why(e, rank) {
+    if (e.week >= 400) return { t: '+' + this.fmt(e.week) + ' stars this week', hot: true };
+    if (e.week >= 120) return { t: '+' + this.fmt(e.week) + ' stars this week', hot: false };
+    if (rank && rank <= 2) return { t: '#' + rank + ' by stars in ' + e.type, hot: false };
+    if (e.unseen) return { t: 'first indexed since your last visit', hot: false };
+    return { t: '', hot: false };
+  }
+
+  view(mode, type, q) {
+    const seen = this.state.seen;
+    let list = this.entries.map(e => Object.assign({}, e, { unseen: e.unseen && seen.indexOf(e.id) === -1 }));
+    if (mode === 'new') list = list.filter(e => e.unseen);
+    if (type !== 'ALL') list = list.filter(e => e.type === type);
+    const query = q.trim().toLowerCase();
+    if (query) list = list.filter(e => (e.name + ' ' + e.desc + ' ' + e.type).toLowerCase().indexOf(query) !== -1);
+    list.sort((a, b) => (b.unseen ? 1 : 0) - (a.unseen ? 1 : 0) || (b.stars || 0) - (a.stars || 0));
+    return list;
+  }
+
+  decorate(e, rank, opts) {
+    const w = this.why(e, rank);
+    return {
+      id: e.id, type: e.type, name: e.name, desc: e.desc,
+      unseen: e.unseen,
+      showDot: e.unseen && opts.marker === 'dot',
+      showLabel: e.unseen && opts.marker === 'label',
+      hasStars: e.stars != null,
+      showBar: e.stars != null && opts.stars === 'bar',
+      starsLabel: this.fmt(e.stars),
+      barW: e.stars != null ? this.barW(e.stars) : '0%',
+      why: w.t,
+      showWhy: opts.context && !!w.t,
+      whyColor: w.hot ? '#E8590C' : '#6E6B62',
+      onClick: () => this.markSeen(e.id)
+    };
+  }
+
+  emptyState(which, mode, type, q) {
+    const query = q.trim();
+    const set = k => this.setState(k);
+    if (query) {
+      const elsewhere = this.view('all', 'ALL', q).length;
+      if (mode === 'new' && elsewhere > 0) {
+        return {
+          title: 'Nothing new matches “' + query + '”',
+          body: elsewhere === 1
+            ? 'One entry in the full index matches — you have already seen it.'
+            : elsewhere + ' entries in the full index match, and you have already seen them.',
+          showAction: true,
+          actionLabel: elsewhere === 1 ? 'Show the match in Index' : 'Show ' + elsewhere + ' matches in Index',
+          action: () => set(which === 'a' ? { aMode: 'all' } : { bMode: 'all' })
+        };
+      }
+      return {
+        title: 'No entry matches “' + query + '”',
+        body: type === 'ALL'
+          ? 'Try a shorter word, or the name of the tool it is built on.'
+          : 'Nothing under ' + type + '. Widening the type filter may help.',
+        showAction: true,
+        actionLabel: type === 'ALL' ? 'Clear search' : 'Clear search and filter',
+        action: () => set(which === 'a' ? { aQ: '', aType: 'ALL' } : { bQ: '', bType: 'ALL' })
+      };
+    }
+    if (mode === 'new') {
+      if (type !== 'ALL') {
+        return {
+          title: 'Nothing new under ' + type,
+          body: 'Other types have new entries this week.',
+          showAction: true,
+          actionLabel: 'Show all types',
+          action: () => set(which === 'a' ? { aType: 'ALL' } : { bType: 'ALL' })
+        };
+      }
+      return {
+        title: 'You are caught up.',
+        body: 'Every entry indexed since your last visit has been read. New ones land a few times a day — @findthatproject pings you, or come back next week and this page will have the list.',
+        showAction: true,
+        actionLabel: 'Browse the whole index',
+        action: () => set(which === 'a' ? { aMode: 'all' } : { bMode: 'all' })
+      };
+    }
+    return {
+      title: 'Nothing indexed under ' + type + ' yet',
+      body: 'This type is tracked but still empty.',
+      showAction: true,
+      actionLabel: 'Show all types',
+      action: () => set(which === 'a' ? { aType: 'ALL' } : { bType: 'ALL' })
+    };
+  }
+
+  chips(active, pick) {
+    return this.TYPES.map(t => ({
+      label: t,
+      count: t === 'ALL' ? this.entries.length : this.entries.filter(e => e.type === t).length,
+      bg: t === active ? '#14130F' : 'transparent',
+      fg: t === active ? '#FBFAF8' : '#3A382F',
+      bd: t === active ? '#14130F' : '#DCD9D2',
+      onClick: () => pick(t)
+    }));
+  }
+
+  renderVals() {
+    const p = this.props;
+    const opts = {
+      context: p.showContext !== false,
+      marker: p.unseenMarker || 'dot',
+      stars: p.starDisplay || 'bar'
+    };
+    const rank = this.ranks();
+    const dec = e => this.decorate(e, rank[e.id], opts);
+
+    const a = this.view(this.state.aMode, this.state.aType, this.state.aQ);
+    const b = this.view(this.state.bMode, this.state.bType, this.state.bQ);
+    const unseenCount = this.entries.filter(e => e.unseen && this.state.seen.indexOf(e.id) === -1).length;
+
+    const aActive = this.state.aMode === 'new';
+    const bActive = this.state.bMode === 'new';
+
+    return {
+      unseenCount,
+      total: this.entries.length,
+      aEmpty: a.length ? null : this.emptyState('a', this.state.aMode, this.state.aType, this.state.aQ),
+      bEmpty: b.length ? null : this.emptyState('b', this.state.bMode, this.state.bType, this.state.bQ),
+      bHasTail: b.length > 4,
+
+      aQ: this.state.aQ,
+      onAQ: ev => this.setState({ aQ: ev.target.value }),
+      aModeNew: () => this.setState({ aMode: 'new' }),
+      aModeAll: () => this.setState({ aMode: 'all' }),
+      aNewFg: aActive ? '#14130F' : '#6E6B62',
+      aAllFg: aActive ? '#6E6B62' : '#14130F',
+      aNewBd: aActive ? '#E8590C' : 'transparent',
+      aAllBd: aActive ? 'transparent' : '#14130F',
+      aChips: this.chips(this.state.aType, t => this.setState({ aType: t })),
+      aShown: a.length,
+      aLead: a.length ? dec(a[0]) : null,
+      aRows: a.slice(1).map(dec),
+
+      bQ: this.state.bQ,
+      onBQ: ev => this.setState({ bQ: ev.target.value }),
+      bModeNew: () => this.setState({ bMode: 'new' }),
+      bModeAll: () => this.setState({ bMode: 'all' }),
+      bNewFg: bActive ? '#14130F' : '#6E6B62',
+      bAllFg: bActive ? '#6E6B62' : '#14130F',
+      bChips: this.chips(this.state.bType, t => this.setState({ bType: t })),
+      bShown: b.length,
+      bLead: b.length ? dec(b[0]) : null,
+      bMid: b.slice(1, 4).map(dec),
+      bTail: b.slice(4).map(dec),
+      bTailCount: Math.max(0, b.length - 4),
+
+      markAll: this.markAll,
+      reset: this.reset
+    };
+  }
+}
+</script>
+</body>
+</html>

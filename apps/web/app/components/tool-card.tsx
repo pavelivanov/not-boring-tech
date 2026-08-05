@@ -1,17 +1,26 @@
 import type { CatalogListItem } from "@findthatproject/contracts"
-import { ArrowUpRightIcon, BookmarkIcon, StarIcon } from "lucide-react"
+import { ArrowUpRightIcon } from "lucide-react"
+import type { ReactNode } from "react"
 import { Link } from "react-router"
 
-import { RelativeDate } from "~/components/relative-date"
-import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
 import { formatTechnologyKind } from "~/domain/tools"
 
 type ToolCardProps = {
   readonly tool: CatalogListItem
   readonly search: string
-  readonly saved: boolean
-  readonly onToggleSaved: (slug: string) => void
+  readonly unseen: boolean
+  readonly featured?: boolean
+  readonly maxStars: number
+  readonly reason: string
+  readonly onMarkSeen: (slug: string) => void
+}
+
+type EntryLinkProps = {
+  readonly tool: CatalogListItem
+  readonly search: string
+  readonly className: string
+  readonly children: ReactNode
+  readonly onOpen: () => void
 }
 
 const compactCountFormatter = new Intl.NumberFormat("en", {
@@ -21,80 +30,162 @@ const compactCountFormatter = new Intl.NumberFormat("en", {
 
 const exactCountFormatter = new Intl.NumberFormat("en")
 
+function EntryLink({
+  tool,
+  search,
+  className,
+  children,
+  onOpen,
+}: EntryLinkProps) {
+  if (tool.canonicalUrl) {
+    return (
+      <a
+        href={tool.canonicalUrl}
+        target="_blank"
+        rel="noreferrer"
+        className={className}
+        aria-label={`${tool.name} project (opens in a new tab)`}
+        onClick={onOpen}
+      >
+        {children}
+      </a>
+    )
+  }
+
+  return (
+    <Link
+      to={`/tools/${tool.slug}`}
+      state={{ from: search }}
+      className={className}
+      aria-label={`Read ${tool.name}`}
+      onClick={onOpen}
+    >
+      {children}
+    </Link>
+  )
+}
+
+function Stars({
+  stars,
+  maxStars,
+  featured,
+}: {
+  readonly stars: number | null
+  readonly maxStars: number
+  readonly featured: boolean
+}) {
+  if (stars === null) {
+    return (
+      <div
+        className="ledger-stars ledger-stars-empty"
+        aria-label="No GitHub stars"
+      >
+        <span>—</span>
+      </div>
+    )
+  }
+
+  const width =
+    maxStars > 0
+      ? Math.max(
+          7,
+          Math.round((Math.log10(stars + 1) / Math.log10(maxStars + 1)) * 100)
+        )
+      : 0
+
+  return (
+    <div
+      className="ledger-stars"
+      aria-label={`${exactCountFormatter.format(stars)} GitHub stars`}
+      title={`${exactCountFormatter.format(stars)} GitHub stars`}
+    >
+      <span className="ledger-stars-value">
+        {compactCountFormatter.format(stars)}
+      </span>
+      {featured ? <small>GitHub stars</small> : null}
+      <span className="ledger-stars-track" aria-hidden="true">
+        <span style={{ width: `${width}%` }} />
+      </span>
+    </div>
+  )
+}
+
 export function ToolCard({
   tool,
   search,
-  saved,
-  onToggleSaved,
+  unseen,
+  featured = false,
+  maxStars,
+  reason,
+  onMarkSeen,
 }: ToolCardProps) {
   const kindLabel = formatTechnologyKind(tool.kind)
+  const markSeen = () => onMarkSeen(tool.slug)
   const detailPath = `/tools/${tool.slug}`
 
-  return (
-    <article className="tool-card">
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-sm"
-        className="tool-save-button"
-        data-saved={saved || undefined}
-        aria-pressed={saved}
-        aria-label={
-          saved ? `Remove ${tool.name} from saved` : `Save ${tool.name}`
-        }
-        title={saved ? "Saved" : "Save"}
-        onClick={() => onToggleSaved(tool.slug)}
-      >
-        <BookmarkIcon aria-hidden="true" />
-      </Button>
+  if (featured) {
+    return (
+      <article className="ledger-lead" data-unseen={unseen || undefined}>
+        <EntryLink
+          tool={tool}
+          search={search}
+          className="ledger-lead-main"
+          onOpen={markSeen}
+        >
+          <div className="ledger-lead-copy">
+            <p className="ledger-entry-kind">
+              {kindLabel}
+              {unseen ? <span className="ledger-unseen-dot" /> : null}
+            </p>
+            <h2>{tool.name}</h2>
+            <p className="ledger-entry-description">{tool.descriptionEn}</p>
+            <p className="ledger-entry-reason">{reason}</p>
+          </div>
+          <Stars stars={tool.githubStars} maxStars={maxStars} featured />
+        </EntryLink>
 
-      <div className="tool-card-body">
-        <p className="tool-card-kicker">
-          <span>{kindLabel}</span>
-        </p>
-        <h3>
-          {tool.canonicalUrl ? (
-            <a href={tool.canonicalUrl} target="_blank" rel="noreferrer">
-              {tool.name}
-              <span className="sr-only"> project (opens in a new tab)</span>
-            </a>
-          ) : (
-            tool.name
-          )}
-        </h3>
-        <p className="tool-card-description">{tool.descriptionEn}</p>
-        <div className="tool-card-tags" aria-label={`${tool.name} tags`}>
-          {tool.tags.slice(0, 2).map((tag) => (
-            <Badge key={tag} variant="outline">
-              {tag}
-            </Badge>
-          ))}
-        </div>
-      </div>
-
-      <footer className="tool-card-footer">
-        <span className="tool-card-meta">
-          <RelativeDate value={tool.firstMentionedAt} />
-        </span>
-        {tool.githubStars !== null ? (
-          <span
-            className="tool-github-stars"
-            aria-label={`${exactCountFormatter.format(tool.githubStars)} GitHub stars`}
-            title={`${exactCountFormatter.format(tool.githubStars)} GitHub stars`}
-          >
-            <StarIcon aria-hidden="true" />
-            {compactCountFormatter.format(tool.githubStars)}
-          </span>
-        ) : null}
         <Link
           to={detailPath}
           state={{ from: search }}
-          className="tool-detail-link"
+          className="ledger-provenance-link ledger-provenance-lead"
           aria-label={`View ${tool.name} provenance`}
+          onClick={markSeen}
         >
           <ArrowUpRightIcon aria-hidden="true" />
         </Link>
-      </footer>
+      </article>
+    )
+  }
+
+  return (
+    <article className="ledger-row" data-unseen={unseen || undefined}>
+      <EntryLink
+        tool={tool}
+        search={search}
+        className="ledger-row-main"
+        onOpen={markSeen}
+      >
+        <p className="ledger-entry-kind">{kindLabel}</p>
+        <div className="ledger-row-title">
+          <h3>
+            {unseen ? <span className="ledger-unseen-dot" /> : null}
+            {tool.name}
+          </h3>
+          <p className="ledger-entry-reason">{reason}</p>
+        </div>
+        <p className="ledger-entry-description">{tool.descriptionEn}</p>
+        <Stars stars={tool.githubStars} maxStars={maxStars} featured={false} />
+      </EntryLink>
+
+      <Link
+        to={detailPath}
+        state={{ from: search }}
+        className="ledger-provenance-link"
+        aria-label={`View ${tool.name} provenance`}
+        onClick={markSeen}
+      >
+        <ArrowUpRightIcon aria-hidden="true" />
+      </Link>
     </article>
   )
 }

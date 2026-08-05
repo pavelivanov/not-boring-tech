@@ -406,7 +406,6 @@ export const getCatalogFacets = async (
     select: {
       kind: true,
       category: true,
-      tags: true,
       presentations: {
         where: visibleCandidateWhere,
         select: {
@@ -420,11 +419,9 @@ export const getCatalogFacets = async (
   const categories = new Map<string, number>();
   const kinds = new Map<string, number>();
   const channels = new Map<string, { label: string; count: number }>();
-  const tags = new Map<string, number>();
   for (const row of rows) {
     categories.set(row.category, (categories.get(row.category) ?? 0) + 1);
     kinds.set(row.kind, (kinds.get(row.kind) ?? 0) + 1);
-    for (const tag of row.tags) tags.set(tag, (tags.get(tag) ?? 0) + 1);
     const itemChannels = new Map<string, string>();
     for (const candidate of row.presentations) {
       const { channel } = candidate.analyzedPost;
@@ -450,7 +447,6 @@ export const getCatalogFacets = async (
       label: data.label,
       count: data.count,
     })),
-    tags: [...tags].sort(byValue).map(([value, count]) => ({ value, count })),
   });
 };
 

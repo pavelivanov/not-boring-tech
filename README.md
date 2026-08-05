@@ -66,9 +66,10 @@ base: `--preset nova --base radix`.
 ### Dynamic catalog boundary
 
 The production browser reads only the validated API configured by
-`VITE_API_BASE_URL`. Catalog rows, counts, categories, kinds, channels, tags,
-search results, and arbitrary detail slugs all come from PostgreSQL through that
-API. URL-backed filters remain shareable. An empty database has an explicit
+`VITE_API_BASE_URL`. Catalog rows, counts, browse facets, search results, and
+arbitrary detail slugs all come from PostgreSQL through that API. Free-form tags
+remain internal search metadata rather than a browse facet; existing URL-backed
+tag filters remain supported and removable. An empty database has an explicit
 empty state, and an unavailable API has a retryable error state; neither state
 falls back to sample records.
 

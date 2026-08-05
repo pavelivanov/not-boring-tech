@@ -42,7 +42,6 @@ describe("catalog API client", () => {
           categories: [],
           kinds: [],
           channels: [],
-          tags: [],
         })
       }
       if (url.pathname === "/root/v1/channels") {
@@ -71,7 +70,7 @@ describe("catalog API client", () => {
           limit: 24,
         },
       },
-      facets: { categories: [], kinds: [], channels: [], tags: [] },
+      facets: { categories: [], kinds: [], channels: [] },
       channels: { channels: [] },
     })
 

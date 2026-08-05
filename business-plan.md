@@ -46,15 +46,15 @@ The specific, recurring pain is **retrieval**, not discovery. Discovery is a nic
 
 ### Two-level labelling (important)
 - **Categories** — 10–30, curated, human-approved, slow-moving. For browsing and structure.
-- **Tags** — unlimited, LLM-extracted, no approval, messy by design. For faceting and search. An alias table allows merging later without touching items.
+- **Tags** — unlimited, LLM-extracted, no approval, messy by design. Retained only as internal search keywords, not exposed as a browse facet.
 
-This delivers labels "created on the fly" (tags) without taxonomy churn (categories).
+This preserves broad retrieval vocabulary without presenting generated labels as a user-facing taxonomy.
 
 ### Search
 Hybrid from day one: Postgres `tsvector` for exact tool names, pgvector for "thing that does X", blended with reciprocal rank fusion. Default ranking uses **cross-channel mention count**, not recency — this is the one ranking signal no single channel can offer.
 
 ### Website
-- **Single product surface** — a responsive English-language web app with search, category and tag filters, and one public page per tool with all mentions listed.
+- **Single product surface** — a responsive English-language web app with search plus type, topic, and source filters, and one public page per tool with all mentions listed.
 - **Open access** — the entire index is available without authentication, accounts, subscriptions, or access restrictions.
 - **Free use** — every feature is free; there are no paid tiers, upgrades, or payment flows.
 - **Read-only UI** — visitors cannot edit the index through the website. The ingestion and maintenance tooling is the only way to update content.
@@ -111,12 +111,12 @@ The website interface, normalized tool descriptions, categories, and tags are in
 ## 8. Product roadmap
 
 ### Phase 0 — Personal prototype, no pipeline
-Manually curate a representative set of items into a plain English-language static page with working search, category and tag filters, and visible presentation dates. Zero backend.
+Manually curate a representative set of items into a plain English-language static page with working search, structured browse filters, and visible presentation dates. Zero backend.
 
 **Purpose:** confirm that the search and result format solve the owner's retrieval problem before building ingestion.
 
 ### Phase 1 — Automated foundation
-Ingest up to 10 channels twice a day, attempt an initial three-month backfill, prefilter, extract, dedupe, and provide hybrid search on a responsive public website. Categories are seeded by hand (15 or so), and tags are generated automatically. Category approval and other content changes are performed through maintenance tooling, not a website admin UI.
+Ingest up to 10 channels twice a day, attempt an initial three-month backfill, prefilter, extract, dedupe, and provide hybrid search on a responsive public website. Categories are seeded by hand (15 or so), and generated tags enrich search without appearing as browse controls. Category approval and other content changes are performed through maintenance tooling, not a website admin UI.
 
 **Explicitly out of scope:** Telegram bot, native or mobile app, auth, accounts, private content, user-selected channels, UI-based content editing, subscriptions, payments, and paid features.
 
@@ -193,7 +193,7 @@ Quality can be checked directly during normal use:
 - **Core tables:** `channels`, `raw_messages`, `items`, `mentions`, `tags`, `tag_aliases`, `item_tags`, `categories`, `item_categories`, `classification_runs`. Each mention stores `published_at` from Telegram and `collected_at` from the ingestion run; a tool's first-presentation date is derived from its earliest mention.
 - **Classification:** embedding + centroid matching against the category registry; HDBSCAN over the unclassified queue on a schedule.
 - **Search:** hybrid `tsvector` + pgvector, RRF blend, mention-count ranking.
-- **Discovery controls:** text search plus category and tag filters.
+- **Discovery controls:** text search plus type, topic, and source filters; generated tags enrich search internally.
 - **Language:** English UI and normalized metadata.
 - **Surface:** one responsive public website. No Telegram bot or native app.
 - **Access:** free and unrestricted, with no auth or accounts.
@@ -206,5 +206,5 @@ Quality can be checked directly during normal use:
 
 1. **Channels and schedule:** support up to approximately 10 channels, each publishing around 1–3 posts per day. Sync twice a day.
 2. **Language:** English.
-3. **Initial discovery features:** text search plus category and tag filters.
+3. **Initial discovery features:** text search plus type, topic, and source filters.
 4. **History and dates:** attempt to backfill three months of channel history. Store both the original post publication time and the collection time, and show how long ago the tool was originally presented.

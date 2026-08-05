@@ -137,19 +137,11 @@ const channelFacetSchema = z
     count: nonNegativeCountSchema,
   })
   .strict();
-const tagFacetSchema = z
-  .object({
-    value: boundedText(48),
-    count: nonNegativeCountSchema,
-  })
-  .strict();
-
 export const catalogFacetsResponseSchema = z
   .object({
     categories: z.array(categoryFacetSchema).max(CATALOG_CATEGORIES.length),
     kinds: z.array(kindFacetSchema).max(TECHNOLOGY_KINDS.length),
     channels: z.array(channelFacetSchema).max(10),
-    tags: z.array(tagFacetSchema).max(1_000),
   })
   .strict();
 

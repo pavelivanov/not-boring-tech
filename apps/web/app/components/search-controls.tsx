@@ -3,15 +3,8 @@ import type {
   CatalogChannel,
   TechnologyKind,
 } from "@findthatproject/contracts"
-import { SearchIcon, XIcon } from "lucide-react"
-import {
-  useDeferredValue,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-} from "react"
+import { XIcon } from "lucide-react"
+import { useEffect, useId, useRef, useState } from "react"
 
 import { Button } from "~/components/ui/button"
 import { FieldLegend, FieldSet } from "~/components/ui/field"
@@ -24,16 +17,8 @@ import { Separator } from "~/components/ui/separator"
 import { serializeSearchParams, type SearchFilters } from "~/domain/search"
 import { formatTechnologyKind } from "~/domain/tools"
 
-const INITIAL_TAG_LIMIT = 12
-const TAG_BATCH_SIZE = 48
-
 export type KindFilterOption = {
   readonly value: TechnologyKind
-  readonly count: number
-}
-
-export type TagFilterOption = {
-  readonly value: string
   readonly count: number
 }
 
@@ -55,7 +40,6 @@ type SearchControlsProps = {
   readonly channels: readonly CatalogChannel[]
   readonly categoryOptions: readonly CategoryFilterOption[]
   readonly kindOptions: readonly KindFilterOption[]
-  readonly tagOptions: readonly TagFilterOption[]
   readonly onApply: (filters: SearchFilters) => void
   readonly onCancel: () => void
 }
@@ -116,9 +100,6 @@ export function IndexSearch({
         Search index
       </label>
       <InputGroup className="index-search-group">
-        <InputGroupAddon>
-          <SearchIcon aria-hidden="true" />
-        </InputGroupAddon>
         <InputGroupInput
           id={searchInputId}
           ref={searchInputRef}
@@ -145,14 +126,10 @@ export function SearchControls({
   channels,
   categoryOptions,
   kindOptions,
-  tagOptions,
   onApply,
   onCancel,
 }: SearchControlsProps) {
   const [draftFilters, setDraftFilters] = useState(filters)
-  const [tagQuery, setTagQuery] = useState("")
-  const [visibleTagLimit, setVisibleTagLimit] = useState(INITIAL_TAG_LIMIT)
-  const tagInputId = useId()
   const hasFilters = Boolean(
     draftFilters.kind ||
     draftFilters.category ||
@@ -162,20 +139,6 @@ export function SearchControls({
   const hasChanges =
     serializeSearchParams(draftFilters).toString() !==
     serializeSearchParams(filters).toString()
-  const deferredTagQuery = useDeferredValue(tagQuery)
-  const normalizedTagQuery = deferredTagQuery.trim().toLocaleLowerCase("en")
-  const matchingTags = useMemo(
-    () =>
-      normalizedTagQuery
-        ? tagOptions.filter((option) =>
-            option.value.toLocaleLowerCase("en").includes(normalizedTagQuery)
-          )
-        : tagOptions,
-    [normalizedTagQuery, tagOptions]
-  )
-  const visibleTags = matchingTags.slice(0, visibleTagLimit)
-  const hiddenTagCount = matchingTags.length - visibleTags.length
-  const nextTagCount = Math.min(TAG_BATCH_SIZE, hiddenTagCount)
 
   function changeKind(kind?: TechnologyKind) {
     const { kind: _currentKind, ...remainingFilters } = draftFilters
@@ -184,13 +147,6 @@ export function SearchControls({
         ? { ...remainingFilters, kind }
         : remainingFilters
     )
-  }
-
-  function toggleTag(tag: string) {
-    const nextTags = draftFilters.tags.includes(tag)
-      ? draftFilters.tags.filter((selectedTag) => selectedTag !== tag)
-      : [...draftFilters.tags, tag]
-    setDraftFilters({ ...draftFilters, tags: nextTags })
   }
 
   function changeCategory(category?: CatalogCategory) {
@@ -243,7 +199,10 @@ export function SearchControls({
 
       <div className="filter-popover-scroll">
         <FieldSet className="filter-section">
-          <FieldLegend>Type — one</FieldLegend>
+          <FieldLegend className="filter-section-legend">
+            <span>Type</span>
+            <small>What it is · pick one</small>
+          </FieldLegend>
           <div className="facet-filter-list">
             {kindOptions.map((option) => {
               const active = draftFilters.kind === option.value
@@ -270,7 +229,10 @@ export function SearchControls({
 
         {categoryOptions.length > 0 ? (
           <FieldSet className="filter-section">
-            <FieldLegend>Categories — one</FieldLegend>
+            <FieldLegend className="filter-section-legend">
+              <span>Topic</span>
+              <small>What it’s about · pick one</small>
+            </FieldLegend>
             <div className="facet-filter-list">
               {categoryOptions.map((option) => {
                 const active = draftFilters.category === option.value
@@ -325,82 +287,6 @@ export function SearchControls({
             </div>
           </FieldSet>
         ) : null}
-
-        <FieldSet className="filter-section">
-          <div className="tag-filter-heading">
-            <FieldLegend>Tags — any</FieldLegend>
-            <span>{paddedCount(tagOptions.length)}</span>
-          </div>
-          <label htmlFor={tagInputId} className="sr-only">
-            Filter tags
-          </label>
-          <InputGroup className="tag-search-group">
-            <InputGroupAddon>
-              <SearchIcon aria-hidden="true" />
-            </InputGroupAddon>
-            <InputGroupInput
-              id={tagInputId}
-              type="search"
-              value={tagQuery}
-              placeholder="Filter tags"
-              onChange={(event) => {
-                const value = event.target.value
-                setTagQuery(value)
-                setVisibleTagLimit(
-                  value.trim() ? TAG_BATCH_SIZE : INITIAL_TAG_LIMIT
-                )
-              }}
-            />
-          </InputGroup>
-          <div className="facet-filter-list">
-            {visibleTags.map((option) => {
-              const active = draftFilters.tags.includes(option.value)
-
-              return (
-                <Button
-                  key={option.value}
-                  type="button"
-                  variant={active ? "secondary" : "outline"}
-                  size="pill"
-                  className="facet-filter-button"
-                  data-active={active || undefined}
-                  aria-pressed={active}
-                  onClick={() => toggleTag(option.value)}
-                >
-                  {option.value}
-                  <span>{paddedCount(option.count)}</span>
-                </Button>
-              )
-            })}
-          </div>
-          {hiddenTagCount > 0 ? (
-            <Button
-              type="button"
-              variant="link"
-              size="sm"
-              className="more-tags-button"
-              onClick={() =>
-                setVisibleTagLimit((current) => current + TAG_BATCH_SIZE)
-              }
-            >
-              Show {nextTagCount} more
-            </Button>
-          ) : visibleTagLimit > INITIAL_TAG_LIMIT &&
-            matchingTags.length > INITIAL_TAG_LIMIT ? (
-            <Button
-              type="button"
-              variant="link"
-              size="sm"
-              className="more-tags-button"
-              onClick={() => setVisibleTagLimit(INITIAL_TAG_LIMIT)}
-            >
-              Show fewer
-            </Button>
-          ) : null}
-          {normalizedTagQuery && matchingTags.length === 0 ? (
-            <p className="no-tags-message">No tags found</p>
-          ) : null}
-        </FieldSet>
       </div>
 
       <Separator />

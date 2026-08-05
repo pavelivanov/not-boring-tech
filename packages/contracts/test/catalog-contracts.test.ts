@@ -85,7 +85,6 @@ describe("catalog transport contracts", () => {
         channels: [
           { value: "@synthetic_channel", label: "Synthetic channel", count: 1 },
         ],
-        tags: [{ value: "testing", count: 1 }],
       }),
     ).toBeDefined();
     expect(

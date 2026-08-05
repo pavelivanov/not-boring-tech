@@ -170,6 +170,11 @@ describe.skipIf(!testDatabaseUrl)("catalog API integration", () => {
         sort: "name",
       },
     });
+
+    const tagSearch = await app.request("/v1/catalog?q=second-source");
+    expect(await tagSearch.json()).toMatchObject({
+      items: [{ slug: "alpha-project" }],
+    });
   });
 
   it("paginates stably and rejects malformed or mismatched cursors", async () => {
@@ -342,7 +347,6 @@ describe.skipIf(!testDatabaseUrl)("catalog API integration", () => {
       categories: [],
       kinds: [],
       channels: [],
-      tags: [],
     });
     expect(await (await app.request("/v1/channels")).json()).toEqual({
       channels: [],
