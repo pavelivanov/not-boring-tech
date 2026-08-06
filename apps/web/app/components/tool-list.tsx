@@ -11,22 +11,21 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "~/components/ui/empty"
-import { formatTechnologyKind } from "~/domain/tools"
+import { formatTechnologyKindPlural } from "~/domain/tools"
+
+export type LedgerEmptyState = {
+  readonly title: string
+  readonly body: string
+  readonly actionLabel?: string
+  readonly onAction?: () => void
+}
 
 type ToolListProps = {
   readonly tools: readonly CatalogListItem[]
   readonly search: string
   readonly unseenSlugs: ReadonlySet<string>
   readonly onMarkSeen: (slug: string) => void
-  readonly onClear: () => void
-  readonly onBrowseIndex: () => void
-  readonly emptyState: "database" | "filtered" | "caught-up"
-}
-
-function pluralizeKind(label: string): string {
-  if (label === "Library") return "libraries"
-  if (label === "Technology") return "technologies"
-  return `${label.toLocaleLowerCase("en")}s`
+  readonly emptyState: LedgerEmptyState
 }
 
 function buildReasons(
@@ -53,13 +52,14 @@ function buildReasons(
   return new Map(
     tools.map((tool, index) => {
       const rank = rankBySlug.get(tool.slug)
-      const kindLabel = formatTechnologyKind(tool.kind)
       let reason: string
 
       if (index === 0 && tool.githubStars !== null) {
         reason = "highest traction in this view"
       } else if (rank && rank <= 2) {
-        reason = `#${rank} by stars among visible ${pluralizeKind(kindLabel)}`
+        reason = `#${rank} by stars among visible ${formatTechnologyKindPlural(
+          tool.kind
+        )}`
       } else if (tool.mentionCount > 1) {
         reason = `${tool.mentionCount} mentions across ${tool.channelCount} ${
           tool.channelCount === 1 ? "source" : "sources"
@@ -78,46 +78,25 @@ export function ToolList({
   search,
   unseenSlugs,
   onMarkSeen,
-  onClear,
-  onBrowseIndex,
   emptyState,
 }: ToolListProps) {
   if (tools.length === 0) {
-    const caughtUp = emptyState === "caught-up"
-    const databaseEmpty = emptyState === "database"
-
     return (
       <Empty className="ledger-empty-state">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <SearchXIcon aria-hidden="true" />
           </EmptyMedia>
-          <EmptyTitle>
-            {caughtUp
-              ? "You are caught up."
-              : databaseEmpty
-                ? "No parsed entries yet"
-                : "No entries match this combination"}
-          </EmptyTitle>
-          <EmptyDescription>
-            {caughtUp
-              ? "Every entry in your queue has been read. New ones will appear here as the index grows."
-              : databaseEmpty
-                ? "The index will populate after the configured public channels complete a parser run."
-                : "Try a shorter search, another type, or clear the current filters."}
-          </EmptyDescription>
+          <EmptyTitle>{emptyState.title}</EmptyTitle>
+          <EmptyDescription>{emptyState.body}</EmptyDescription>
         </EmptyHeader>
-        {databaseEmpty ? null : (
+        {emptyState.actionLabel && emptyState.onAction ? (
           <EmptyContent>
-            <Button
-              variant="ink"
-              size="pill"
-              onClick={caughtUp ? onBrowseIndex : onClear}
-            >
-              {caughtUp ? "Browse the whole index" : "Clear filters"}
+            <Button variant="ink" size="pill" onClick={emptyState.onAction}>
+              {emptyState.actionLabel}
             </Button>
           </EmptyContent>
-        )}
+        ) : null}
       </Empty>
     )
   }

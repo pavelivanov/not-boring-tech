@@ -15,6 +15,17 @@ const kindLabels: Readonly<Record<TechnologyKind, string>> = {
   OTHER_TECH: "Technology",
 }
 
+const irregularPlurals: Partial<Readonly<Record<TechnologyKind, string>>> = {
+  LIBRARY: "libraries",
+  OTHER_TECH: "technologies",
+}
+
 export function formatTechnologyKind(kind: TechnologyKind): string {
   return kindLabels[kind]
+}
+
+export function formatTechnologyKindPlural(kind: TechnologyKind): string {
+  return (
+    irregularPlurals[kind] ?? `${kindLabels[kind].toLocaleLowerCase("en")}s`
+  )
 }

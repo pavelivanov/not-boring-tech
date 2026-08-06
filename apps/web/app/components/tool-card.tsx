@@ -15,7 +15,7 @@ type ToolCardProps = {
   readonly onMarkSeen: (slug: string) => void
 }
 
-type EntryLinkProps = {
+export type EntryLinkProps = {
   readonly tool: CatalogListItem
   readonly search: string
   readonly className: string
@@ -30,7 +30,7 @@ const compactCountFormatter = new Intl.NumberFormat("en", {
 
 const exactCountFormatter = new Intl.NumberFormat("en")
 
-function EntryLink({
+export function EntryLink({
   tool,
   search,
   className,

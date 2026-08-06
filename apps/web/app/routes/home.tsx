@@ -14,7 +14,8 @@ import {
 
 import type { Route } from "./+types/home"
 import { IndexSearch } from "~/components/search-controls"
-import { ToolList } from "~/components/tool-list"
+import { ToolList, type LedgerEmptyState } from "~/components/tool-list"
+import { UnseenPanel } from "~/components/unseen-panel"
 import {
   Alert,
   AlertAction,
@@ -23,7 +24,6 @@ import {
 } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
 import { Skeleton } from "~/components/ui/skeleton"
-import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group"
 import {
   CatalogApiError,
   loadHomeCatalog,
@@ -35,7 +35,10 @@ import {
   serializeSearchParams,
   type SearchFilters,
 } from "~/domain/search"
-import { formatTechnologyKind } from "~/domain/tools"
+import {
+  formatTechnologyKind,
+  formatTechnologyKindPlural,
+} from "~/domain/tools"
 import { canonicalMeta } from "~/domain/urls"
 
 export function meta() {
@@ -54,8 +57,6 @@ export async function clientLoader({ request }: Route.ClientLoaderArgs) {
   return loadHomeCatalog(request.url, request.signal)
 }
 clientLoader.hydrate = true as const
-
-type CatalogMode = "unseen" | "index"
 
 type StoredReadState = {
   readonly seen: readonly string[]
@@ -129,7 +130,7 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const location = useLocation()
   const navigation = useNavigation()
-  const [mode, setMode] = useState<CatalogMode>("unseen")
+  const [onlyUnseen, setOnlyUnseen] = useState(false)
   const [seenSlugs, setSeenSlugs] = useState<ReadonlySet<string>>(
     () => new Set()
   )
@@ -139,6 +140,9 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
   const [items, setItems] = useState<readonly CatalogListItem[]>(
     () => data.catalog.items
   )
+  const [knownEntries, setKnownEntries] = useState<
+    ReadonlyMap<string, CatalogListItem>
+  >(() => new Map(data.catalog.items.map((item) => [item.slug, item])))
   const [nextCursor, setNextCursor] = useState(data.catalog.nextCursor)
   const [loadingMore, setLoadingMore] = useState(false)
   const [loadMoreFailed, setLoadMoreFailed] = useState(false)
@@ -199,6 +203,14 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
     setLoadMoreFailed(false)
   }, [data.catalog])
 
+  useEffect(() => {
+    setKnownEntries((current) => {
+      const next = new Map(current)
+      for (const item of items) next.set(item.slug, item)
+      return next.size === current.size ? current : next
+    })
+  }, [items])
+
   const updateFilters = useCallback(
     (next: SearchFilters, replace = false) => {
       setSearchParams(serializeSearchParams(next), { replace })
@@ -206,27 +218,32 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
     [setSearchParams]
   )
 
+  const isUnseen = useCallback(
+    (item: CatalogListItem) =>
+      !seenSlugs.has(item.slug) &&
+      (!seenThrough ||
+        Date.parse(item.firstMentionedAt) > Date.parse(seenThrough)),
+    [seenSlugs, seenThrough]
+  )
+
   const unseenSlugs = useMemo(
-    () =>
-      new Set(
-        items
-          .filter(
-            (item) =>
-              !seenSlugs.has(item.slug) &&
-              (!seenThrough ||
-                Date.parse(item.firstMentionedAt) > Date.parse(seenThrough))
-          )
-          .map((item) => item.slug)
-      ),
-    [items, seenSlugs, seenThrough]
+    () => new Set(items.filter(isUnseen).map((item) => item.slug)),
+    [isUnseen, items]
+  )
+
+  // The header counter answers "what landed while I was away", so it spans every
+  // entry this session has loaded rather than the currently filtered page.
+  const unseenEntries = useMemo(
+    () => [...knownEntries.values()].filter(isUnseen).toSorted(compareTraction),
+    [isUnseen, knownEntries]
   )
 
   const visibleItems = useMemo(
     () =>
       items
-        .filter((item) => mode === "index" || unseenSlugs.has(item.slug))
+        .filter((item) => !onlyUnseen || unseenSlugs.has(item.slug))
         .toSorted(compareTraction),
-    [items, mode, unseenSlugs]
+    [items, onlyUnseen, unseenSlugs]
   )
 
   const markSeen = useCallback((slug: string) => {
@@ -239,9 +256,7 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
   }, [])
 
   function markAllSeen() {
-    setSeenSlugs(
-      (current) => new Set([...current, ...items.map(({ slug }) => slug)])
-    )
+    setSeenSlugs((current) => new Set([...current, ...knownEntries.keys()]))
     setSeenThrough(new Date().toISOString())
   }
 
@@ -286,15 +301,119 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
     }
   }
 
-  const lastVisitLabel = previousVisit
+  const lastVisitDate = previousVisit
     ? visitDateFormatter.format(new Date(previousVisit))
-    : "First visit"
-  const emptyState =
-    totalCount === 0
-      ? "database"
-      : mode === "unseen" && items.length > 0
-        ? "caught-up"
-        : "filtered"
+    : null
+  const visitLabel = lastVisitDate
+    ? `Since your last visit · ${lastVisitDate}`
+    : "Your first visit"
+  const query = filters.query.trim()
+  const kindLabel = filters.kind ? formatTechnologyKind(filters.kind) : null
+  const shownCount = visibleItems.length
+
+  function headline(): { readonly title: string; readonly subtitle: string } {
+    if (query) {
+      return {
+        title: `“${query}”`,
+        subtitle:
+          shownCount === 1
+            ? "One match across name, type and description."
+            : `${shownCount} matches across name, type and description.`,
+      }
+    }
+
+    if (onlyUnseen) {
+      return {
+        title: lastVisitDate
+          ? `${shownCount} new since ${lastVisitDate}`
+          : `${shownCount} new ${shownCount === 1 ? "entry" : "entries"}`,
+        subtitle:
+          "Everything indexed while you were away, heaviest first. Open one and it drops off the counter.",
+      }
+    }
+
+    if (filters.kind) {
+      return {
+        title: `All ${formatTechnologyKindPlural(filters.kind)}`,
+        subtitle:
+          "Sorted by traction. Orange dots are entries indexed since your last visit.",
+      }
+    }
+
+    return {
+      title: "The index",
+      subtitle:
+        "Every project, tool, service and podcast collected so far, sorted by traction. Orange dots are new since your last visit.",
+    }
+  }
+
+  function resolveEmptyState(): LedgerEmptyState {
+    if (totalCount === 0) {
+      return {
+        title: "No parsed entries yet",
+        body: "The index will populate after the configured public channels complete a parser run.",
+      }
+    }
+
+    if (query) {
+      if (onlyUnseen && items.length > 0) {
+        return {
+          title: `Nothing new matches “${query}”`,
+          body:
+            items.length === 1
+              ? "One entry in the index matches, indexed before your last visit."
+              : `${items.length} entries in the index match, all indexed before your last visit.`,
+          actionLabel: "Search the whole index",
+          onAction: () => setOnlyUnseen(false),
+        }
+      }
+
+      return {
+        title: `No entry matches “${query}”`,
+        body: kindLabel
+          ? `Nothing under ${kindLabel}. Widening the type filter may help.`
+          : "Try a shorter word, or the name of the tool it is built on.",
+        actionLabel: kindLabel ? "Clear search and filter" : "Clear search",
+        onAction: clearFilters,
+      }
+    }
+
+    if (onlyUnseen) {
+      if (kindLabel) {
+        return {
+          title: `Nothing new under ${kindLabel}`,
+          body: "Other types picked up entries since your last visit.",
+          actionLabel: "All new entries",
+          onAction: () => changeKind(),
+        }
+      }
+
+      return {
+        title: "You have read everything new.",
+        body: "A few entries land every day. The counter in the header will be holding them next time you drop in.",
+        actionLabel: "Back to the index",
+        onAction: () => setOnlyUnseen(false),
+      }
+    }
+
+    if (kindLabel) {
+      return {
+        title: `Nothing indexed under ${kindLabel} yet`,
+        body: "This type is tracked but still empty.",
+        actionLabel: "Show all types",
+        onAction: () => changeKind(),
+      }
+    }
+
+    return {
+      title: "No entries match this combination",
+      body: "Try a shorter search, another type, or clear the current filters.",
+      actionLabel: "Clear filters",
+      onAction: clearFilters,
+    }
+  }
+
+  const { title, subtitle } = headline()
 
   return (
     <div className="catalog-page">
@@ -314,14 +433,20 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
             onChange={updateFilters}
           />
 
+          <UnseenPanel
+            entries={unseenEntries}
+            visitLabel={visitLabel}
+            search={location.search}
+            onMarkSeen={markSeen}
+            onMarkAllSeen={markAllSeen}
+            onReset={resetReadState}
+            onShowUnseen={() => {
+              setOnlyUnseen(true)
+              if (filters.query) updateFilters({ ...filters, query: "" })
+            }}
+          />
+
           <nav className="catalog-utility-nav" aria-label="Site links">
-            <a
-              href="https://t.me/findthatproject"
-              target="_blank"
-              rel="noreferrer"
-            >
-              @findthatproject
-            </a>
             <Link to="/about">About</Link>
           </nav>
         </header>
@@ -329,38 +454,29 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
         <main id="main-content" tabIndex={-1} className="index-main">
           <h1 className="sr-only">FindThatProject technology ledger</h1>
 
-          <section className="ledger-overview" aria-labelledby="queue-heading">
-            <div className="ledger-overview-copy">
-              <p>Since you were last here · {lastVisitLabel}</p>
-              <div>
-                <strong>{unseenSlugs.size}</strong>
-                <h2 id="queue-heading">unseen entries</h2>
-              </div>
+          <section className="ledger-hero" aria-live="polite">
+            <div>
+              <h2 className="ledger-hero-title">{title}</h2>
+              <p className="ledger-hero-subtitle">{subtitle}</p>
             </div>
-
-            <div className="ledger-overview-actions">
-              <Button variant="ink" size="pill" onClick={markAllSeen}>
-                Mark all seen
-              </Button>
-              <Button variant="outline" size="pill" onClick={resetReadState}>
-                Reset
-              </Button>
-            </div>
+            <p className="ledger-hero-note">Sorted by traction</p>
           </section>
 
           <section className="ledger-controls" aria-label="Catalog view">
-            <ToggleGroup
-              type="single"
-              value={mode}
-              className="ledger-mode-switch"
-              aria-label="Catalog mode"
-              onValueChange={(value) => {
-                if (value === "unseen" || value === "index") setMode(value)
-              }}
+            <Button
+              variant={onlyUnseen ? "default" : "outline"}
+              size="sm"
+              className="ledger-kind-chip ledger-new-chip"
+              aria-pressed={onlyUnseen}
+              onClick={() => setOnlyUnseen((current) => !current)}
             >
-              <ToggleGroupItem value="unseen">Unseen</ToggleGroupItem>
-              <ToggleGroupItem value="index">Index</ToggleGroupItem>
-            </ToggleGroup>
+              {unseenEntries.length > 0 ? (
+                <span className="ledger-unseen-dot" aria-hidden="true" />
+              ) : null}
+              New <span>{unseenEntries.length}</span>
+            </Button>
+
+            <span className="ledger-controls-divider" aria-hidden="true" />
 
             <div className="ledger-kind-filters" aria-label="Filter by type">
               <Button
@@ -393,7 +509,7 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
             <p className="ledger-showing" aria-live="polite">
               {isFiltering
                 ? "Updating entries…"
-                : `Showing ${visibleItems.length} of ${totalCount}`}
+                : `Showing ${shownCount} of ${totalCount}`}
             </p>
           </section>
 
@@ -403,9 +519,7 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
               search={location.search}
               unseenSlugs={unseenSlugs}
               onMarkSeen={markSeen}
-              onClear={clearFilters}
-              onBrowseIndex={() => setMode("index")}
-              emptyState={emptyState}
+              emptyState={resolveEmptyState()}
             />
 
             {loadMoreFailed ? (
@@ -441,15 +555,15 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
 
         <footer className="catalog-footer">
           <p>
-            Every new entry is announced in the aggregator channel{" "}
+            Every new entry is announced on{" "}
             <a
               href="https://t.me/findthatproject"
               target="_blank"
               rel="noreferrer"
             >
               @findthatproject
-            </a>{" "}
-            — the site is where you catch up on all of them at once.
+            </a>
+            . Miss the posts and the counter up top has them waiting.
           </p>
           <span>
             {totalCount} indexed · {data.facets.kinds.length} types
@@ -473,15 +587,19 @@ export function HydrateFallback() {
             FindThatProject<span>/</span>
           </span>
           <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-9 w-28 rounded-full" />
+          <Skeleton className="h-4 w-16" />
         </header>
         <main id="main-content" className="index-main">
-          <div className="ledger-overview">
-            <Skeleton className="h-24 w-72" />
-            <Skeleton className="h-9 w-52" />
+          <div className="ledger-hero">
+            <div>
+              <Skeleton className="h-11 w-56" />
+              <Skeleton className="mt-3 h-4 w-96 max-w-full" />
+            </div>
+            <Skeleton className="h-3 w-32" />
           </div>
           <div className="ledger-controls">
-            <Skeleton className="h-9 w-40" />
+            <Skeleton className="h-8 w-20" />
             <Skeleton className="h-8 w-96 max-w-full" />
           </div>
           <div className="ledger-loading-list">
