@@ -6,12 +6,13 @@ usage() {
 Push an allowlisted Railway environment file without printing values.
 
 Usage:
-  npm run railway:env -- <web|api|parser|all> [options]
+  npm run railway:env -- <web|api|parser|digest|all> [options]
 
 Default ignored files:
   .env.railway.web
   .env.railway.api
   .env.railway.parser
+  .env.railway.digest
 
 Options:
   --file <path>              Override the file for a single target
@@ -41,6 +42,7 @@ is_allowed_key() {
     web:VITE_API_BASE_URL | web:VITE_PUBLIC_SITE_ORIGIN) return 0 ;;
     api:DATABASE_URL | api:API_ALLOWED_ORIGINS | api:HOST | api:LOG_LEVEL) return 0 ;;
     parser:DATABASE_URL | parser:LOG_LEVEL | parser:TELEGRAM_API_ID | parser:TELEGRAM_API_HASH | parser:TELEGRAM_SESSION | parser:TELEGRAM_CHANNELS | parser:TELEGRAM_BACKFILL_DAYS | parser:TELEGRAM_PAGE_SIZE | parser:OPENAI_API_KEY | parser:OPENAI_MODEL | parser:OPENAI_REQUEST_TIMEOUT_MS | parser:OPENAI_MAX_ATTEMPTS | parser:GITHUB_TOKEN) return 0 ;;
+    digest:DATABASE_URL | digest:LOG_LEVEL | digest:TELEGRAM_DIGEST_BOT_TOKEN | digest:TELEGRAM_DIGEST_CHANNEL_EN | digest:TELEGRAM_DIGEST_CHANNEL_RU | digest:DIGEST_SITE_ORIGIN | digest:DIGEST_INITIAL_START_AT | digest:DIGEST_REQUEST_TIMEOUT_MS | digest:DIGEST_MAX_ATTEMPTS) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -110,6 +112,18 @@ push_env() {
   echo "[$service] Variables pushed with values hidden."
 }
 
+dry_run_missing_file() {
+  local service="$1"
+  local file="$2"
+  local keys=""
+  case "$service" in
+    digest) keys="DATABASE_URL LOG_LEVEL TELEGRAM_DIGEST_BOT_TOKEN TELEGRAM_DIGEST_CHANNEL_EN TELEGRAM_DIGEST_CHANNEL_RU DIGEST_SITE_ORIGIN DIGEST_INITIAL_START_AT DIGEST_REQUEST_TIMEOUT_MS DIGEST_MAX_ATTEMPTS" ;;
+    *) return 1 ;;
+  esac
+  echo "[$service] Default file $file is absent; allowlisted keys: $keys"
+  echo "[$service] Dry run; no Railway variables changed."
+}
+
 TARGET="${1:-}"
 [[ -n "$TARGET" ]] || { usage; exit 1; }
 if [[ "$TARGET" == "-h" || "$TARGET" == "--help" ]]; then
@@ -135,7 +149,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$TARGET" in
-  web | api | parser | all) ;;
+  web | api | parser | digest | all) ;;
   *) echo "Unknown environment target: $TARGET" >&2; usage; exit 1 ;;
 esac
 [[ "$ENVIRONMENT" == "production" ]] || {
@@ -152,7 +166,7 @@ RAILWAY_SCOPE_ARGS=(--environment "$ENVIRONMENT")
 
 TARGETS=()
 if [[ "$TARGET" == "all" ]]; then
-  TARGETS=(web api parser)
+  TARGETS=(web api parser digest)
 else
   TARGETS=("$TARGET")
 fi
@@ -199,5 +213,8 @@ fi
 for service in "${TARGETS[@]}"; do
   file="$FILE_OVERRIDE"
   [[ -n "$file" ]] || file="$(default_file_for "$service")"
+  if [[ "$DRY_RUN" -eq 1 && -z "$FILE_OVERRIDE" && ! -f "$file" ]]; then
+    dry_run_missing_file "$service" "$file" && continue
+  fi
   push_env "$service" "$file"
 done

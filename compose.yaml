@@ -28,7 +28,11 @@ services:
     tmpfs:
       - /var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U findthatproject_test -d findthatproject_test"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U findthatproject_test -d findthatproject_test",
+        ]
       interval: 2s
       timeout: 3s
       retries: 15
@@ -81,6 +85,28 @@ services:
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     command: ["node", "apps/service/dist/sync.js"]
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  digest:
+    profiles: ["digest"]
+    build:
+      context: .
+      dockerfile: apps/service/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-findthatproject}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-findthatproject}
+      TELEGRAM_DIGEST_BOT_TOKEN: ${TELEGRAM_DIGEST_BOT_TOKEN}
+      TELEGRAM_DIGEST_CHANNEL_EN: ${TELEGRAM_DIGEST_CHANNEL_EN}
+      TELEGRAM_DIGEST_CHANNEL_RU: ${TELEGRAM_DIGEST_CHANNEL_RU}
+      DIGEST_SITE_ORIGIN: ${DIGEST_SITE_ORIGIN}
+      DIGEST_INITIAL_START_AT: ${DIGEST_INITIAL_START_AT}
+      DIGEST_REQUEST_TIMEOUT_MS: ${DIGEST_REQUEST_TIMEOUT_MS:-15000}
+      DIGEST_MAX_ATTEMPTS: ${DIGEST_MAX_ATTEMPTS:-3}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    command: ["node", "apps/service/dist/digest.js", "publish"]
     depends_on:
       db:
         condition: service_healthy
