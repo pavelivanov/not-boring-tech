@@ -3,6 +3,7 @@ import type {
   PresentationKind,
   TransientPostInput,
 } from "../analyzer/types";
+import { canonicalGitHubRepositoryUrl } from "../github/repository-url";
 
 export interface ExpectedPresentation {
   readonly names: readonly string[];
@@ -30,6 +31,7 @@ export interface ExtractionEvalMetrics {
   readonly matchedPresentations: number;
   readonly kindAccuracy: number;
   readonly urlGroundingViolations: number;
+  readonly russianDescriptionViolations: number;
   readonly schemaRefusalIncompleteCount: number;
   readonly failedOutcomeCount: number;
   readonly totalTokens: number;
@@ -90,6 +92,7 @@ export const evaluateExtractionCases = async (
   let matchedPresentations = 0;
   let correctKinds = 0;
   let urlGroundingViolations = 0;
+  let russianDescriptionViolations = 0;
   let schemaRefusalIncompleteCount = 0;
   let failedOutcomeCount = 0;
   let totalTokens = 0;
@@ -132,6 +135,24 @@ export const evaluateExtractionCases = async (
       ) {
         urlGroundingViolations += 1;
       }
+      if (
+        presentation.githubUrl !== null &&
+        ![...allowedLinks].some(
+          (allowedLink) =>
+            canonicalGitHubRepositoryUrl(allowedLink) ===
+            presentation.githubUrl,
+        )
+      ) {
+        urlGroundingViolations += 1;
+      }
+      const russianDescription = presentation.descriptionRu.trim();
+      if (
+        russianDescription.length === 0 ||
+        russianDescription.length > 400 ||
+        !/[\p{Script=Cyrillic}]/u.test(russianDescription)
+      ) {
+        russianDescriptionViolations += 1;
+      }
     }
 
     const unmatchedPredictions = new Set(
@@ -171,7 +192,8 @@ export const evaluateExtractionCases = async (
     relevancePrecision >= 0.9 &&
     relevanceRecall >= 0.85 &&
     kindAccuracy >= 0.85 &&
-    urlGroundingViolations === 0;
+    urlGroundingViolations === 0 &&
+    russianDescriptionViolations === 0;
 
   return {
     totalCases: cases.length,
@@ -186,6 +208,7 @@ export const evaluateExtractionCases = async (
     matchedPresentations,
     kindAccuracy,
     urlGroundingViolations,
+    russianDescriptionViolations,
     schemaRefusalIncompleteCount,
     failedOutcomeCount,
     totalTokens,

@@ -35,8 +35,14 @@ export const extractionEvalCases: readonly ExtractionEvalCase[] = [
   relevant(
     "project-with-link",
     "RepoPilot is a new open-source project that reviews pull requests locally and explains risky changes before you push.",
-    ["https://example.com/repopilot"],
+    ["https://example.com/repopilot", "https://github.com/example/repopilot"],
     expected("RepoPilot", ["PROJECT"]),
+  ),
+  relevant(
+    "github-only-project",
+    "QueueGlass is an open-source project for inspecting queue latency and retry behavior from a local terminal.",
+    ["https://github.com/example/queueglass"],
+    expected("QueueGlass", ["PROJECT"]),
   ),
   relevant(
     "tool-without-link",

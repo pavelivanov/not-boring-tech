@@ -24,7 +24,9 @@ export interface Presentation {
   readonly name: string;
   readonly parentName: string | null;
   readonly subjectUrl: string | null;
+  readonly githubUrl: string | null;
   readonly descriptionEn: string;
+  readonly descriptionRu: string;
   readonly tags: readonly string[];
   readonly sourceLanguage: string;
   readonly confidence: number;

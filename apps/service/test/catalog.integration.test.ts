@@ -32,6 +32,7 @@ interface CandidateInput {
   readonly messageId: bigint;
   readonly name: string;
   readonly subjectUrl: string | null;
+  readonly githubUrl?: string | null;
   readonly kind?: "PROJECT" | "PRODUCT" | "FEATURE";
   readonly parentName?: string | null;
   readonly confidence?: number;
@@ -75,7 +76,9 @@ const createCandidate = async (
       name: input.name,
       parentName: input.parentName ?? null,
       subjectUrl: input.subjectUrl,
+      githubUrl: input.githubUrl ?? null,
       descriptionEn: `${input.name} synthetic description.`,
+      descriptionRu: `${input.name} — синтетическое описание проекта.`,
       tags: [...(input.tags ?? ["Synthetic"])],
       sourceLanguage: "en",
       confidence: input.confidence ?? 0.9,
@@ -109,7 +112,9 @@ const linkLegacyCatalogItem = async (
       nameSortKey: identity.nameSortKey,
       parentName: candidate.parentName,
       canonicalUrl: identity.canonicalUrl,
+      githubUrl: candidate.githubUrl,
       descriptionEn: candidate.descriptionEn,
+      descriptionRu: candidate.descriptionRu,
       tags: candidate.tags,
       searchText: candidate.name.toLocaleLowerCase("en"),
       firstMentionedAt: candidate.analyzedPost.publishedAt,
@@ -133,6 +138,7 @@ describe.skipIf(!testDatabaseUrl)("catalog projection integration", () => {
   });
 
   beforeEach(async () => {
+    await database.weeklyDigestRun.deleteMany();
     await database.presentationCandidate.deleteMany();
     await database.catalogItem.deleteMany();
     await database.analyzedPost.deleteMany();
@@ -151,6 +157,7 @@ describe.skipIf(!testDatabaseUrl)("catalog projection integration", () => {
       name: "Demo Project",
       subjectUrl:
         "https://EXAMPLE.com:443/demo/?utm_source=telegram&b=2&a=1#intro",
+      githubUrl: "https://github.com/example/demo-project",
       confidence: 0.8,
       publishedAt: new Date("2026-08-01T10:00:00.000Z"),
       tags: ["Alpha"],
@@ -173,6 +180,8 @@ describe.skipIf(!testDatabaseUrl)("catalog projection integration", () => {
       slug: "demo-project-renamed",
       name: "Demo Project Renamed",
       canonicalUrl: "https://example.com/demo?a=1&b=2",
+      githubUrl: "https://github.com/example/demo-project",
+      descriptionRu: "Demo Project Renamed — синтетическое описание проекта.",
       tags: ["alpha", "beta"],
       firstMentionedAt: new Date("2026-08-01T10:00:00.000Z"),
       lastMentionedAt: new Date("2026-08-02T10:00:00.000Z"),

@@ -41,6 +41,7 @@ describe("refreshGitHubStars", () => {
           {
             id: "fresh",
             canonicalUrl: "https://github.com/openai/codex",
+            githubUrl: null,
             githubRepository: null,
             githubStars: null,
             githubStarsFetchedAt: null,
@@ -49,6 +50,7 @@ describe("refreshGitHubStars", () => {
           {
             id: "cached",
             canonicalUrl: "https://github.com/withastro/astro",
+            githubUrl: null,
             githubRepository: "withastro/astro",
             githubStars: 50_000,
             githubStarsFetchedAt: new Date("2026-08-01T00:00:00.000Z"),
@@ -116,6 +118,48 @@ describe("refreshGitHubStars", () => {
     });
   });
 
+  it("prefers the separate repository URL over a product main URL", async () => {
+    const update = vi.fn().mockResolvedValue(undefined);
+    const database = {
+      catalogItem: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: "product-and-repository",
+            canonicalUrl: "https://example.com/product",
+            githubUrl: "https://github.com/openai/codex",
+            githubRepository: null,
+            githubStars: null,
+            githubStarsFetchedAt: null,
+            githubEtag: null,
+          },
+        ]),
+        update,
+      },
+    } as unknown as DbClient;
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ full_name: "openai/codex", stargazers_count: 0 }),
+          { status: 200 },
+        ),
+      );
+
+    await refreshGitHubStars(database, { fetch: request });
+
+    expect(request).toHaveBeenCalledWith(
+      "https://api.github.com/repos/openai/codex",
+      expect.any(Object),
+    );
+    expect(update).toHaveBeenCalledWith({
+      where: { id: "product-and-repository" },
+      data: expect.objectContaining({
+        githubRepository: "openai/codex",
+        githubStars: 0,
+      }),
+    });
+  });
+
   it("clears stale metadata when a catalog URL is no longer GitHub-backed", async () => {
     const update = vi.fn().mockResolvedValue(undefined);
     const database = {
@@ -124,6 +168,7 @@ describe("refreshGitHubStars", () => {
           {
             id: "changed",
             canonicalUrl: "https://example.com/project",
+            githubUrl: null,
             githubRepository: "owner/old-repository",
             githubStars: 120,
             githubStarsFetchedAt: new Date("2026-08-01T00:00:00.000Z"),

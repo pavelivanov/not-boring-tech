@@ -67,8 +67,11 @@ const success = (
             name: kind === "FEATURE" ? "Channels" : `Project ${messageId}`,
             parentName: kind === "FEATURE" ? "Claude Code" : null,
             subjectUrl: `https://example.com/${messageId}`,
+            githubUrl: null,
             descriptionEn:
               "A concise synthetic presentation used by the integration suite.",
+            descriptionRu:
+              "Краткое синтетическое описание для интеграционного теста.",
             tags: ["synthetic"],
             sourceLanguage: "en",
             confidence: 0.9,
@@ -97,7 +100,9 @@ const multiPresentationSuccess = (messageId: bigint): AnalysisOutcome => ({
         name: "Review Mode",
         parentName: "CodeDock",
         subjectUrl: `https://example.com/${messageId}`,
+        githubUrl: null,
         descriptionEn: "A focused patch-review mode.",
+        descriptionRu: "Режим для последовательной проверки изменений.",
         tags: ["review"],
         sourceLanguage: "en",
         confidence: 0.9,
@@ -108,7 +113,9 @@ const multiPresentationSuccess = (messageId: bigint): AnalysisOutcome => ({
         name: "ReviewMate",
         parentName: null,
         subjectUrl: `https://example.com/${messageId}`,
+        githubUrl: null,
         descriptionEn: "A plugin with repository-specific review rules.",
+        descriptionRu: "Плагин с правилами проверки для репозитория.",
         tags: ["plugin"],
         sourceLanguage: "en",
         confidence: 0.88,
@@ -141,6 +148,7 @@ describe.skipIf(!testDatabaseUrl)("pipeline database integration", () => {
   });
 
   beforeEach(async () => {
+    await database.weeklyDigestRun.deleteMany();
     await database.presentationCandidate.deleteMany();
     await database.catalogItem.deleteMany();
     await database.analyzedPost.deleteMany();

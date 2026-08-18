@@ -18,8 +18,11 @@ const presentation = {
   name: "  Nanochat  ",
   parentName: null,
   subjectUrl: "https://github.com/karpathy/nanochat",
+  githubUrl: "https://github.com/karpathy/nanochat",
   descriptionEn:
     "  A compact project for learning how chat models are built.  ",
+  descriptionRu:
+    "  Компактный проект для изучения устройства диалоговых моделей.  ",
   tags: [" AI ", "ai", "Learning"],
   sourceLanguage: " EN ",
   confidence: 0.94,
@@ -99,6 +102,8 @@ describe("validatePostAnalysis", () => {
           name: "Nanochat",
           descriptionEn:
             "A compact project for learning how chat models are built.",
+          descriptionRu:
+            "Компактный проект для изучения устройства диалоговых моделей.",
           tags: ["ai", "learning"],
           sourceLanguage: "en",
         },
@@ -117,6 +122,24 @@ describe("validatePostAnalysis", () => {
         ],
       },
       "invented URL",
+    ],
+    [
+      {
+        relevant: true,
+        presentations: [
+          { ...presentation, githubUrl: "https://invented.test/repository" },
+        ],
+      },
+      "invented GitHub URL",
+    ],
+    [
+      {
+        relevant: true,
+        presentations: [
+          { ...presentation, githubUrl: "https://github.com/topics/ai" },
+        ],
+      },
+      "non-repository GitHub URL",
     ],
     [
       {
@@ -150,6 +173,30 @@ describe("validatePostAnalysis", () => {
     );
     expect(result.presentations[0]?.parentName).toBe("Claude Code");
   });
+
+  it("grounds a main site and canonicalizes a separate GitHub repository", () => {
+    const result = validatePostAnalysis(
+      {
+        relevant: true,
+        presentations: [
+          {
+            ...presentation,
+            subjectUrl: "https://nanochat.example/docs",
+            githubUrl: "http://www.github.com/karpathy/nanochat/tree/main",
+          },
+        ],
+      },
+      [
+        "https://nanochat.example/docs",
+        "http://www.github.com/karpathy/nanochat/tree/main",
+      ],
+    );
+
+    expect(result.presentations[0]).toMatchObject({
+      subjectUrl: "https://nanochat.example/docs",
+      githubUrl: "https://github.com/karpathy/nanochat",
+    });
+  });
 });
 
 describe("prompt boundary", () => {
@@ -170,6 +217,8 @@ describe("prompt boundary", () => {
     expect(EXTRACTION_DEVELOPER_PROMPT).toContain(
       "one exact string from allowedHttpLinks",
     );
+    expect(EXTRACTION_DEVELOPER_PROMPT).toContain("natural Russian");
+    expect(EXTRACTION_DEVELOPER_PROMPT).toContain("GitHub repository URL");
   });
 
   it("combines prompt, schema, and model identity", () => {

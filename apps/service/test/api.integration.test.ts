@@ -72,7 +72,9 @@ const seedCandidate = async (
       name: input.name,
       parentName: null,
       subjectUrl: input.subjectUrl,
+      githubUrl: null,
       descriptionEn: `${input.name} is a synthetic API integration subject.`,
+      descriptionRu: `${input.name} — синтетический проект для теста API.`,
       tags: [...input.tags],
       sourceLanguage: "en",
       confidence: 0.9,
@@ -131,6 +133,7 @@ describe.skipIf(!testDatabaseUrl)("catalog API integration", () => {
   });
 
   beforeEach(async () => {
+    await database.weeklyDigestRun.deleteMany();
     await database.presentationCandidate.deleteMany();
     await database.catalogItem.deleteMany();
     await database.analyzedPost.deleteMany();

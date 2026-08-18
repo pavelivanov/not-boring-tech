@@ -6,6 +6,7 @@ import {
   type PostAnalysis,
   type Presentation,
 } from "./types";
+import { canonicalGitHubRepositoryUrl } from "../github/repository-url";
 
 const MAX_NAME_LENGTH = 120;
 const MAX_DESCRIPTION_LENGTH = 400;
@@ -20,7 +21,9 @@ export const presentationSchema = z
     name: z.string(),
     parentName: z.string().nullable(),
     subjectUrl: z.string().nullable(),
+    githubUrl: z.string().nullable(),
     descriptionEn: z.string(),
+    descriptionRu: z.string(),
     tags: z.array(z.string()).max(10),
     sourceLanguage: z.string(),
     confidence: z.number().min(0).max(1),
@@ -88,6 +91,22 @@ const normalizePresentation = (
     }
   }
 
+  let githubUrl: string | null = null;
+  if (presentation.githubUrl !== null) {
+    const groundedGithubUrl = normalizedHttpUrl(presentation.githubUrl);
+    if (groundedGithubUrl === null || !allowedLinks.has(groundedGithubUrl)) {
+      throw new SemanticAnalysisError(
+        "githubUrl must be an HTTP(S) link supplied by Telegram",
+      );
+    }
+    githubUrl = canonicalGitHubRepositoryUrl(groundedGithubUrl);
+    if (githubUrl === null) {
+      throw new SemanticAnalysisError(
+        "githubUrl must identify a GitHub repository",
+      );
+    }
+  }
+
   const tags = [
     ...new Set(
       presentation.tags.map((tag) =>
@@ -105,9 +124,15 @@ const normalizePresentation = (
         ? null
         : boundedText(parentName, "parentName", MAX_NAME_LENGTH),
     subjectUrl,
+    githubUrl,
     descriptionEn: boundedText(
       presentation.descriptionEn,
       "descriptionEn",
+      MAX_DESCRIPTION_LENGTH,
+    ),
+    descriptionRu: boundedText(
+      presentation.descriptionRu,
+      "descriptionRu",
       MAX_DESCRIPTION_LENGTH,
     ),
     tags,
