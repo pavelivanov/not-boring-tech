@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import {
   formatAbsoluteDate,
+  formatLedgerDate,
   formatRelativeAge,
   stableReferenceTime,
 } from "./dates"
@@ -9,6 +10,11 @@ import {
 describe("date presentation", () => {
   it("formats absolute publication dates in English UTC", () => {
     expect(formatAbsoluteDate("2026-01-14T23:45:00.000Z")).toBe("Jan 14, 2026")
+  })
+
+  it("formats ledger row dates as uppercase day, month and year", () => {
+    expect(formatLedgerDate("2026-01-14T23:45:00.000Z")).toBe("14 JAN 2026")
+    expect(formatLedgerDate("2026-08-01T00:30:00.000Z")).toBe("1 AUG 2026")
   })
 
   it("formats recent publication ages from the stable reference time", () => {

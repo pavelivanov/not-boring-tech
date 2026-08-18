@@ -13,9 +13,9 @@ import {
 } from "react-router"
 
 import type { Route } from "./+types/home"
-import { IndexSearch } from "~/components/search-controls"
+import { IndexSearchDialog } from "~/components/search-controls"
+import { TelegramIcon } from "~/components/telegram-icon"
 import { ToolList, type LedgerEmptyState } from "~/components/tool-list"
-import { UnseenPanel } from "~/components/unseen-panel"
 import {
   Alert,
   AlertAction,
@@ -30,6 +30,7 @@ import {
   loadNextCatalogPage,
   type HomeCatalogData,
 } from "~/data/api-client"
+import { digestChannels } from "~/domain/channels"
 import {
   filtersFromActive,
   serializeSearchParams,
@@ -64,6 +65,8 @@ type StoredReadState = {
   readonly lastVisit: string | null
 }
 
+type LedgerSort = "traction" | "newest"
+
 const readStateStorageKey = "findthatproject:read-state:v1"
 
 const kindOrder: readonly TechnologyKind[] = [
@@ -83,7 +86,7 @@ const kindOrder: readonly TechnologyKind[] = [
 
 const visitDateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
-  month: "short",
+  month: "long",
 })
 
 function readStoredState(): StoredReadState {
@@ -126,10 +129,18 @@ function compareTraction(
   )
 }
 
+function compareNewest(left: CatalogListItem, right: CatalogListItem): number {
+  return (
+    Date.parse(right.firstMentionedAt) - Date.parse(left.firstMentionedAt) ||
+    compareTraction(left, right)
+  )
+}
+
 function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [, setSearchParams] = useSearchParams()
   const location = useLocation()
   const navigation = useNavigation()
+  const [sort, setSort] = useState<LedgerSort>("traction")
   const [onlyUnseen, setOnlyUnseen] = useState(false)
   const [seenSlugs, setSeenSlugs] = useState<ReadonlySet<string>>(
     () => new Set()
@@ -157,6 +168,7 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
     (left, right) =>
       kindOrder.indexOf(left.value) - kindOrder.indexOf(right.value)
   )
+  const digestLinks = digestChannels()
   const isFiltering =
     navigation.state === "loading" &&
     navigation.location?.pathname === location.pathname &&
@@ -231,10 +243,10 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
     [isUnseen, items]
   )
 
-  // The header counter answers "what landed while I was away", so it spans every
+  // The banner counter answers "what landed while I was away", so it spans every
   // entry this session has loaded rather than the currently filtered page.
   const unseenEntries = useMemo(
-    () => [...knownEntries.values()].filter(isUnseen).toSorted(compareTraction),
+    () => [...knownEntries.values()].filter(isUnseen).toSorted(compareNewest),
     [isUnseen, knownEntries]
   )
 
@@ -242,8 +254,8 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
     () =>
       items
         .filter((item) => !onlyUnseen || unseenSlugs.has(item.slug))
-        .toSorted(compareTraction),
-    [items, onlyUnseen, unseenSlugs]
+        .toSorted(sort === "newest" ? compareNewest : compareTraction),
+    [items, onlyUnseen, sort, unseenSlugs]
   )
 
   const markSeen = useCallback((slug: string) => {
@@ -304,47 +316,54 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
   const lastVisitDate = previousVisit
     ? visitDateFormatter.format(new Date(previousVisit))
     : null
-  const visitLabel = lastVisitDate
-    ? `Since your last visit · ${lastVisitDate}`
-    : "Your first visit"
   const query = filters.query.trim()
   const kindLabel = filters.kind ? formatTechnologyKind(filters.kind) : null
   const shownCount = visibleItems.length
+  const unseenCount = unseenEntries.length
+  const unseenInView = items.filter((item) => unseenSlugs.has(item.slug)).length
+  const scopeCount = filters.kind
+    ? (kindOptions.find((option) => option.value === filters.kind)?.count ??
+      shownCount)
+    : totalCount
 
-  function headline(): { readonly title: string; readonly subtitle: string } {
-    if (query) {
-      return {
-        title: `“${query}”`,
-        subtitle:
-          shownCount === 1
-            ? "One match across name, type and description."
-            : `${shownCount} matches across name, type and description.`,
-      }
+  function bannerLine(): string {
+    if (unseenCount === 0) {
+      return lastVisitDate
+        ? `You are up to date — nothing new since ${lastVisitDate}.`
+        : "You are up to date."
     }
 
-    if (onlyUnseen) {
-      return {
-        title: lastVisitDate
-          ? `${shownCount} new since ${lastVisitDate}`
-          : `${shownCount} new ${shownCount === 1 ? "entry" : "entries"}`,
-        subtitle:
-          "Everything indexed while you were away, heaviest first. Open one and it drops off the counter.",
-      }
+    const entryWord = unseenCount === 1 ? "entry" : "entries"
+
+    if (!lastVisitDate) {
+      return `${unseenCount} ${entryWord} indexed so far — all new on your first visit`
     }
 
-    if (filters.kind) {
-      return {
-        title: `All ${formatTechnologyKindPlural(filters.kind)}`,
-        subtitle:
-          "Sorted by traction. Orange dots are entries indexed since your last visit.",
-      }
+    if (kindLabel) {
+      return `${unseenCount} new since ${lastVisitDate} · ${unseenInView} in ${formatTechnologyKindPlural(
+        filters.kind as TechnologyKind
+      )}`
     }
 
-    return {
-      title: "The index",
-      subtitle:
-        "Every project, tool, service and podcast collected so far, sorted by traction. Orange dots are new since your last visit.",
-    }
+    return `${unseenCount} ${entryWord} indexed since your last visit on ${lastVisitDate}`
+  }
+
+  function scopeLine() {
+    if (isFiltering) return "Updating entries…"
+
+    const total = onlyUnseen ? unseenInView : scopeCount
+    const counts = ` · Showing ${shownCount} of ${total}`
+
+    // The scope line is set in uppercase mono, so the searched term keeps its
+    // own casing to stay recognisable as what was typed.
+    return query ? (
+      <>
+        Search <span className="ledger-scope-term">“{query}”</span>
+        {counts}
+      </>
+    ) : (
+      `${kindLabel ?? "All"}${counts}`
+    )
   }
 
   function resolveEmptyState(): LedgerEmptyState {
@@ -390,7 +409,7 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
 
       return {
         title: "You have read everything new.",
-        body: "A few entries land every day. The counter in the header will be holding them next time you drop in.",
+        body: "A few entries land every day. The banner up top will be holding them next time you drop in.",
         actionLabel: "Back to the index",
         onAction: () => setOnlyUnseen(false),
       }
@@ -413,105 +432,158 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
     }
   }
 
-  const { title, subtitle } = headline()
-
   return (
-    <div className="catalog-page">
-      <div className="catalog-frame">
-        <header className="catalog-header">
+    <div className="index-page">
+      <header className="index-header">
+        <div className="index-brand-block">
           <Link
             to="/"
-            className="catalog-brand"
+            className="index-brand"
             aria-label="FindThatProject home"
           >
             FindThatProject<span>/</span>
           </Link>
+          <p className="index-tagline">
+            Hand-indexed tools, projects &amp; podcasts
+          </p>
+        </div>
 
-          <IndexSearch
-            filters={filters}
-            enableShortcut
-            onChange={updateFilters}
-          />
-
-          <UnseenPanel
-            entries={unseenEntries}
-            visitLabel={visitLabel}
+        <div className="index-header-tools">
+          <IndexSearchDialog
+            entries={[...knownEntries.values()]}
+            suggestions={unseenEntries}
+            query={filters.query}
             search={location.search}
-            onMarkSeen={markSeen}
-            onMarkAllSeen={markAllSeen}
-            onReset={resetReadState}
-            onShowUnseen={() => {
-              setOnlyUnseen(true)
-              if (filters.query) updateFilters({ ...filters, query: "" })
-            }}
+            onSubmitQuery={(next) => updateFilters({ ...filters, query: next })}
+            onOpenEntry={markSeen}
           />
 
-          <nav className="catalog-utility-nav" aria-label="Site links">
+          {digestLinks.length > 0 ? (
+            <>
+              <span className="index-header-divider" aria-hidden="true" />
+              <div className="index-digest">
+                <span>Weekly digest</span>
+                {digestLinks.map((channel) => (
+                  <a
+                    key={channel.handle}
+                    href={channel.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={`${channel.locale} weekly digest on Telegram (opens in a new tab)`}
+                  >
+                    <TelegramIcon />
+                    {channel.locale}
+                  </a>
+                ))}
+              </div>
+            </>
+          ) : null}
+
+          <span className="index-header-divider" aria-hidden="true" />
+          <nav className="index-utility-nav" aria-label="Site links">
             <Link to="/about">About</Link>
           </nav>
-        </header>
+        </div>
+      </header>
+
+      <div className="index-body">
+        <aside className="index-sidebar" aria-label="Index filters">
+          <div className="index-facet">
+            <h2 className="index-facet-title">Type</h2>
+            <nav className="index-facet-list">
+              <button
+                type="button"
+                className="index-facet-option"
+                aria-pressed={!filters.kind}
+                onClick={() => changeKind()}
+              >
+                <span>All</span>
+                <span>{totalCount}</span>
+              </button>
+              {kindOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className="index-facet-option"
+                  aria-pressed={filters.kind === option.value}
+                  onClick={() => changeKind(option.value)}
+                >
+                  <span>{formatTechnologyKind(option.value)}</span>
+                  <span>{option.count}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          <div className="index-facet index-facet-sort">
+            <h2 className="index-facet-title">Sort</h2>
+            <div className="index-facet-list">
+              <button
+                type="button"
+                className="index-facet-option"
+                aria-pressed={sort === "traction"}
+                onClick={() => setSort("traction")}
+              >
+                <span>Traction</span>
+              </button>
+              <button
+                type="button"
+                className="index-facet-option"
+                aria-pressed={sort === "newest"}
+                onClick={() => setSort("newest")}
+              >
+                <span>Newest</span>
+              </button>
+            </div>
+          </div>
+        </aside>
 
         <main id="main-content" tabIndex={-1} className="index-main">
           <h1 className="sr-only">FindThatProject technology ledger</h1>
 
-          <section className="ledger-hero" aria-live="polite">
-            <div>
-              <h2 className="ledger-hero-title">{title}</h2>
-              <p className="ledger-hero-subtitle">{subtitle}</p>
-            </div>
-            <p className="ledger-hero-note">Sorted by traction</p>
-          </section>
-
-          <section className="ledger-controls" aria-label="Catalog view">
-            <Button
-              variant={onlyUnseen ? "default" : "outline"}
-              size="sm"
-              className="ledger-kind-chip ledger-new-chip"
-              aria-pressed={onlyUnseen}
-              onClick={() => setOnlyUnseen((current) => !current)}
-            >
-              {unseenEntries.length > 0 ? (
-                <span className="ledger-unseen-dot" aria-hidden="true" />
-              ) : null}
-              New <span>{unseenEntries.length}</span>
-            </Button>
-
-            <span className="ledger-controls-divider" aria-hidden="true" />
-
-            <div className="ledger-kind-filters" aria-label="Filter by type">
-              <Button
-                variant={filters.kind ? "outline" : "ink"}
-                size="sm"
-                className="ledger-kind-chip"
-                aria-pressed={!filters.kind}
-                onClick={() => changeKind()}
-              >
-                All <span>{totalCount}</span>
-              </Button>
-              {kindOptions.map((option) => {
-                const active = filters.kind === option.value
-                return (
-                  <Button
-                    key={option.value}
-                    variant={active ? "ink" : "outline"}
-                    size="sm"
-                    className="ledger-kind-chip"
-                    aria-pressed={active}
-                    onClick={() => changeKind(option.value)}
-                  >
-                    {formatTechnologyKind(option.value)}
-                    <span>{option.count}</span>
-                  </Button>
-                )
-              })}
-            </div>
-
-            <p className="ledger-showing" aria-live="polite">
-              {isFiltering
-                ? "Updating entries…"
-                : `Showing ${shownCount} of ${totalCount}`}
+          <section
+            className="ledger-banner"
+            data-quiet={unseenCount === 0 || undefined}
+            aria-live="polite"
+          >
+            <p className="ledger-banner-line">
+              <span className="ledger-banner-dot" aria-hidden="true" />
+              {bannerLine()}
             </p>
+
+            <div className="ledger-banner-actions">
+              {unseenCount > 0 ? (
+                <button
+                  type="button"
+                  className="ledger-banner-quiet-action"
+                  onClick={markAllSeen}
+                >
+                  Mark all seen
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="ledger-banner-quiet-action"
+                  onClick={resetReadState}
+                >
+                  Reset read state
+                </button>
+              )}
+              <button
+                type="button"
+                className="ledger-banner-toggle"
+                aria-pressed={onlyUnseen}
+                onClick={() => setOnlyUnseen((current) => !current)}
+              >
+                {onlyUnseen ? "Showing new only" : "Show only new"}
+              </button>
+            </div>
           </section>
+
+          <div className="ledger-scope">
+            <p aria-live="polite">{scopeLine()}</p>
+            <p>{sort === "newest" ? "Newest first" : "Sorted by traction"}</p>
+          </div>
 
           <div className="index-surface" aria-busy={isFiltering}>
             <ToolList
@@ -540,36 +612,36 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
 
             {nextCursor ? (
               <div className="catalog-load-more">
-                <Button
-                  variant="outline"
-                  size="pill"
+                <button
+                  type="button"
+                  className="ledger-load-more"
                   disabled={loadingMore}
                   onClick={loadMore}
                 >
                   {loadingMore ? "Loading more…" : "Load more entries"}
-                </Button>
+                </button>
               </div>
             ) : null}
           </div>
         </main>
-
-        <footer className="catalog-footer">
-          <p>
-            Every new entry is announced on{" "}
-            <a
-              href="https://t.me/findthatproject"
-              target="_blank"
-              rel="noreferrer"
-            >
-              @findthatproject
-            </a>
-            . Miss the posts and the counter up top has them waiting.
-          </p>
-          <span>
-            {totalCount} indexed · {data.facets.kinds.length} types
-          </span>
-        </footer>
       </div>
+
+      <footer className="index-footer">
+        <p>
+          Every new entry is announced on{" "}
+          <a
+            href="https://t.me/findthatproject"
+            target="_blank"
+            rel="noreferrer"
+          >
+            @findthatproject
+          </a>
+          . Miss the posts and the banner up top has them waiting.
+        </p>
+        <span>
+          {totalCount} indexed · {data.facets.kinds.length} types
+        </span>
+      </footer>
     </div>
   )
 }
@@ -580,32 +652,27 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
 export function HydrateFallback() {
   return (
-    <div className="catalog-page" aria-label="Loading catalog">
-      <div className="catalog-frame">
-        <header className="catalog-header">
-          <span className="catalog-brand" aria-hidden="true">
+    <div className="index-page" aria-label="Loading catalog">
+      <header className="index-header">
+        <div className="index-brand-block">
+          <span className="index-brand" aria-hidden="true">
             FindThatProject<span>/</span>
           </span>
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-9 w-28 rounded-full" />
-          <Skeleton className="h-4 w-16" />
-        </header>
+          <p className="index-tagline">
+            Hand-indexed tools, projects &amp; podcasts
+          </p>
+        </div>
+        <Skeleton className="h-8 w-40" />
+      </header>
+      <div className="index-body">
+        <aside className="index-sidebar">
+          <Skeleton className="h-64 w-full" />
+        </aside>
         <main id="main-content" className="index-main">
-          <div className="ledger-hero">
-            <div>
-              <Skeleton className="h-11 w-56" />
-              <Skeleton className="mt-3 h-4 w-96 max-w-full" />
-            </div>
-            <Skeleton className="h-3 w-32" />
-          </div>
-          <div className="ledger-controls">
-            <Skeleton className="h-8 w-20" />
-            <Skeleton className="h-8 w-96 max-w-full" />
-          </div>
+          <Skeleton className="h-12 w-full" />
           <div className="ledger-loading-list">
-            <Skeleton className="h-56 w-full" />
-            {Array.from({ length: 5 }, (_, index) => (
-              <Skeleton key={index} className="h-20 w-full" />
+            {Array.from({ length: 6 }, (_, index) => (
+              <Skeleton key={index} className="h-28 w-full" />
             ))}
           </div>
         </main>
