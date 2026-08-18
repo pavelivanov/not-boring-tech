@@ -12,6 +12,7 @@ Code services:
   web      Long-running public SPA; health path /
   api      Long-running read API; migration owner; health path /ready
   parser   One-shot scheduled parser; must exit successfully
+  digest   One-shot weekly EN/RU publisher; must exit successfully
 
 Options:
   --services <csv>           Services to deploy (default: api,web)
@@ -20,7 +21,7 @@ Options:
   --poll-interval <seconds>  Seconds between status checks (default: 5)
   --api-health-url <url>     Override the API readiness URL
   --health-timeout <seconds> Maximum wait per health check (default: 120)
-  --push-env <target>        Push env first: api|web|parser|all|none
+  --push-env <target>        Push env first: api|web|parser|digest|all|none
   --project <id>             Expected Railway project ID
   --environment production  Target environment (production only)
   --skip-health-check        Skip public web/API health checks
@@ -48,7 +49,7 @@ is_failure_status() {
 
 is_allowed_service() {
   case "$1" in
-    web | api | parser) return 0 ;;
+    web | api | parser | digest) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -108,7 +109,7 @@ wait_for_deployment() {
       previous_status="$latest_status"
     fi
 
-    if [[ "$latest_status" == "SUCCESS" || ( "$service" == "parser" && "$latest_status" == "COMPLETED" ) ]]; then
+    if [[ "$latest_status" == "SUCCESS" || ( ( "$service" == "parser" || "$service" == "digest" ) && "$latest_status" == "COMPLETED" ) ]]; then
       LAST_DEPLOYMENT_ID="$deployment_id"
       return 0
     fi
@@ -201,8 +202,8 @@ is_positive_integer "$POLL_INTERVAL_SECONDS" || { echo "--poll-interval must be 
 is_positive_integer "$HEALTH_TIMEOUT_SECONDS" || { echo "--health-timeout must be a positive integer" >&2; exit 1; }
 
 case "$PUSH_ENV_TARGET" in
-  api | web | parser | all | none) ;;
-  *) echo "--push-env must be api, web, parser, all, or none" >&2; exit 1 ;;
+  api | web | parser | digest | all | none) ;;
+  *) echo "--push-env must be api, web, parser, digest, all, or none" >&2; exit 1 ;;
 esac
 
 SERVICES=()
@@ -286,7 +287,7 @@ for service in "${SERVICES[@]}"; do
   echo "[$service] Uploading source..."
   railway_with_scope up --service "$service" --detach --yes --message "$MESSAGE"
   wait_for_deployment "$service" "$baseline_id"
-  if [[ "$service" == "parser" ]]; then
+  if [[ "$service" == "parser" || "$service" == "digest" ]]; then
     echo "[$service] One-shot deployment completed ($LAST_DEPLOYMENT_ID)."
   else
     echo "[$service] Deployment succeeded ($LAST_DEPLOYMENT_ID)."
@@ -306,7 +307,7 @@ if [[ "$SKIP_HEALTH_CHECK" -eq 0 ]]; then
         url="$(resolve_health_url web /)"
         wait_for_health web "$url"
         ;;
-      parser) ;;
+      parser | digest) ;;
     esac
   done
 fi
