@@ -15,6 +15,9 @@ describe("date presentation", () => {
   it("formats ledger row dates as uppercase day, month and year", () => {
     expect(formatLedgerDate("2026-01-14T23:45:00.000Z")).toBe("14 JAN 2026")
     expect(formatLedgerDate("2026-08-01T00:30:00.000Z")).toBe("1 AUG 2026")
+    expect(formatLedgerDate("2026-01-14T23:45:00.000Z", "ru")).toBe(
+      "14 ЯНВ. 2026"
+    )
   })
 
   it("formats recent publication ages from the stable reference time", () => {

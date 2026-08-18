@@ -198,6 +198,16 @@
   gap: 6px;
 }
 
+.index-locale-switcher {
+  flex-shrink: 0;
+}
+
+.index-locale-switcher [data-slot="toggle-group-item"] {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
 .index-header-divider {
   width: 1px;
   height: 18px;
@@ -887,6 +897,12 @@
     display: none;
   }
 
+  .index-header-tools {
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
   .index-body {
     padding: 20px 16px 64px;
   }
@@ -926,6 +942,17 @@
     flex-direction: column;
     gap: 10px;
     padding: 20px 16px;
+  }
+}
+
+@media (max-width: 540px) {
+  .index-header-tools {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .index-search-trigger kbd {
+    display: none;
   }
 }
 

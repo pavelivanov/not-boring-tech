@@ -24,6 +24,7 @@ import { CatalogApiError, loadCatalogDetail } from "~/data/api-client"
 import { formatAbsoluteDate } from "~/domain/dates"
 import { formatTechnologyKind } from "~/domain/tools"
 import { canonicalMeta } from "~/domain/urls"
+import { useLocale } from "~/lib/locale"
 
 export function meta({ params }: Route.MetaArgs) {
   return [
@@ -51,6 +52,8 @@ export async function clientLoader({
 clientLoader.hydrate = true as const
 
 function NotFound({ slug }: { readonly slug: string | undefined }) {
+  const { copy } = useLocale()
+
   return (
     <main
       id="main-content"
@@ -58,17 +61,17 @@ function NotFound({ slug }: { readonly slug: string | undefined }) {
       className="page-width flex min-h-[65svh] flex-col justify-center py-16"
     >
       <p className="font-mono text-sm text-muted-foreground">
-        Unknown subject / {slug ?? "missing-slug"}
+        {copy.detail.unknownSubject(slug ?? copy.detail.missingSlug)}
       </p>
       <h1 className="mt-4 max-w-3xl font-heading text-5xl font-semibold tracking-[-0.05em] md:text-7xl">
-        This subject is not in the index.
+        {copy.detail.notInIndex}
       </h1>
       <Link
         to="/"
         className="mt-8 inline-flex w-fit items-center gap-1.5 font-medium underline decoration-primary decoration-2 underline-offset-4"
       >
         <ArrowLeftIcon aria-hidden="true" />
-        Return to index
+        {copy.common.returnToIndex}
       </Link>
     </main>
   )
@@ -78,6 +81,7 @@ export default function ToolDetail({
   loaderData,
   params,
 }: Route.ComponentProps) {
+  const { locale, copy } = useLocale()
   const location = useLocation()
   const item = loaderData.item
   const originState = location.state as { from?: unknown } | null
@@ -89,7 +93,7 @@ export default function ToolDetail({
 
   if (!item) return <NotFound slug={params.slug} />
 
-  const kindLabel = formatTechnologyKind(item.kind)
+  const kindLabel = formatTechnologyKind(item.kind, locale)
 
   return (
     <main id="main-content" tabIndex={-1} className="page-width py-12 md:py-20">
@@ -98,7 +102,7 @@ export default function ToolDetail({
         className="inline-flex items-center gap-1.5 text-sm font-medium underline decoration-border underline-offset-4 hover:decoration-primary"
       >
         <ArrowLeftIcon aria-hidden="true" />
-        Back to {originSearch ? "filtered results" : "index"}
+        {originSearch ? copy.detail.backToFiltered : copy.detail.backToIndex}
       </Link>
 
       <header className="mt-10 grid gap-8 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
@@ -115,7 +119,7 @@ export default function ToolDetail({
           </p>
           {item.parentName ? (
             <p className="mt-4 text-sm text-muted-foreground">
-              Feature of{" "}
+              {copy.detail.featureOf}{" "}
               <span className="font-medium text-foreground">
                 {item.parentName}
               </span>
@@ -130,9 +134,9 @@ export default function ToolDetail({
             rel="noreferrer"
             className="inline-flex h-fit items-center gap-1.5 font-medium underline decoration-primary decoration-2 underline-offset-4 md:justify-self-end"
           >
-            Open {kindLabel.toLocaleLowerCase("en")}
+            {copy.detail.openWebsite}
             <ArrowUpRightIcon aria-hidden="true" />
-            <span className="sr-only">(opens in a new tab)</span>
+            <span className="sr-only">({copy.common.opensNewTab})</span>
           </a>
         ) : null}
       </header>
@@ -140,19 +144,20 @@ export default function ToolDetail({
       <div className="mt-10 flex flex-wrap gap-x-6 gap-y-2 border-y py-5 text-sm text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
           <CalendarDaysIcon aria-hidden="true" />
-          First presented {formatAbsoluteDate(item.firstMentionedAt)} ·{" "}
+          {copy.detail.firstPresented}{" "}
+          {formatAbsoluteDate(item.firstMentionedAt, locale)} ·{" "}
           <RelativeDate value={item.firstMentionedAt} />
         </span>
         <span className="inline-flex items-center gap-1.5">
           <MessageCircleMoreIcon aria-hidden="true" />
-          {item.channelCount} {item.channelCount === 1 ? "channel" : "channels"}{" "}
-          · {item.mentionCount}{" "}
-          {item.mentionCount === 1 ? "mention" : "mentions"}
+          {copy.detail.sourceStats(item.channelCount, item.mentionCount)}
         </span>
         {item.githubStars !== null ? (
           <span className="inline-flex items-center gap-1.5">
             <StarIcon aria-hidden="true" />
-            {item.githubStars.toLocaleString("en")} GitHub stars
+            {copy.detail.stars(
+              item.githubStars.toLocaleString(locale === "ru" ? "ru-RU" : "en")
+            )}
           </span>
         ) : null}
       </div>
@@ -161,16 +166,18 @@ export default function ToolDetail({
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="font-mono text-xs tracking-[0.2em] text-muted-foreground uppercase">
-              Provenance
+              {copy.detail.provenance}
             </p>
             <h2
               id="mentions-heading"
               className="mt-2 text-3xl font-semibold tracking-tight"
             >
-              Every presentation
+              {copy.detail.everyPresentation}
             </h2>
           </div>
-          <p className="text-sm text-muted-foreground">Newest source first</p>
+          <p className="text-sm text-muted-foreground">
+            {copy.detail.newestSourceFirst}
+          </p>
         </div>
 
         <div className="mt-6">
@@ -183,9 +190,11 @@ export default function ToolDetail({
                     {mention.channelTitle ?? mention.channelHandle}
                   </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {formatAbsoluteDate(mention.publishedAt)} ·{" "}
+                    {formatAbsoluteDate(mention.publishedAt, locale)} ·{" "}
                     <RelativeDate value={mention.publishedAt} /> ·{" "}
-                    {Math.round(mention.confidence * 100)}% confidence
+                    {copy.detail.confidence(
+                      Math.round(mention.confidence * 100)
+                    )}
                   </p>
                 </div>
                 <a
@@ -194,9 +203,9 @@ export default function ToolDetail({
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 text-sm font-medium underline decoration-border underline-offset-4 hover:decoration-primary sm:justify-self-end"
                 >
-                  Open Telegram source
+                  {copy.detail.openTelegram}
                   <ArrowUpRightIcon aria-hidden="true" />
-                  <span className="sr-only">(opens in a new tab)</span>
+                  <span className="sr-only">({copy.common.opensNewTab})</span>
                 </a>
               </article>
             </div>
@@ -208,11 +217,13 @@ export default function ToolDetail({
 }
 
 export function HydrateFallback() {
+  const { copy } = useLocale()
+
   return (
     <main
       id="main-content"
       className="page-width flex min-h-[65svh] flex-col justify-center gap-5 py-16"
-      aria-label="Loading catalog item"
+      aria-label={copy.detail.loadingItem}
     >
       <Skeleton className="h-4 w-32" />
       <Skeleton className="h-16 w-2/3" />
@@ -223,6 +234,7 @@ export function HydrateFallback() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  const { copy } = useLocale()
   const revalidator = useRevalidator()
   const requestId = error instanceof CatalogApiError ? error.requestId : null
 
@@ -234,10 +246,10 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
     >
       <Alert variant="destructive" className="max-w-2xl">
         <AlertCircleIcon aria-hidden="true" />
-        <AlertTitle>The subject could not be loaded</AlertTitle>
+        <AlertTitle>{copy.detail.loadFailure}</AlertTitle>
         <AlertDescription>
-          Retry the live catalog request.
-          {requestId ? ` Request ID: ${requestId}.` : ""}
+          {copy.detail.loadFailureBody}
+          {requestId ? ` ${copy.detail.requestId}: ${requestId}.` : ""}
         </AlertDescription>
         <AlertAction>
           <Button
@@ -245,7 +257,9 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             disabled={revalidator.state !== "idle"}
             onClick={() => revalidator.revalidate()}
           >
-            {revalidator.state === "idle" ? "Retry" : "Retrying…"}
+            {revalidator.state === "idle"
+              ? copy.common.retry
+              : copy.common.retrying}
           </Button>
         </AlertAction>
       </Alert>

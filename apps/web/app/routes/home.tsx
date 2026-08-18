@@ -13,6 +13,7 @@ import {
 } from "react-router"
 
 import type { Route } from "./+types/home"
+import { LocaleSwitcher } from "~/components/locale-switcher"
 import { IndexSearchDialog } from "~/components/search-controls"
 import { TelegramIcon } from "~/components/telegram-icon"
 import { ToolList, type LedgerEmptyState } from "~/components/tool-list"
@@ -31,6 +32,7 @@ import {
   type HomeCatalogData,
 } from "~/data/api-client"
 import { digestChannels } from "~/domain/channels"
+import { formatVisitDate } from "~/domain/dates"
 import {
   filtersFromActive,
   serializeSearchParams,
@@ -41,6 +43,7 @@ import {
   formatTechnologyKindPlural,
 } from "~/domain/tools"
 import { canonicalMeta } from "~/domain/urls"
+import { useLocale } from "~/lib/locale"
 
 export function meta() {
   return [
@@ -83,11 +86,6 @@ const kindOrder: readonly TechnologyKind[] = [
   "PODCAST",
   "OTHER_TECH",
 ]
-
-const visitDateFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "long",
-})
 
 function readStoredState(): StoredReadState {
   try {
@@ -137,6 +135,7 @@ function compareNewest(left: CatalogListItem, right: CatalogListItem): number {
 }
 
 function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
+  const { locale, copy } = useLocale()
   const [, setSearchParams] = useSearchParams()
   const location = useLocation()
   const navigation = useNavigation()
@@ -314,10 +313,12 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
   }
 
   const lastVisitDate = previousVisit
-    ? visitDateFormatter.format(new Date(previousVisit))
+    ? formatVisitDate(previousVisit, locale)
     : null
   const query = filters.query.trim()
-  const kindLabel = filters.kind ? formatTechnologyKind(filters.kind) : null
+  const kindLabel = filters.kind
+    ? formatTechnologyKind(filters.kind, locale)
+    : null
   const shownCount = visibleItems.length
   const unseenCount = unseenEntries.length
   const unseenInView = items.filter((item) => unseenSlugs.has(item.slug)).length
@@ -329,70 +330,74 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
   function bannerLine(): string {
     if (unseenCount === 0) {
       return lastVisitDate
-        ? `You are up to date — nothing new since ${lastVisitDate}.`
-        : "You are up to date."
+        ? copy.home.upToDateSince(lastVisitDate)
+        : copy.home.upToDate
     }
 
-    const entryWord = unseenCount === 1 ? "entry" : "entries"
-
     if (!lastVisitDate) {
-      return `${unseenCount} ${entryWord} indexed so far — all new on your first visit`
+      return copy.home.firstVisit(unseenCount)
     }
 
     if (kindLabel) {
-      return `${unseenCount} new since ${lastVisitDate} · ${unseenInView} in ${formatTechnologyKindPlural(
-        filters.kind as TechnologyKind
-      )}`
+      return copy.home.newInKind(
+        unseenCount,
+        lastVisitDate,
+        unseenInView,
+        formatTechnologyKindPlural(filters.kind as TechnologyKind, locale)
+      )
     }
 
-    return `${unseenCount} ${entryWord} indexed since your last visit on ${lastVisitDate}`
+    return copy.home.sinceLastVisit(unseenCount, lastVisitDate)
   }
 
   function scopeLine() {
-    if (isFiltering) return "Updating entries…"
+    if (isFiltering) return copy.home.updatingEntries
 
     const total = onlyUnseen ? unseenInView : scopeCount
-    const counts = ` · Showing ${shownCount} of ${total}`
+    const counts = ` · ${copy.home.showing(shownCount, total)}`
 
     // The scope line is set in uppercase mono, so the searched term keeps its
     // own casing to stay recognisable as what was typed.
     return query ? (
       <>
-        Search <span className="ledger-scope-term">“{query}”</span>
+        {copy.home.searchScope}{" "}
+        <span className="ledger-scope-term">“{query}”</span>
         {counts}
       </>
     ) : (
-      `${kindLabel ?? "All"}${counts}`
+      `${kindLabel ?? copy.home.all}${counts}`
     )
   }
 
   function resolveEmptyState(): LedgerEmptyState {
     if (totalCount === 0) {
       return {
-        title: "No parsed entries yet",
-        body: "The index will populate after the configured public channels complete a parser run.",
+        title: copy.home.noParsedTitle,
+        body: copy.home.noParsedBody,
       }
     }
 
     if (query) {
       if (onlyUnseen && items.length > 0) {
         return {
-          title: `Nothing new matches “${query}”`,
+          title: copy.home.noNewQueryTitle(query),
           body:
             items.length === 1
-              ? "One entry in the index matches, indexed before your last visit."
-              : `${items.length} entries in the index match, all indexed before your last visit.`,
-          actionLabel: "Search the whole index",
+              ? copy.home.oneOldQueryMatch
+              : copy.home.oldQueryMatches(items.length),
+          actionLabel: copy.home.searchWholeIndex,
           onAction: () => setOnlyUnseen(false),
         }
       }
 
       return {
-        title: `No entry matches “${query}”`,
+        title: copy.home.noQueryTitle(query),
         body: kindLabel
-          ? `Nothing under ${kindLabel}. Widening the type filter may help.`
-          : "Try a shorter word, or the name of the tool it is built on.",
-        actionLabel: kindLabel ? "Clear search and filter" : "Clear search",
+          ? copy.home.nothingUnderKind(kindLabel)
+          : copy.home.queryHint,
+        actionLabel: kindLabel
+          ? copy.home.clearSearchAndFilter
+          : copy.home.clearSearch,
         onAction: clearFilters,
       }
     }
@@ -400,34 +405,34 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
     if (onlyUnseen) {
       if (kindLabel) {
         return {
-          title: `Nothing new under ${kindLabel}`,
-          body: "Other types picked up entries since your last visit.",
-          actionLabel: "All new entries",
+          title: copy.home.nothingNewUnder(kindLabel),
+          body: copy.home.otherTypesNew,
+          actionLabel: copy.home.allNewEntries,
           onAction: () => changeKind(),
         }
       }
 
       return {
-        title: "You have read everything new.",
-        body: "A few entries land every day. The banner up top will be holding them next time you drop in.",
-        actionLabel: "Back to the index",
+        title: copy.home.readEverything,
+        body: copy.home.readEverythingBody,
+        actionLabel: copy.home.backToIndex,
         onAction: () => setOnlyUnseen(false),
       }
     }
 
     if (kindLabel) {
       return {
-        title: `Nothing indexed under ${kindLabel} yet`,
-        body: "This type is tracked but still empty.",
-        actionLabel: "Show all types",
+        title: copy.home.nothingIndexedUnder(kindLabel),
+        body: copy.home.trackedButEmpty,
+        actionLabel: copy.home.showAllTypes,
         onAction: () => changeKind(),
       }
     }
 
     return {
-      title: "No entries match this combination",
-      body: "Try a shorter search, another type, or clear the current filters.",
-      actionLabel: "Clear filters",
+      title: copy.home.noCombination,
+      body: copy.home.noCombinationBody,
+      actionLabel: copy.home.clearFilters,
       onAction: clearFilters,
     }
   }
@@ -436,16 +441,10 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
     <div className="index-page">
       <header className="index-header">
         <div className="index-brand-block">
-          <Link
-            to="/"
-            className="index-brand"
-            aria-label="FindThatProject home"
-          >
+          <Link to="/" className="index-brand" aria-label={copy.home.homeLabel}>
             FindThatProject<span>/</span>
           </Link>
-          <p className="index-tagline">
-            Hand-indexed tools, projects &amp; podcasts
-          </p>
+          <p className="index-tagline">{copy.home.tagline}</p>
         </div>
 
         <div className="index-header-tools">
@@ -462,14 +461,14 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
             <>
               <span className="index-header-divider" aria-hidden="true" />
               <div className="index-digest">
-                <span>Weekly digest</span>
+                <span>{copy.home.weeklyDigest}</span>
                 {digestLinks.map((channel) => (
                   <a
                     key={channel.handle}
                     href={channel.url}
                     target="_blank"
                     rel="noreferrer"
-                    aria-label={`${channel.locale} weekly digest on Telegram (opens in a new tab)`}
+                    aria-label={copy.home.digestLabel(channel.locale)}
                   >
                     <TelegramIcon />
                     {channel.locale}
@@ -480,16 +479,18 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
           ) : null}
 
           <span className="index-header-divider" aria-hidden="true" />
-          <nav className="index-utility-nav" aria-label="Site links">
-            <Link to="/about">About</Link>
+          <LocaleSwitcher />
+          <span className="index-header-divider" aria-hidden="true" />
+          <nav className="index-utility-nav" aria-label={copy.home.siteLinks}>
+            <Link to="/about">{copy.home.about}</Link>
           </nav>
         </div>
       </header>
 
       <div className="index-body">
-        <aside className="index-sidebar" aria-label="Index filters">
+        <aside className="index-sidebar" aria-label={copy.home.indexFilters}>
           <div className="index-facet">
-            <h2 className="index-facet-title">Type</h2>
+            <h2 className="index-facet-title">{copy.home.type}</h2>
             <nav className="index-facet-list">
               <button
                 type="button"
@@ -497,7 +498,7 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
                 aria-pressed={!filters.kind}
                 onClick={() => changeKind()}
               >
-                <span>All</span>
+                <span>{copy.home.all}</span>
                 <span>{totalCount}</span>
               </button>
               {kindOptions.map((option) => (
@@ -508,7 +509,7 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
                   aria-pressed={filters.kind === option.value}
                   onClick={() => changeKind(option.value)}
                 >
-                  <span>{formatTechnologyKind(option.value)}</span>
+                  <span>{formatTechnologyKind(option.value, locale)}</span>
                   <span>{option.count}</span>
                 </button>
               ))}
@@ -516,7 +517,7 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
           </div>
 
           <div className="index-facet index-facet-sort">
-            <h2 className="index-facet-title">Sort</h2>
+            <h2 className="index-facet-title">{copy.home.sort}</h2>
             <div className="index-facet-list">
               <button
                 type="button"
@@ -524,7 +525,7 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
                 aria-pressed={sort === "traction"}
                 onClick={() => setSort("traction")}
               >
-                <span>Traction</span>
+                <span>{copy.home.traction}</span>
               </button>
               <button
                 type="button"
@@ -532,14 +533,14 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
                 aria-pressed={sort === "newest"}
                 onClick={() => setSort("newest")}
               >
-                <span>Newest</span>
+                <span>{copy.home.newest}</span>
               </button>
             </div>
           </div>
         </aside>
 
         <main id="main-content" tabIndex={-1} className="index-main">
-          <h1 className="sr-only">FindThatProject technology ledger</h1>
+          <h1 className="sr-only">{copy.home.pageTitle}</h1>
 
           <section
             className="ledger-banner"
@@ -558,7 +559,7 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
                   className="ledger-banner-quiet-action"
                   onClick={markAllSeen}
                 >
-                  Mark all seen
+                  {copy.home.markAllSeen}
                 </button>
               ) : (
                 <button
@@ -566,7 +567,7 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
                   className="ledger-banner-quiet-action"
                   onClick={resetReadState}
                 >
-                  Reset read state
+                  {copy.home.resetReadState}
                 </button>
               )}
               <button
@@ -575,14 +576,18 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
                 aria-pressed={onlyUnseen}
                 onClick={() => setOnlyUnseen((current) => !current)}
               >
-                {onlyUnseen ? "Showing new only" : "Show only new"}
+                {onlyUnseen ? copy.home.showingNewOnly : copy.home.showOnlyNew}
               </button>
             </div>
           </section>
 
           <div className="ledger-scope">
             <p aria-live="polite">{scopeLine()}</p>
-            <p>{sort === "newest" ? "Newest first" : "Sorted by traction"}</p>
+            <p>
+              {sort === "newest"
+                ? copy.home.newestFirst
+                : copy.home.sortedByTraction}
+            </p>
           </div>
 
           <div className="index-surface" aria-busy={isFiltering}>
@@ -597,14 +602,11 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
             {loadMoreFailed ? (
               <Alert className="catalog-inline-alert" variant="destructive">
                 <AlertCircleIcon aria-hidden="true" />
-                <AlertTitle>More entries could not be loaded</AlertTitle>
-                <AlertDescription>
-                  The entries already shown are still available. Retry when the
-                  API is reachable.
-                </AlertDescription>
+                <AlertTitle>{copy.home.loadFailureTitle}</AlertTitle>
+                <AlertDescription>{copy.home.loadFailureBody}</AlertDescription>
                 <AlertAction>
                   <Button variant="outline" size="sm" onClick={loadMore}>
-                    Retry
+                    {copy.common.retry}
                   </Button>
                 </AlertAction>
               </Alert>
@@ -618,7 +620,7 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
                   disabled={loadingMore}
                   onClick={loadMore}
                 >
-                  {loadingMore ? "Loading more…" : "Load more entries"}
+                  {loadingMore ? copy.home.loadingMore : copy.home.loadMore}
                 </button>
               </div>
             ) : null}
@@ -628,7 +630,7 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
 
       <footer className="index-footer">
         <p>
-          Every new entry is announced on{" "}
+          {copy.home.footer.split("@findthatproject")[0]}
           <a
             href="https://t.me/findthatproject"
             target="_blank"
@@ -636,10 +638,10 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
           >
             @findthatproject
           </a>
-          . Miss the posts and the banner up top has them waiting.
+          {copy.home.footer.split("@findthatproject")[1]}
         </p>
         <span>
-          {totalCount} indexed · {data.facets.kinds.length} types
+          {copy.home.indexedCount(totalCount, data.facets.kinds.length)}
         </span>
       </footer>
     </div>
@@ -651,16 +653,16 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 }
 
 export function HydrateFallback() {
+  const { copy } = useLocale()
+
   return (
-    <div className="index-page" aria-label="Loading catalog">
+    <div className="index-page" aria-label={copy.home.loadingCatalog}>
       <header className="index-header">
         <div className="index-brand-block">
           <span className="index-brand" aria-hidden="true">
             FindThatProject<span>/</span>
           </span>
-          <p className="index-tagline">
-            Hand-indexed tools, projects &amp; podcasts
-          </p>
+          <p className="index-tagline">{copy.home.tagline}</p>
         </div>
         <Skeleton className="h-8 w-40" />
       </header>
@@ -682,6 +684,7 @@ export function HydrateFallback() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  const { copy } = useLocale()
   const revalidator = useRevalidator()
   const requestId = error instanceof CatalogApiError ? error.requestId : null
 
@@ -693,11 +696,10 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
     >
       <Alert variant="destructive" className="max-w-2xl">
         <AlertCircleIcon aria-hidden="true" />
-        <AlertTitle>The catalog API is unavailable</AlertTitle>
+        <AlertTitle>{copy.home.apiUnavailable}</AlertTitle>
         <AlertDescription>
-          FindThatProject will not substitute sample entries. Retry the live
-          catalog request.
-          {requestId ? ` Request ID: ${requestId}.` : ""}
+          {copy.home.apiUnavailableBody}
+          {requestId ? ` ${copy.home.requestId}: ${requestId}.` : ""}
         </AlertDescription>
         <AlertAction>
           <Button
@@ -705,7 +707,9 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             disabled={revalidator.state !== "idle"}
             onClick={() => revalidator.revalidate()}
           >
-            {revalidator.state === "idle" ? "Retry" : "Retrying…"}
+            {revalidator.state === "idle"
+              ? copy.common.retry
+              : copy.common.retrying}
           </Button>
         </AlertAction>
       </Alert>

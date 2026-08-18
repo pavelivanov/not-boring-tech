@@ -29,6 +29,7 @@ import ToolDetail, {
   clientLoader as detailClientLoader,
   ErrorBoundary as DetailErrorBoundary,
 } from "./tool-detail"
+import { LocaleProvider, localeStorageKey } from "~/lib/locale"
 
 const apiOrigin = "https://catalog-api.example.test"
 const now = "2026-08-03T10:00:00.000Z"
@@ -77,6 +78,21 @@ const baseFilters = {
 let catalogUnavailable = false
 let databaseEmpty = false
 let fetchSpy: ReturnType<typeof vi.fn>
+
+function createMemoryStorage(): Storage {
+  const values = new Map<string, string>()
+
+  return {
+    get length() {
+      return values.size
+    },
+    clear: () => values.clear(),
+    getItem: (key) => values.get(key) ?? null,
+    key: (index) => [...values.keys()][index] ?? null,
+    removeItem: (key) => values.delete(key),
+    setItem: (key, value) => values.set(key, value),
+  }
+}
 
 function jsonResponse(payload: unknown, status = 200): Response {
   return new Response(JSON.stringify(payload), {
@@ -253,11 +269,16 @@ function renderAt(initialEntry: InitialEntry = "/") {
     initialEntries: [initialEntry],
   })
 
-  render(<RouterProvider router={router} />)
+  render(
+    <LocaleProvider>
+      <RouterProvider router={router} />
+    </LocaleProvider>
+  )
   return router
 }
 
 beforeEach(() => {
+  vi.stubGlobal("localStorage", createMemoryStorage())
   vi.spyOn(Date, "now").mockReturnValue(Date.parse(now))
   vi.stubEnv("VITE_API_BASE_URL", apiOrigin)
   catalogUnavailable = false
@@ -272,6 +293,27 @@ afterEach(() => {
 })
 
 describe("home route", () => {
+  it("restores, switches, and persists the selected locale", async () => {
+    window.localStorage.setItem(localeStorageKey, "ru")
+    const user = userEvent.setup()
+    renderAt()
+
+    expect(await screen.findByRole("button", { name: "Поиск" })).toBeVisible()
+    expect(document.documentElement).toHaveAttribute("lang", "ru")
+    expect(screen.getByRole("radio", { name: "Русский" })).toHaveAttribute(
+      "data-state",
+      "on"
+    )
+
+    await user.click(screen.getByRole("radio", { name: "English" }))
+
+    expect(screen.getByRole("button", { name: "Search" })).toBeVisible()
+    expect(document.documentElement).toHaveAttribute("lang", "en")
+    await waitFor(() =>
+      expect(window.localStorage.getItem(localeStorageKey)).toBe("en")
+    )
+  })
+
   it("renders the traction-led ledger from the live API", async () => {
     renderAt()
 
@@ -434,7 +476,9 @@ describe("home route", () => {
   it("distinguishes an empty database from filtered zero results", async () => {
     databaseEmpty = true
     const { unmount } = render(
-      <RouterProvider router={createMemoryRouter(routes)} />
+      <LocaleProvider>
+        <RouterProvider router={createMemoryRouter(routes)} />
+      </LocaleProvider>
     )
 
     expect(await screen.findByText("No parsed entries yet")).toBeVisible()
@@ -467,7 +511,11 @@ describe("home route", () => {
   })
 
   it("renders an accessible loading skeleton", () => {
-    const { container } = render(<HomeHydrateFallback />)
+    const { container } = render(
+      <LocaleProvider>
+        <HomeHydrateFallback />
+      </LocaleProvider>
+    )
 
     expect(screen.getByLabelText("Loading catalog")).toBeVisible()
     expect(

@@ -5,6 +5,7 @@ import { Link } from "react-router"
 import { TelegramIcon } from "~/components/telegram-icon"
 import { formatLedgerDate } from "~/domain/dates"
 import { formatTechnologyKind } from "~/domain/tools"
+import { useLocale } from "~/lib/locale"
 
 type ToolCardProps = {
   readonly tool: CatalogListItem
@@ -21,12 +22,21 @@ export type EntryLinkProps = {
   readonly onOpen: () => void
 }
 
-const compactCountFormatter = new Intl.NumberFormat("en", {
-  notation: "compact",
-  maximumFractionDigits: 1,
-})
+const compactCountFormatters = {
+  en: new Intl.NumberFormat("en", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }),
+  ru: new Intl.NumberFormat("ru-RU", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }),
+} as const
 
-const exactCountFormatter = new Intl.NumberFormat("en")
+const exactCountFormatters = {
+  en: new Intl.NumberFormat("en"),
+  ru: new Intl.NumberFormat("ru-RU"),
+} as const
 
 export function EntryLink({
   tool,
@@ -35,6 +45,8 @@ export function EntryLink({
   children,
   onOpen,
 }: EntryLinkProps) {
+  const { copy } = useLocale()
+
   if (tool.canonicalUrl) {
     return (
       <a
@@ -42,7 +54,7 @@ export function EntryLink({
         target="_blank"
         rel="noreferrer"
         className={className}
-        aria-label={`${tool.name} project (opens in a new tab)`}
+        aria-label={copy.toolCard.externalProject(tool.name)}
         onClick={onOpen}
       >
         {children}
@@ -55,7 +67,7 @@ export function EntryLink({
       to={`/tools/${tool.slug}`}
       state={{ from: search }}
       className={className}
-      aria-label={`Read ${tool.name}`}
+      aria-label={copy.toolCard.read(tool.name)}
       onClick={onOpen}
     >
       {children}
@@ -64,9 +76,13 @@ export function EntryLink({
 }
 
 export function ToolCard({ tool, search, unseen, onMarkSeen }: ToolCardProps) {
+  const { locale, copy } = useLocale()
   const markSeen = () => onMarkSeen(tool.slug)
-  const sourceLabel =
-    tool.channelCount === 1 ? "1 source" : `${tool.channelCount} sources`
+  const sourceLabel = copy.toolCard.sourceCount(tool.channelCount)
+  const exactStarCount =
+    tool.githubStars === null
+      ? null
+      : exactCountFormatters[locale].format(tool.githubStars)
 
   return (
     <article className="ledger-row" data-unseen={unseen || undefined}>
@@ -75,13 +91,15 @@ export function ToolCard({ tool, search, unseen, onMarkSeen }: ToolCardProps) {
           <span
             className="ledger-unseen-dot"
             role="img"
-            aria-label="New since your last visit"
+            aria-label={copy.toolCard.newSinceVisit}
           />
         ) : null}
       </span>
 
       <div className="ledger-row-copy">
-        <p className="ledger-entry-kind">{formatTechnologyKind(tool.kind)}</p>
+        <p className="ledger-entry-kind">
+          {formatTechnologyKind(tool.kind, locale)}
+        </p>
 
         <EntryLink
           tool={tool}
@@ -98,7 +116,7 @@ export function ToolCard({ tool, search, unseen, onMarkSeen }: ToolCardProps) {
           to={`/tools/${tool.slug}`}
           state={{ from: search }}
           className="ledger-row-source"
-          aria-label={`View ${tool.name} provenance`}
+          aria-label={copy.toolCard.provenance(tool.name)}
           onClick={markSeen}
         >
           <TelegramIcon size={11} />
@@ -110,18 +128,16 @@ export function ToolCard({ tool, search, unseen, onMarkSeen }: ToolCardProps) {
         {tool.githubStars === null ? null : (
           <p
             className="ledger-stars"
-            title={`${exactCountFormatter.format(tool.githubStars)} GitHub stars`}
-            aria-label={`${exactCountFormatter.format(
-              tool.githubStars
-            )} GitHub stars`}
+            title={copy.toolCard.stars(exactStarCount ?? "")}
+            aria-label={copy.toolCard.stars(exactStarCount ?? "")}
           >
             <span aria-hidden="true">★</span>
-            {compactCountFormatter.format(tool.githubStars)}
+            {compactCountFormatters[locale].format(tool.githubStars)}
           </p>
         )}
         <p className="ledger-row-date">
           <time dateTime={tool.firstMentionedAt}>
-            {formatLedgerDate(tool.firstMentionedAt)}
+            {formatLedgerDate(tool.firstMentionedAt, locale)}
           </time>
         </p>
       </div>

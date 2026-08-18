@@ -6,6 +6,7 @@ import {
   formatRelativeAge,
   stableReferenceTime,
 } from "~/domain/dates"
+import { useLocale } from "~/lib/locale"
 
 type RelativeDateProps = {
   readonly value: string
@@ -13,8 +14,9 @@ type RelativeDateProps = {
 }
 
 export function RelativeDate({ value, compact = false }: RelativeDateProps) {
+  const { locale, copy } = useLocale()
   const [referenceTime, setReferenceTime] = useState(stableReferenceTime)
-  const absoluteDate = formatAbsoluteDate(value)
+  const absoluteDate = formatAbsoluteDate(value, locale)
 
   useEffect(() => {
     setReferenceTime(Date.now())
@@ -24,11 +26,11 @@ export function RelativeDate({ value, compact = false }: RelativeDateProps) {
     <time
       dateTime={value}
       title={absoluteDate}
-      aria-label={`Presented ${absoluteDate}`}
+      aria-label={copy.relativeDate.presented(absoluteDate)}
     >
       {compact
-        ? formatCompactRelativeAge(value, referenceTime)
-        : formatRelativeAge(value, referenceTime)}
+        ? formatCompactRelativeAge(value, referenceTime, locale)
+        : formatRelativeAge(value, referenceTime, locale)}
     </time>
   )
 }

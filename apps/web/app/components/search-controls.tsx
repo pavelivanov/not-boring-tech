@@ -12,6 +12,7 @@ import {
 } from "~/components/ui/dialog"
 import { normalizeSearchText } from "~/domain/search"
 import { formatTechnologyKind } from "~/domain/tools"
+import { useLocale } from "~/lib/locale"
 
 const maxResults = 7
 const maxSuggestions = 5
@@ -39,6 +40,7 @@ export function IndexSearchDialog({
   onSubmitQuery,
   onOpenEntry,
 }: IndexSearchDialogProps) {
+  const { locale, copy } = useLocale()
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState(query)
 
@@ -87,7 +89,7 @@ export function IndexSearchDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger className="index-search-trigger">
         <SearchIcon aria-hidden="true" />
-        Search
+        {copy.search.trigger}
         <kbd aria-hidden="true">/</kbd>
       </DialogTrigger>
 
@@ -96,7 +98,7 @@ export function IndexSearchDialog({
         showCloseButton={false}
         aria-describedby={undefined}
       >
-        <DialogTitle className="sr-only">Search the index</DialogTitle>
+        <DialogTitle className="sr-only">{copy.search.title}</DialogTitle>
 
         <form
           className="index-search-field"
@@ -111,8 +113,8 @@ export function IndexSearchDialog({
             type="search"
             autoFocus
             value={draft}
-            aria-label="Search index"
-            placeholder="Search the index"
+            aria-label={copy.search.label}
+            placeholder={copy.search.placeholder}
             onChange={(event) => setDraft(event.target.value)}
           />
           <span className="index-search-hint" aria-hidden="true">
@@ -136,14 +138,14 @@ export function IndexSearchDialog({
                   >
                     <span>{entry.name}</span>
                     <span className="ledger-entry-kind">
-                      {formatTechnologyKind(entry.kind)}
+                      {formatTechnologyKind(entry.kind, locale)}
                     </span>
                   </EntryLink>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="index-search-empty">No loaded entry matches that.</p>
+            <p className="index-search-empty">{copy.search.noLoadedMatch}</p>
           )}
 
           {needle ? (
@@ -152,13 +154,13 @@ export function IndexSearchDialog({
               className="index-search-submit"
               onClick={submit}
             >
-              Search the whole index for “{draft.trim()}”
+              {copy.search.submit(draft.trim())}
             </button>
           ) : (
             <DialogDescription className="index-search-footnote">
               {suggestions.length > 0
-                ? "Newest entries since your last visit. Type to filter, press Enter to search the whole index."
-                : "Type to filter what is loaded, press Enter to search the whole index."}
+                ? copy.search.suggestionsFootnote
+                : copy.search.filterFootnote}
             </DialogDescription>
           )}
         </div>

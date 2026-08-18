@@ -3,6 +3,7 @@ import { Link } from "react-router"
 
 import { Separator } from "~/components/ui/separator"
 import { canonicalMeta } from "~/domain/urls"
+import { useLocale } from "~/lib/locale"
 
 export function meta() {
   return [
@@ -17,6 +18,8 @@ export function meta() {
 }
 
 export default function About() {
+  const { copy } = useLocale()
+
   return (
     <main id="main-content" tabIndex={-1} className="page-width py-12 md:py-20">
       <Link
@@ -24,62 +27,32 @@ export default function About() {
         className="inline-flex items-center gap-1.5 text-sm font-medium underline decoration-border underline-offset-4 hover:decoration-primary"
       >
         <ArrowLeftIcon aria-hidden="true" />
-        Back to index
+        {copy.about.back}
       </Link>
 
       <header className="mt-10 max-w-3xl">
         <p className="font-mono text-xs tracking-[0.2em] text-muted-foreground uppercase">
-          About the index
+          {copy.about.eyebrow}
         </p>
         <h1 className="mt-4 font-heading text-5xl font-semibold tracking-[-0.05em] md:text-7xl">
-          The stream already did the curation.
+          {copy.about.title}
         </h1>
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-          FindThatProject turns a bounded set of trusted public Telegram
-          channels into a filterable index. It is designed for finding a useful
-          subject again—not for manufacturing another discovery feed.
+          {copy.about.intro}
         </p>
       </header>
 
       <Separator className="my-12" />
 
       <div className="grid gap-10 md:grid-cols-2 md:gap-16">
-        <section className="flex flex-col gap-3">
-          <h2 className="text-xl font-semibold">Corpus boundary</h2>
-          <p className="leading-relaxed text-muted-foreground">
-            Only posts from the public handles configured for the parser belong
-            in the index. Private chats, user-selected channels, ads, job posts,
-            and copied full post bodies are outside the boundary.
-          </p>
-        </section>
-
-        <section className="flex flex-col gap-3">
-          <h2 className="text-xl font-semibold">Attribution</h2>
-          <p className="leading-relaxed text-muted-foreground">
-            Each presentation keeps its original channel, publication date, and
-            direct public post link. Tool descriptions are short English
-            summaries rather than reproductions of channel text.
-          </p>
-        </section>
-
-        <section className="flex flex-col gap-3">
-          <h2 className="text-xl font-semibold">Read-only by design</h2>
-          <p className="leading-relaxed text-muted-foreground">
-            Visitors can filter the index and follow sources, but cannot create,
-            edit, or delete records. Updates are handled by controlled
-            collection and maintenance tooling outside the public website.
-          </p>
-        </section>
-
-        <section className="flex flex-col gap-3">
-          <h2 className="text-xl font-semibold">Corrections and removals</h2>
-          <p className="leading-relaxed text-muted-foreground">
-            Contact the owner who shared this index to request a correction or
-            removal. A public handling destination will be listed here when it
-            is monitored; no unmonitored form is presented as a working support
-            channel.
-          </p>
-        </section>
+        {copy.about.sections.map((section) => (
+          <section key={section.title} className="flex flex-col gap-3">
+            <h2 className="text-xl font-semibold">{section.title}</h2>
+            <p className="leading-relaxed text-muted-foreground">
+              {section.body}
+            </p>
+          </section>
+        ))}
       </div>
     </main>
   )
