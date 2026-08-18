@@ -293,6 +293,21 @@ afterEach(() => {
 })
 
 describe("home route", () => {
+  it("links to both weekly digest channels", async () => {
+    renderAt()
+
+    expect(
+      await screen.findByRole("link", {
+        name: "RU weekly digest on Telegram (opens in a new tab)",
+      })
+    ).toHaveAttribute("href", "https://t.me/findthatproject_weekly_digest_ru")
+    expect(
+      screen.getByRole("link", {
+        name: "EN weekly digest on Telegram (opens in a new tab)",
+      })
+    ).toHaveAttribute("href", "https://t.me/findthatproject_weekly_digest_en")
+  })
+
   it("restores, switches, and persists the selected locale", async () => {
     window.localStorage.setItem(localeStorageKey, "ru")
     const user = userEvent.setup()
