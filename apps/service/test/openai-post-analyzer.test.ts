@@ -26,7 +26,10 @@ const parsedPresentation = {
       name: "Nanochat",
       parentName: null,
       subjectUrl: "https://github.com/karpathy/nanochat",
+      githubUrl: "https://github.com/karpathy/nanochat",
       descriptionEn: "A compact project for learning how chat models work.",
+      descriptionRu:
+        "Компактный проект для изучения устройства диалоговых моделей.",
       tags: ["ai", "learning"],
       sourceLanguage: "en",
       confidence: 0.95,

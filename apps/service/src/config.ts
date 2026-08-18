@@ -2,6 +2,7 @@ import { z } from "zod";
 
 const POSTGRES_PROTOCOLS = new Set(["postgres:", "postgresql:"]);
 const TELEGRAM_HANDLE = /^@[a-z][a-z0-9_]{4,31}$/i;
+const TELEGRAM_CHANNEL_ID = /^-\d{5,20}$/;
 const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
 const LOCAL_API_ORIGINS = "http://localhost:3000,http://127.0.0.1:3000";
 
@@ -153,9 +154,95 @@ const extractionEvalSchema = z.object({
   OPENAI_MAX_ATTEMPTS: boundedInteger("OPENAI_MAX_ATTEMPTS", 1, 3).default(3),
 });
 
+const digestTargetSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .transform((value) => (value.startsWith("@") ? value.toLowerCase() : value))
+  .refine(
+    (value) => TELEGRAM_HANDLE.test(value) || TELEGRAM_CHANNEL_ID.test(value),
+    "must be a public channel handle or negative numeric channel ID",
+  );
+
+const digestSiteOriginSchema = z
+  .string()
+  .trim()
+  .transform((value, context) => {
+    try {
+      const url = new URL(value);
+      const localHttp =
+        url.protocol === "http:" &&
+        ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
+      if (
+        (url.protocol !== "https:" && !localHttp) ||
+        url.username ||
+        url.password ||
+        url.pathname !== "/" ||
+        url.search ||
+        url.hash
+      ) {
+        throw new Error("invalid origin");
+      }
+      return url.origin;
+    } catch {
+      context.addIssue({
+        code: "custom",
+        message:
+          "DIGEST_SITE_ORIGIN must be an HTTPS origin or local HTTP origin",
+      });
+      return z.NEVER;
+    }
+  });
+
+const offsetDateTimeSchema = z
+  .string()
+  .trim()
+  .regex(
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/,
+    "DIGEST_INITIAL_START_AT must be an offset-aware ISO datetime",
+  )
+  .transform((value, context) => {
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) {
+      context.addIssue({
+        code: "custom",
+        message: "DIGEST_INITIAL_START_AT must be a valid datetime",
+      });
+      return z.NEVER;
+    }
+    return date;
+  });
+
+const digestSchema = z
+  .object({
+    DATABASE_URL: databaseUrlSchema,
+    TELEGRAM_DIGEST_BOT_TOKEN: z.string().trim().min(1),
+    TELEGRAM_DIGEST_CHANNEL_EN: digestTargetSchema,
+    TELEGRAM_DIGEST_CHANNEL_RU: digestTargetSchema,
+    DIGEST_SITE_ORIGIN: digestSiteOriginSchema,
+    DIGEST_INITIAL_START_AT: offsetDateTimeSchema,
+    DIGEST_REQUEST_TIMEOUT_MS: boundedInteger(
+      "DIGEST_REQUEST_TIMEOUT_MS",
+      1_000,
+      30_000,
+    ).default(15_000),
+    DIGEST_MAX_ATTEMPTS: boundedInteger("DIGEST_MAX_ATTEMPTS", 1, 3).default(3),
+    LOG_LEVEL: z.enum(LOG_LEVELS).default("info"),
+  })
+  .superRefine((value, context) => {
+    if (value.TELEGRAM_DIGEST_CHANNEL_EN === value.TELEGRAM_DIGEST_CHANNEL_RU) {
+      context.addIssue({
+        code: "custom",
+        path: ["TELEGRAM_DIGEST_CHANNEL_RU"],
+        message: "digest channel targets must be distinct",
+      });
+    }
+  });
+
 export type ServerConfig = z.infer<typeof serverSchema>;
 export type SyncConfig = z.infer<typeof syncSchema>;
 export type ExtractionEvalConfig = z.infer<typeof extractionEvalSchema>;
+export type DigestConfig = z.infer<typeof digestSchema>;
 
 export class ConfigError extends Error {
   readonly issues: readonly string[];
@@ -192,3 +279,7 @@ export const parseSyncConfig = (
 export const parseExtractionEvalConfig = (
   environment: NodeJS.ProcessEnv = process.env,
 ): ExtractionEvalConfig => parseWith(extractionEvalSchema, environment);
+
+export const parseDigestConfig = (
+  environment: NodeJS.ProcessEnv = process.env,
+): DigestConfig => parseWith(digestSchema, environment);

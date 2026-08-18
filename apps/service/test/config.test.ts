@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   ConfigError,
+  parseDigestConfig,
   parseExtractionEvalConfig,
   parseServerConfig,
   parseSyncConfig,
@@ -14,6 +15,7 @@ const SECRET_SENTINELS = {
   TELEGRAM_SESSION: "telegram-session-sentinel",
   OPENAI_API_KEY: "openai-key-sentinel",
   GITHUB_TOKEN: "github-token-sentinel",
+  TELEGRAM_DIGEST_BOT_TOKEN: "telegram-bot-token-sentinel",
 };
 
 const validSyncEnvironment = (): NodeJS.ProcessEnv => ({
@@ -21,6 +23,15 @@ const validSyncEnvironment = (): NodeJS.ProcessEnv => ({
   TELEGRAM_API_ID: "123456",
   TELEGRAM_CHANNELS: "@NotBoring_Tech, @CTODaily",
   OPENAI_MODEL: "structured-output-model",
+});
+
+const validDigestEnvironment = (): NodeJS.ProcessEnv => ({
+  DATABASE_URL: SECRET_SENTINELS.DATABASE_URL,
+  TELEGRAM_DIGEST_BOT_TOKEN: SECRET_SENTINELS.TELEGRAM_DIGEST_BOT_TOKEN,
+  TELEGRAM_DIGEST_CHANNEL_EN: "@Digest_English",
+  TELEGRAM_DIGEST_CHANNEL_RU: "-1001234567890",
+  DIGEST_SITE_ORIGIN: "https://findthatproject.example/",
+  DIGEST_INITIAL_START_AT: "2026-08-10T09:00:00+00:00",
 });
 
 describe("parseServerConfig", () => {
@@ -151,5 +162,63 @@ describe("parseExtractionEvalConfig", () => {
       OPENAI_REQUEST_TIMEOUT_MS: 30_000,
       OPENAI_MAX_ATTEMPTS: 3,
     });
+  });
+});
+
+describe("parseDigestConfig", () => {
+  it("normalizes distinct targets, origin, cutoff, and bounded defaults", () => {
+    expect(parseDigestConfig(validDigestEnvironment())).toMatchObject({
+      TELEGRAM_DIGEST_CHANNEL_EN: "@digest_english",
+      TELEGRAM_DIGEST_CHANNEL_RU: "-1001234567890",
+      DIGEST_SITE_ORIGIN: "https://findthatproject.example",
+      DIGEST_INITIAL_START_AT: new Date("2026-08-10T09:00:00.000Z"),
+      DIGEST_REQUEST_TIMEOUT_MS: 15_000,
+      DIGEST_MAX_ATTEMPTS: 3,
+      LOG_LEVEL: "info",
+    });
+  });
+
+  it.each([
+    ["same targets", { TELEGRAM_DIGEST_CHANNEL_RU: "@DIGEST_ENGLISH" }],
+    ["invalid target", { TELEGRAM_DIGEST_CHANNEL_EN: "channel" }],
+    ["origin path", { DIGEST_SITE_ORIGIN: "https://example.com/private" }],
+    ["non-local HTTP", { DIGEST_SITE_ORIGIN: "http://example.com" }],
+    [
+      "cutoff without offset",
+      { DIGEST_INITIAL_START_AT: "2026-08-10T09:00:00" },
+    ],
+    ["timeout too low", { DIGEST_REQUEST_TIMEOUT_MS: "999" }],
+    ["too many attempts", { DIGEST_MAX_ATTEMPTS: "4" }],
+  ])("rejects %s", (_label, overrides) => {
+    expect(() =>
+      parseDigestConfig({ ...validDigestEnvironment(), ...overrides }),
+    ).toThrow(ConfigError);
+  });
+
+  it("allows an HTTP origin only for local development", () => {
+    expect(
+      parseDigestConfig({
+        ...validDigestEnvironment(),
+        DIGEST_SITE_ORIGIN: "http://localhost:3000/",
+      }).DIGEST_SITE_ORIGIN,
+    ).toBe("http://localhost:3000");
+  });
+
+  it("never includes digest credentials or targets in validation errors", () => {
+    const environment = {
+      ...validDigestEnvironment(),
+      DIGEST_MAX_ATTEMPTS: "invalid",
+    };
+    let rendered = "";
+    try {
+      parseDigestConfig(environment);
+    } catch (error) {
+      rendered = String(error);
+    }
+    for (const sentinel of Object.values(SECRET_SENTINELS)) {
+      expect(rendered).not.toContain(sentinel);
+    }
+    expect(rendered).not.toContain("@Digest_English");
+    expect(rendered).not.toContain("-1001234567890");
   });
 });

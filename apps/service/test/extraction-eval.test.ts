@@ -34,7 +34,12 @@ class ExpectedOutcomeAnalyzer implements PostAnalyzer {
             name: presentation.names[0]!,
             parentName: presentation.kinds[0] === "FEATURE" ? "Parent" : null,
             subjectUrl: evaluationCase.links[index] ?? null,
+            githubUrl:
+              evaluationCase.links.find((link) =>
+                link.includes("github.com/"),
+              ) ?? null,
             descriptionEn: "A concise synthetic evaluation description.",
+            descriptionRu: "Краткое синтетическое описание технологии.",
             tags: ["synthetic"],
             sourceLanguage: evaluationCase.id.includes("russian")
               ? "ru"
@@ -99,19 +104,54 @@ describe("extraction evaluation corpus", () => {
     );
 
     expect(metrics).toMatchObject({
-      totalCases: 30,
-      relevantCases: 19,
+      totalCases: 31,
+      relevantCases: 20,
       irrelevantCases: 11,
       relevancePrecision: 1,
       relevanceRecall: 1,
       kindAccuracy: 1,
       urlGroundingViolations: 0,
+      russianDescriptionViolations: 0,
       schemaRefusalIncompleteCount: 0,
       failedOutcomeCount: 0,
-      totalTokens: 300,
+      totalTokens: 310,
       passed: true,
     });
     expect(JSON.stringify(metrics)).not.toContain("untrustedTelegramPost");
+  });
+
+  it("rejects an aggregate with no Cyrillic Russian description", async () => {
+    const analyzer: PostAnalyzer = {
+      analyze: async () => ({
+        type: "success",
+        metadata,
+        analysis: {
+          relevant: true,
+          presentations: [
+            {
+              kind: "PROJECT",
+              category: "Other",
+              name: "Synthetic",
+              parentName: null,
+              subjectUrl: null,
+              githubUrl: null,
+              descriptionEn: "A concise synthetic description.",
+              descriptionRu: "Transliterated Russian description.",
+              tags: [],
+              sourceLanguage: "en",
+              confidence: 0.9,
+            },
+          ],
+        },
+      }),
+    };
+
+    const metrics = await evaluateExtractionCases(
+      [extractionEvalCases[0]!],
+      analyzer,
+    );
+    expect(metrics.russianDescriptionViolations).toBe(1);
+    expect(metrics.passed).toBe(false);
   });
 
   it("counts refusal and incomplete-style failures without exposing input", async () => {

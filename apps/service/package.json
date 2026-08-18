@@ -8,6 +8,7 @@
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "sync": "tsx src/sync.ts",
+    "digest": "tsx src/digest.ts",
     "eval:extraction": "tsx src/eval/run-extraction-eval.ts",
     "lint": "prettier --check .",
     "typecheck": "tsc --noEmit",

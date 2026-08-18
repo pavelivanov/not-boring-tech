@@ -112,7 +112,9 @@ const visibleCandidatesForItem = (
       name: true,
       parentName: true,
       subjectUrl: true,
+      githubUrl: true,
       descriptionEn: true,
+      descriptionRu: true,
       tags: true,
       confidence: true,
       analyzedPost: { select: { publishedAt: true } },
@@ -151,6 +153,9 @@ export const refreshCatalogItems = async (
       candidate.analyzedPost.publishedAt.getTime(),
     );
     const canonicalUrl = identity.canonicalUrl;
+    const githubUrl =
+      candidates.find((candidate) => candidate.githubUrl !== null)?.githubUrl ??
+      null;
 
     await transaction.catalogItem.update({
       where: { id: catalogItemId },
@@ -161,7 +166,9 @@ export const refreshCatalogItems = async (
         nameSortKey: normalizeIdentityText(winner.name),
         parentName: winner.parentName,
         canonicalUrl,
+        githubUrl,
         descriptionEn: winner.descriptionEn,
+        descriptionRu: winner.descriptionRu,
         tags: [...tags],
         searchText: searchTextFor({
           name: winner.name,
@@ -241,7 +248,9 @@ export const projectCandidateIds = async (
           nameSortKey: identity.nameSortKey,
           parentName: candidate.parentName,
           canonicalUrl: identity.canonicalUrl,
+          githubUrl: candidate.githubUrl,
           descriptionEn: candidate.descriptionEn,
+          descriptionRu: candidate.descriptionRu,
           tags: [...tags],
           searchText: searchTextFor({
             name: candidate.name,
