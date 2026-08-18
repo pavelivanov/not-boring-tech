@@ -10,7 +10,7 @@ A service that continuously reads a curated set of Telegram channels, extracts e
 
 The core insight is not "a directory of cool tools." The core insight is that **the channels have already done the curation, and their archives are unsearchable.** Telegram search is per-channel, keyword-only, and useless for "that thing someone posted a few months ago that converts X to Y." This product turns a stream you already trust into an index you can query.
 
-Primary interface is **search**, not browse. The product has one surface: a **public website**. It is free to use, requires no account or authentication, and has no paid features.
+Primary interface is **search**, not browse. The primary product surface is a **public website**. Two owner-managed Telegram broadcast channels provide a fixed weekly English/Russian digest as a convenience surface; they do not accept commands or replace the searchable site. The product is free to use, requires no account or authentication, and has no paid features.
 
 The website is read-only for visitors. Content cannot be created, edited, or deleted through the UI; all updates are performed by the ingestion and maintenance tooling.
 
@@ -83,7 +83,7 @@ Friends may use the same public website and benefit from the shared index. They 
 ### Other visitors
 Because the website is public, other people may find and use it. Their usage is welcome, but audience growth is not a product goal and does not determine what gets built.
 
-**Scope rule:** build what makes the index useful and maintainable for the owner. Keep it public, free, website-only, and simple enough to operate as a personal project.
+**Scope rule:** build what makes the index useful and maintainable for the owner. Keep the searchable product public, free, website-first, and simple enough to operate as a personal project. The only outbound exception is the fixed owner-managed weekly digest; interactive bots, subscriptions, private-content ingestion, and user-configured channels remain excluded.
 
 ---
 
@@ -104,7 +104,7 @@ The goal is not to compete with these products or build a defensible business. T
 
 ## 7. Language
 
-The website interface, normalized tool descriptions, categories, and tags are in **English**. Source links still point to the original Telegram posts regardless of their language.
+The website interface, normalized website descriptions, categories, and tags are in **English**. Extraction also stores a bounded Russian description for the owner-managed Russian weekly digest. Source links still point to the original Telegram posts regardless of their language.
 
 ---
 
@@ -118,7 +118,7 @@ Manually curate a representative set of items into a plain English-language stat
 ### Phase 1 — Automated foundation
 Ingest up to 10 channels twice a day, attempt an initial three-month backfill, prefilter, extract, dedupe, and provide hybrid search on a responsive public website. Categories are seeded by hand (15 or so), and generated tags enrich search without appearing as browse controls. Category approval and other content changes are performed through maintenance tooling, not a website admin UI.
 
-**Explicitly out of scope:** Telegram bot, native or mobile app, auth, accounts, private content, user-selected channels, UI-based content editing, subscriptions, payments, and paid features.
+**Explicitly out of scope:** an interactive Telegram bot, commands, replies, direct messages, user subscriptions, user-selected channels, native or mobile apps, auth, accounts, private content, UI-based content editing, payments, and paid features. A dedicated post-only bot may publish the two fixed owner-managed weekly digests.
 
 ### Phase 2 — Convenience improvements
 Improve query quality, category browsing, related-tool discovery, and per-tool pages with full mention history where these changes are useful to the owner or friends. All features remain public and available without an account.
@@ -194,8 +194,8 @@ Quality can be checked directly during normal use:
 - **Classification:** embedding + centroid matching against the category registry; HDBSCAN over the unclassified queue on a schedule.
 - **Search:** hybrid `tsvector` + pgvector, RRF blend, mention-count ranking.
 - **Discovery controls:** text search plus type, topic, and source filters; generated tags enrich search internally.
-- **Language:** English UI and normalized metadata.
-- **Surface:** one responsive public website. No Telegram bot or native app.
+- **Language:** English UI and website metadata, plus a bounded Russian digest description.
+- **Surface:** one responsive public website as the searchable product, plus two fixed owner-managed outbound digest channels. No interactive Telegram bot or native app.
 - **Access:** free and unrestricted, with no auth or accounts.
 - **Writes:** the website UI is read-only; only ingestion and maintenance tooling can update content.
 - **Build approach:** spec-driven with Claude Code, consistent with existing project methodology. The extraction prompt and the eval set are the two highest-leverage artifacts — treat both as versioned specs, not as code comments.
