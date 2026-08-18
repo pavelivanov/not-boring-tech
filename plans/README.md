@@ -55,7 +55,7 @@ verification gate, and update its status row when finished.
 | [002](002-build-retrieval-website.md)          | Build the retrieval website                                 | P1       | M      | 001                             | DONE   |
 | [003](003-build-telegram-collector-service.md) | Analyze Telegram posts and persist structured presentations | P1       | L      | 001, 002 gate                   | DONE   |
 | [004](004-build-dynamic-production-stack.md)   | Build the dynamic four-service Railway production stack     | P1       | L      | 003 offline; 003 live to deploy | DONE   |
-| [005](005-publish-weekly-telegram-digests.md)  | Publish reliable weekly Telegram digests in English and Russian | P1    | L      | 004                             | TODO   |
+| [005](005-publish-weekly-telegram-digests.md)  | Publish reliable weekly Telegram digests in English and Russian | P1    | L      | 004                             | IN PROGRESS |
 
 Status values: `TODO` | `IN PROGRESS` | `DONE` | `BLOCKED: <reason>` |
 `REJECTED: <reason>`.

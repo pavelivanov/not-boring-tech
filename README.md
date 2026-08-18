@@ -80,21 +80,24 @@ the parent's provenance. Generic news and opinion do not create catalog rows.
 
 ## Telegram analysis service
 
-`@findthatproject/service` is the Plan 003 collection and first-pass analysis service.
-It has two processes built into one image:
+`@findthatproject/service` is the collection, first-pass analysis, and outbound
+digest service. It has three processes built into one image:
 
 - `server` exposes `GET /health`, the database-backed `GET /ready`, and
   validated, read-only `/v1/catalog`, `/v1/facets`, and
   `/v1/channels` resources.
 - `sync` runs one bounded Telegram collection and OpenAI analysis pass, then
   exits. Synchronization never runs inside the HTTP process.
+- `digest` prepares or resumes one durable bilingual weekly digest, publishes
+  through a dedicated Telegram bot, and then exits.
 
 The service reads only configured public broadcast handles from
 `TELEGRAM_CHANNELS`. Adding a handle enables it; removing a handle disables
 future collection without deleting its cursor, analysis ledger, or candidates.
 It requires a pre-authorized GramJS user `StringSession`; interactive sign-in,
-bot tokens, private channels, groups, and dialog discovery are intentionally
-unsupported.
+private channels, groups, and dialog discovery are intentionally unsupported by
+ingestion. The separate digest process uses only the Bot API token and fixed
+owner-managed output channels; it never writes through the GramJS user session.
 
 ### Data and OpenAI boundary
 
@@ -196,25 +199,81 @@ The controlled 30-case run on 2026-08-03 passed at 1.00 precision, 1.00 recall,
 1.00 kind accuracy, and zero URL-grounding violations after the versioned prompt
 made every application-side semantic invariant explicit.
 
+The bilingual schema adds a Russian-description gate. The current synthetic
+corpus contains 31 cases; a controlled extraction run must also report zero
+Russian-description violations before production activation.
+
+## Weekly Telegram digest
+
+The private one-shot `digest` process reads visible, never-announced catalog
+items from PostgreSQL and freezes their EN/RU text, links, and GitHub star count
+in a durable snapshot/outbox. It sends English and Russian deliveries
+independently, so a successful language or split part is never repeated merely
+because another delivery failed. An empty week still sends one localized health
+message per channel. Every part links to the FindThatProject website.
+
+For local configuration, copy the digest variables from `.env.example` into an
+ignored `.env`. The bot must be dedicated to outbound delivery and must be an
+administrator in exactly the two owner-managed broadcast channels with
+`can_post_messages`. Never place its token on `web`, `api`, or `parser`, and
+never give `digest` the GramJS session, OpenAI key, GitHub token, or API CORS
+settings. The two output handles must be distinct and must not appear in
+`TELEGRAM_CHANNELS`; otherwise the parser can ingest its own digest.
+
+`DIGEST_INITIAL_START_AT` must be the UTC time of the last completed parser run
+before activation. The first run rejects a future cutoff or a lookback over 14
+days. Later windows start at the latest successful cutoff, retain the original
+eligibility floor, and wait at least 144 hours before creating another run.
+
+Run offline unit tests and the disposable-database suite without real Telegram
+credentials:
+
+```sh
+npm run test --workspace=@findthatproject/service -- --run digest config telegram-bot-client
+TEST_DATABASE_URL=postgresql://findthatproject_test:findthatproject_test@127.0.0.1:5433/findthatproject_test \
+  npm run test --workspace=@findthatproject/service -- --run digest.integration
+node apps/service/dist/digest.js --help
+```
+
+`digest publish` exits `0` for success or an interval no-op, `2` for an
+incomplete retryable run, `3` when owner review is required, `75` for advisory
+lock contention, and `1` for invalid configuration or a fatal error. A network
+timeout or lost connection after sending is ambiguous and is never retried
+automatically. Check the channel, then resolve exactly one delivery:
+
+```sh
+node apps/service/dist/digest.js resolve --delivery-id <uuid> --outcome sent --message-id <positive-integer>
+node apps/service/dist/digest.js resolve --delivery-id <uuid> --outcome unsent
+```
+
+To stop publishing, disable the `digest` cron first. Application rollback uses
+the previous service image while retaining the additive nullable columns,
+snapshots, and delivery ledger; do not drop them during an incident.
+
 ## Railway service layout
 
+The target production topology has five services: public `web` and `api`,
+private `parser` and `digest` one-shot jobs, and managed `Postgres`.
 All code services use the repository root as their shared monorepo build
 context. Set these absolute config-file paths in each Railway service's Settings
 panel:
 
-| Service  | Config path            | Runtime behavior                                              |
-| -------- | ---------------------- | ------------------------------------------------------------- |
-| `web`    | `/railway.web.json`    | public SPA, `/` health check                                  |
-| `api`    | `/railway.api.json`    | public read API, migration owner, `/ready` health check       |
-| `parser` | `/railway.parser.json` | private one-shot sync, `0 */12 * * *` UTC cron, never restart |
+| Service  | Config path            | Runtime behavior                                                |
+| -------- | ---------------------- | --------------------------------------------------------------- |
+| `web`    | `/railway.web.json`    | public SPA, `/` health check                                    |
+| `api`    | `/railway.api.json`    | public read API, migration owner, `/ready` health check         |
+| `parser` | `/railway.parser.json` | private one-shot sync, `0 */12 * * *` UTC cron, never restart   |
+| `digest` | `/railway.digest.json` | private one-shot publisher, `0 9 * * 1` UTC cron, never restart |
 
-The managed database service is named `Postgres`. Both `api` and `parser` must
+The managed database service is named `Postgres`. `api`, `parser`, and `digest` must
 receive `DATABASE_URL=${{Postgres.DATABASE_URL}}` as a Railway reference
-variable; `web` never receives database or parser credentials. Only `parser`
+variable; `web` never receives database or service credentials. Only `parser`
 receives Telegram, OpenAI, and optional GitHub credentials, and it must not have
 a public domain. Each 12-hour parser run refreshes GitHub-backed catalog star
 counts after collection; conditional requests avoid re-downloading unchanged
-repository metadata.
+repository metadata. Only `digest` receives its Bot API token and two output
+targets. It has no public domain or HTTP health check and runs Monday at 09:00
+UTC, after the parser's Monday 00:00 UTC run.
 
 Railway environment files are local and ignored:
 
@@ -222,16 +281,18 @@ Railway environment files are local and ignored:
 - `.env.railway.api` accepts the database reference, CORS origins, and safe
   server settings;
 - `.env.railway.parser` accepts the database reference and parser-only secrets.
+- `.env.railway.digest` accepts only the database reference, dedicated bot and
+  output targets, site origin, initial cutoff, and bounded digest settings.
 
 Validate a file and print key names without changing Railway:
 
 ```sh
-npm run railway:env -- parser --dry-run
+npm run railway:env -- digest --dry-run
 ```
 
-Deploy scripts accept only `web`, `api`, and `parser` in the `production`
-environment. The API waits on `/ready`; a parser deployment is treated as a
-one-shot process and receives no HTTP health check.
+Deploy scripts accept only `web`, `api`, `parser`, and `digest` in the
+`production` environment. The API waits on `/ready`; parser and digest
+deployments are treated as one-shot processes and receive no HTTP health check.
 
 ```sh
 npm run deploy:railway -- --help
@@ -239,7 +300,7 @@ npm run deploy:railway -- --help
 
 ### Current production acceptance state
 
-The Railway `production` environment contains public
+Before Plan 005 activation, the Railway `production` environment contains public
 [`web`](https://not-boring-tech-production.up.railway.app) and
 [`api`](https://api-production-648c.up.railway.app) services plus private
 `Postgres` and `parser` services. The initial bounded parser run analyzed 413
@@ -269,6 +330,9 @@ wait for it to complete. Restore by selecting that backup from the same service;
 disable the parser cron and stop API writes before starting a restore. The
 initial catalog migration is forward-only and additive, so application rollback
 uses the previous API/parser image while retaining the migrated tables.
+The Plan 005 digest migration is also additive; rollback keeps its nullable
+columns and outbox tables, disables the digest cron, and deploys the previous
+service image.
 
 ## Commands
 
