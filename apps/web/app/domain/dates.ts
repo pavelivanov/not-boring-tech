@@ -63,3 +63,14 @@ export function formatCompactRelativeAge(
 
   return `${Math.floor(elapsed / duration.year)} yr`
 }
+
+const ledgerDateFormatter = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+})
+
+export function formatLedgerDate(value: string): string {
+  return ledgerDateFormatter.format(new Date(value)).toLocaleUpperCase("en")
+}

@@ -1,66 +1,53 @@
-import type {
-  CatalogCategory,
-  CatalogChannel,
-  TechnologyKind,
-} from "@findthatproject/contracts"
-import { XIcon } from "lucide-react"
-import { useEffect, useId, useRef, useState } from "react"
+import type { CatalogListItem } from "@findthatproject/contracts"
+import { SearchIcon } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
 
-import { Button } from "~/components/ui/button"
-import { FieldLegend, FieldSet } from "~/components/ui/field"
+import { EntryLink } from "~/components/tool-card"
 import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "~/components/ui/input-group"
-import { Separator } from "~/components/ui/separator"
-import { serializeSearchParams, type SearchFilters } from "~/domain/search"
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DialogTrigger,
+} from "~/components/ui/dialog"
+import { normalizeSearchText } from "~/domain/search"
 import { formatTechnologyKind } from "~/domain/tools"
 
-export type KindFilterOption = {
-  readonly value: TechnologyKind
-  readonly count: number
+const maxResults = 7
+const maxSuggestions = 5
+
+type IndexSearchDialogProps = {
+  readonly entries: readonly CatalogListItem[]
+  readonly suggestions: readonly CatalogListItem[]
+  readonly query: string
+  readonly search: string
+  readonly onSubmitQuery: (query: string) => void
+  readonly onOpenEntry: (slug: string) => void
 }
 
-export type CategoryFilterOption = {
-  readonly value: CatalogCategory
-  readonly count: number
+function matches(entry: CatalogListItem, needle: string): boolean {
+  return normalizeSearchText(
+    `${entry.name} ${entry.kind} ${entry.descriptionEn} ${entry.tags.join(" ")}`
+  ).includes(needle)
 }
 
-type IndexSearchProps = {
-  readonly filters: SearchFilters
-  readonly enableShortcut?: boolean
-  readonly onChange: (filters: SearchFilters, replace?: boolean) => void
-}
-
-type SearchControlsProps = {
-  readonly filters: SearchFilters
-  readonly resultCount: number
-  readonly totalCount: number
-  readonly channels: readonly CatalogChannel[]
-  readonly categoryOptions: readonly CategoryFilterOption[]
-  readonly kindOptions: readonly KindFilterOption[]
-  readonly onApply: (filters: SearchFilters) => void
-  readonly onCancel: () => void
-}
-
-function paddedCount(count: number): string {
-  return String(count).padStart(2, "0")
-}
-
-export function IndexSearch({
-  filters,
-  enableShortcut = false,
-  onChange,
-}: IndexSearchProps) {
-  const [searchQuery, setSearchQuery] = useState(filters.query)
-  const searchInputRef = useRef<HTMLInputElement>(null)
-  const searchInputId = useId()
+export function IndexSearchDialog({
+  entries,
+  suggestions,
+  query,
+  search,
+  onSubmitQuery,
+  onOpenEntry,
+}: IndexSearchDialogProps) {
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState(query)
 
   useEffect(() => {
-    if (!enableShortcut) return
+    setDraft(query)
+  }, [query])
 
-    function focusSearch(event: KeyboardEvent) {
+  useEffect(() => {
+    function openOnSlash(event: KeyboardEvent) {
       if (
         event.key !== "/" ||
         event.metaKey ||
@@ -73,240 +60,109 @@ export function IndexSearch({
       }
 
       event.preventDefault()
-      searchInputRef.current?.focus()
+      setOpen(true)
     }
 
-    window.addEventListener("keydown", focusSearch)
-    return () => window.removeEventListener("keydown", focusSearch)
-  }, [enableShortcut])
+    window.addEventListener("keydown", openOnSlash)
+    return () => window.removeEventListener("keydown", openOnSlash)
+  }, [])
 
-  useEffect(() => {
-    setSearchQuery(filters.query)
-  }, [filters.query])
-
-  useEffect(() => {
-    if (searchQuery === filters.query) return
-
-    const timeout = window.setTimeout(() => {
-      onChange({ ...filters, query: searchQuery }, true)
-    }, 200)
-
-    return () => window.clearTimeout(timeout)
-  }, [filters, onChange, searchQuery])
-
-  return (
-    <div className="index-search">
-      <label htmlFor={searchInputId} className="sr-only">
-        Search index
-      </label>
-      <InputGroup className="index-search-group">
-        <InputGroupInput
-          id={searchInputId}
-          ref={searchInputRef}
-          type="search"
-          value={searchQuery}
-          placeholder="Search the index"
-          aria-keyshortcuts={enableShortcut ? "/" : undefined}
-          onChange={(event) => setSearchQuery(event.target.value)}
-        />
-        {enableShortcut ? (
-          <InputGroupAddon align="inline-end">
-            <kbd>/</kbd>
-          </InputGroupAddon>
-        ) : null}
-      </InputGroup>
-    </div>
+  const needle = normalizeSearchText(draft)
+  // Typing filters the entries already loaded so the list reacts on every
+  // keystroke; Enter hands the query to the API for the whole index.
+  const results = useMemo(
+    () =>
+      needle
+        ? entries.filter((entry) => matches(entry, needle)).slice(0, maxResults)
+        : suggestions.slice(0, maxSuggestions),
+    [entries, needle, suggestions]
   )
-}
 
-export function SearchControls({
-  filters,
-  resultCount,
-  totalCount,
-  channels,
-  categoryOptions,
-  kindOptions,
-  onApply,
-  onCancel,
-}: SearchControlsProps) {
-  const [draftFilters, setDraftFilters] = useState(filters)
-  const hasFilters = Boolean(
-    draftFilters.kind ||
-    draftFilters.category ||
-    draftFilters.channel ||
-    draftFilters.tags.length
-  )
-  const hasChanges =
-    serializeSearchParams(draftFilters).toString() !==
-    serializeSearchParams(filters).toString()
-
-  function changeKind(kind?: TechnologyKind) {
-    const { kind: _currentKind, ...remainingFilters } = draftFilters
-    setDraftFilters(
-      kind && kind !== draftFilters.kind
-        ? { ...remainingFilters, kind }
-        : remainingFilters
-    )
-  }
-
-  function changeCategory(category?: CatalogCategory) {
-    const { category: _category, ...remainingFilters } = draftFilters
-    setDraftFilters(
-      category ? { ...remainingFilters, category } : remainingFilters
-    )
-  }
-
-  function changeChannel(channel?: string) {
-    const { channel: _channel, ...remainingFilters } = draftFilters
-    setDraftFilters(
-      channel ? { ...remainingFilters, channel } : remainingFilters
-    )
-  }
-
-  function clearAll() {
-    setDraftFilters({
-      query: draftFilters.query,
-      tags: [],
-      sort: draftFilters.sort,
-    })
+  function submit() {
+    onSubmitQuery(draft)
+    setOpen(false)
   }
 
   return (
-    <div className="filter-popover-panel">
-      <div className="filter-popover-header">
-        <h2>Filters</h2>
-        <div className="filter-popover-actions">
-          <Button
-            variant="link"
-            size="sm"
-            disabled={!hasFilters}
-            onClick={clearAll}
-          >
-            Reset
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Close filters"
-            onClick={onCancel}
-          >
-            <XIcon aria-hidden="true" />
-          </Button>
-        </div>
-      </div>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger className="index-search-trigger">
+        <SearchIcon aria-hidden="true" />
+        Search
+        <kbd aria-hidden="true">/</kbd>
+      </DialogTrigger>
 
-      <Separator />
+      <DialogContent
+        className="index-search-dialog"
+        showCloseButton={false}
+        aria-describedby={undefined}
+      >
+        <DialogTitle className="sr-only">Search the index</DialogTitle>
 
-      <div className="filter-popover-scroll">
-        <FieldSet className="filter-section">
-          <FieldLegend className="filter-section-legend">
-            <span>Type</span>
-            <small>What it is · pick one</small>
-          </FieldLegend>
-          <div className="facet-filter-list">
-            {kindOptions.map((option) => {
-              const active = draftFilters.kind === option.value
-              const label = formatTechnologyKind(option.value)
-
-              return (
-                <Button
-                  key={option.value}
-                  type="button"
-                  variant={active ? "secondary" : "outline"}
-                  size="pill"
-                  className="facet-filter-button"
-                  data-active={active || undefined}
-                  aria-pressed={active}
-                  onClick={() => changeKind(option.value)}
-                >
-                  {label}
-                  <span>{paddedCount(option.count)}</span>
-                </Button>
-              )
-            })}
-          </div>
-        </FieldSet>
-
-        {categoryOptions.length > 0 ? (
-          <FieldSet className="filter-section">
-            <FieldLegend className="filter-section-legend">
-              <span>Topic</span>
-              <small>What it’s about · pick one</small>
-            </FieldLegend>
-            <div className="facet-filter-list">
-              {categoryOptions.map((option) => {
-                const active = draftFilters.category === option.value
-
-                return (
-                  <Button
-                    key={option.value}
-                    type="button"
-                    variant={active ? "secondary" : "outline"}
-                    size="pill"
-                    className="facet-filter-button"
-                    data-active={active || undefined}
-                    aria-pressed={active}
-                    onClick={() =>
-                      changeCategory(active ? undefined : option.value)
-                    }
-                  >
-                    {option.value}
-                    <span>{paddedCount(option.count)}</span>
-                  </Button>
-                )
-              })}
-            </div>
-          </FieldSet>
-        ) : null}
-
-        {channels.length > 0 ? (
-          <FieldSet className="filter-section">
-            <FieldLegend>Sources — one</FieldLegend>
-            <div className="facet-filter-list">
-              {channels.map((channel) => {
-                const active = draftFilters.channel === channel.handle
-
-                return (
-                  <Button
-                    key={channel.handle}
-                    type="button"
-                    variant={active ? "secondary" : "outline"}
-                    size="pill"
-                    className="facet-filter-button"
-                    data-active={active || undefined}
-                    aria-pressed={active}
-                    onClick={() =>
-                      changeChannel(active ? undefined : channel.handle)
-                    }
-                  >
-                    {channel.title ?? channel.handle}
-                    <span>{paddedCount(channel.itemCount)}</span>
-                  </Button>
-                )
-              })}
-            </div>
-          </FieldSet>
-        ) : null}
-      </div>
-
-      <Separator />
-
-      <div className="filter-popover-footer">
-        <span>
-          {hasChanges
-            ? "Apply to update results"
-            : `${resultCount} of ${totalCount} entries`}
-        </span>
-        <Button
-          type="button"
-          variant="ink"
-          size="pill"
-          disabled={!hasChanges}
-          onClick={() => onApply(draftFilters)}
+        <form
+          className="index-search-field"
+          role="search"
+          onSubmit={(event) => {
+            event.preventDefault()
+            submit()
+          }}
         >
-          Apply filters
-        </Button>
-      </div>
-    </div>
+          <SearchIcon aria-hidden="true" />
+          <input
+            type="search"
+            autoFocus
+            value={draft}
+            aria-label="Search index"
+            placeholder="Search the index"
+            onChange={(event) => setDraft(event.target.value)}
+          />
+          <span className="index-search-hint" aria-hidden="true">
+            Esc
+          </span>
+        </form>
+
+        <div className="index-search-results">
+          {results.length > 0 ? (
+            <ul>
+              {results.map((entry) => (
+                <li key={entry.slug}>
+                  <EntryLink
+                    tool={entry}
+                    search={search}
+                    className="index-search-result"
+                    onOpen={() => {
+                      onOpenEntry(entry.slug)
+                      setOpen(false)
+                    }}
+                  >
+                    <span>{entry.name}</span>
+                    <span className="ledger-entry-kind">
+                      {formatTechnologyKind(entry.kind)}
+                    </span>
+                  </EntryLink>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="index-search-empty">No loaded entry matches that.</p>
+          )}
+
+          {needle ? (
+            <button
+              type="button"
+              className="index-search-submit"
+              onClick={submit}
+            >
+              Search the whole index for “{draft.trim()}”
+            </button>
+          ) : (
+            <DialogDescription className="index-search-footnote">
+              {suggestions.length > 0
+                ? "Newest entries since your last visit. Type to filter, press Enter to search the whole index."
+                : "Type to filter what is loaded, press Enter to search the whole index."}
+            </DialogDescription>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

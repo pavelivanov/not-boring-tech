@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "npm run build --workspace=@findthatproject/web && npm run start --workspace=@findthatproject/web -- --port 3000"
+      ],
+      "port": 3000
+    }
+  ]
+}

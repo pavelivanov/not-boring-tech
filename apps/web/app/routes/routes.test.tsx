@@ -285,17 +285,28 @@ describe("home route", () => {
     expect(
       screen.getByRole("link", { name: "View Dynamic Signal provenance" })
     ).toHaveAttribute("href", "/tools/dynamic-signal")
-    expect(screen.getByText("highest traction in this view")).toBeVisible()
+    expect(screen.getByText("1 AUG 2026")).toBeVisible()
     expect(
-      screen.getByRole("heading", { level: 2, name: "The index" })
+      screen.getByText("1 entry indexed so far — all new on your first visit")
     ).toBeVisible()
-    expect(screen.getByRole("button", { name: "1 new" })).toBeVisible()
-    expect(screen.getByRole("button", { name: /^New 1$/ })).toHaveAttribute(
-      "aria-pressed",
-      "false"
-    )
+    expect(
+      screen.getByRole("button", { name: "Show only new" })
+    ).toHaveAttribute("aria-pressed", "false")
     expect(screen.getByRole("button", { name: /^Library 1$/ })).toBeVisible()
-    expect(screen.getByText("Showing 1 of 1")).toBeVisible()
+    expect(screen.getByText(/All · Showing 1 of 1/)).toBeVisible()
+    expect(screen.getByText("Sorted by traction")).toBeVisible()
+  })
+
+  it("switches the ledger between traction and newest order", async () => {
+    const user = userEvent.setup()
+    renderAt()
+
+    await user.click(await screen.findByRole("button", { name: "Newest" }))
+    expect(screen.getByRole("button", { name: "Newest" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    )
+    expect(screen.getByText("Newest first")).toBeVisible()
   })
 
   it("keeps an opened entry in the index but off the counter", async () => {
@@ -305,39 +316,49 @@ describe("home route", () => {
     await user.click(
       await screen.findByRole("link", { name: /Dynamic Signal project/ })
     )
-    expect(
-      await screen.findByRole("button", { name: "Up to date" })
-    ).toBeVisible()
+    expect(await screen.findByText("You are up to date.")).toBeVisible()
     expect(
       screen.getByRole("link", { name: /Dynamic Signal project/ })
     ).toBeVisible()
 
-    await user.click(screen.getByRole("button", { name: /^New 0$/ }))
+    await user.click(screen.getByRole("button", { name: "Show only new" }))
     expect(
       await screen.findByText("You have read everything new.")
     ).toBeVisible()
   })
 
-  it("opens unseen entries from the header counter panel", async () => {
+  it("suggests unseen entries in the search dialog before a query", async () => {
     const user = userEvent.setup()
     renderAt()
 
-    await user.click(await screen.findByRole("button", { name: "1 new" }))
-    const panel = await screen.findByLabelText(
-      "Entries indexed since your last visit"
-    )
-    expect(within(panel).getByText("Dynamic Signal")).toBeVisible()
+    await user.click(await screen.findByRole("button", { name: "Search" }))
+    const dialog = await screen.findByRole("dialog")
+    expect(
+      within(dialog).getByRole("link", { name: /Dynamic Signal project/ })
+    ).toBeVisible()
 
-    await user.click(
-      within(panel).getByRole("button", { name: "Show all 1 in the index" })
+    await user.type(
+      within(dialog).getByRole("searchbox", { name: "Search index" }),
+      "nothing-here"
     )
     expect(
-      await screen.findByRole("heading", { level: 2, name: "1 new entry" })
+      within(dialog).getByText("No loaded entry matches that.")
     ).toBeVisible()
-    expect(screen.getByRole("button", { name: /^New 1$/ })).toHaveAttribute(
-      "aria-pressed",
-      "true"
+  })
+
+  it("narrows the ledger to entries indexed since the last visit", async () => {
+    const user = userEvent.setup()
+    renderAt()
+
+    await user.click(
+      await screen.findByRole("button", { name: "Show only new" })
     )
+    expect(
+      screen.getByRole("button", { name: "Showing new only" })
+    ).toHaveAttribute("aria-pressed", "true")
+    expect(
+      screen.getByRole("link", { name: /Dynamic Signal project/ })
+    ).toBeVisible()
   })
 
   it("keeps type and search filters in URL state", async () => {
@@ -349,9 +370,10 @@ describe("home route", () => {
     await waitFor(() =>
       expect(router.state.location.search).toBe("?kind=LIBRARY")
     )
+    await user.click(screen.getByRole("button", { name: "Search" }))
     await user.type(
-      screen.getByRole("searchbox", { name: "Search index" }),
-      "runtime"
+      await screen.findByRole("searchbox", { name: "Search index" }),
+      "runtime{Enter}"
     )
     await waitFor(() =>
       expect(router.state.location.search).toContain("q=runtime")
@@ -379,16 +401,17 @@ describe("home route", () => {
     const user = userEvent.setup()
     renderAt()
 
-    await user.click(await screen.findByRole("button", { name: "1 new" }))
     await user.click(
       await screen.findByRole("button", { name: "Mark all seen" })
     )
-    const caughtUp = await screen.findByRole("button", { name: "Up to date" })
+    expect(await screen.findByText("You are up to date.")).toBeVisible()
 
-    await user.click(caughtUp)
-    expect(await screen.findByText("You’re up to date.")).toBeVisible()
     await user.click(screen.getByRole("button", { name: "Reset read state" }))
-    expect(await screen.findByRole("button", { name: "1 new" })).toBeVisible()
+    expect(
+      await screen.findByText(
+        "1 entry indexed so far — all new on your first visit"
+      )
+    ).toBeVisible()
   })
 
   it("read-state actions do not erase active index filters", async () => {
@@ -396,19 +419,16 @@ describe("home route", () => {
     const router = renderAt("/?q=runtime&kind=LIBRARY")
 
     await screen.findByRole("link", { name: /Dynamic Signal project/ })
-    await user.click(screen.getByRole("button", { name: "1 new" }))
-    await user.click(
-      await screen.findByRole("button", { name: "Mark all seen" })
-    )
-    await user.click(await screen.findByRole("button", { name: "Up to date" }))
+    await user.click(screen.getByRole("button", { name: "Mark all seen" }))
     await user.click(
       await screen.findByRole("button", { name: "Reset read state" })
     )
 
     expect(router.state.location.search).toBe("?q=runtime&kind=LIBRARY")
-    expect(screen.getByRole("searchbox", { name: "Search index" })).toHaveValue(
-      "runtime"
-    )
+    await user.click(screen.getByRole("button", { name: "Search" }))
+    expect(
+      await screen.findByRole("searchbox", { name: "Search index" })
+    ).toHaveValue("runtime")
   })
 
   it("distinguishes an empty database from filtered zero results", async () => {
