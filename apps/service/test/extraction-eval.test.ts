@@ -32,7 +32,10 @@ class ExpectedOutcomeAnalyzer implements PostAnalyzer {
             kind: presentation.kinds[0]!,
             category: "Other",
             name: presentation.names[0]!,
+            nameRu: presentation.names[0]!,
             parentName: presentation.kinds[0] === "FEATURE" ? "Parent" : null,
+            parentNameRu:
+              presentation.kinds[0] === "FEATURE" ? "Родитель" : null,
             subjectUrl: evaluationCase.links[index] ?? null,
             githubUrl:
               evaluationCase.links.find((link) =>
@@ -132,7 +135,9 @@ describe("extraction evaluation corpus", () => {
               kind: "PROJECT",
               category: "Other",
               name: "Synthetic",
+              nameRu: "Синтетический проект",
               parentName: null,
+              parentNameRu: null,
               subjectUrl: null,
               githubUrl: null,
               descriptionEn: "A concise synthetic description.",

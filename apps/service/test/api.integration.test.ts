@@ -70,7 +70,9 @@ const seedCandidate = async (
       kind: input.kind,
       category: input.category,
       name: input.name,
+      nameRu: `Проект ${input.name}`,
       parentName: null,
+      parentNameRu: null,
       subjectUrl: input.subjectUrl,
       githubUrl: null,
       descriptionEn: `${input.name} is a synthetic API integration subject.`,
@@ -160,6 +162,11 @@ describe.skipIf(!testDatabaseUrl)("catalog API integration", () => {
       items: [
         {
           slug: "alpha-project",
+          name: "Alpha Project",
+          nameRu: "Проект Alpha Project",
+          descriptionEn:
+            "Alpha Project is a synthetic API integration subject.",
+          descriptionRu: "Alpha Project — синтетический проект для теста API.",
           mentionCount: 2,
           channelCount: 2,
         },
@@ -177,6 +184,13 @@ describe.skipIf(!testDatabaseUrl)("catalog API integration", () => {
     const tagSearch = await app.request("/v1/catalog?q=second-source");
     expect(await tagSearch.json()).toMatchObject({
       items: [{ slug: "alpha-project" }],
+    });
+
+    const russianSearch = await app.request(
+      "/v1/catalog?q=%D1%81%D0%B8%D0%BD%D1%82%D0%B5%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9",
+    );
+    expect(await russianSearch.json()).toMatchObject({
+      items: [{ descriptionRu: expect.stringContaining("синтетический") }],
     });
   });
 
@@ -295,6 +309,8 @@ describe.skipIf(!testDatabaseUrl)("catalog API integration", () => {
     expect(JSON.parse(detailText)).toMatchObject({
       item: {
         slug: "alpha-project",
+        nameRu: "Проект Alpha Project",
+        descriptionRu: "Alpha Project — синтетический проект для теста API.",
         mentionCount: 2,
         channelCount: 2,
         mentions: [

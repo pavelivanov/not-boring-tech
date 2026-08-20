@@ -11,7 +11,11 @@ import {
   DialogTrigger,
 } from "~/components/ui/dialog"
 import { normalizeSearchText } from "~/domain/search"
-import { formatTechnologyKind } from "~/domain/tools"
+import {
+  formatCatalogCategory,
+  formatTechnologyKind,
+  localizeCatalogItem,
+} from "~/domain/tools"
 import { useLocale } from "~/lib/locale"
 
 const maxResults = 7
@@ -28,7 +32,22 @@ type IndexSearchDialogProps = {
 
 function matches(entry: CatalogListItem, needle: string): boolean {
   return normalizeSearchText(
-    `${entry.name} ${entry.kind} ${entry.descriptionEn} ${entry.tags.join(" ")}`
+    [
+      entry.name,
+      entry.nameRu,
+      entry.parentName,
+      entry.parentNameRu,
+      entry.kind,
+      formatTechnologyKind(entry.kind, "en"),
+      formatTechnologyKind(entry.kind, "ru"),
+      entry.category,
+      formatCatalogCategory(entry.category, "ru"),
+      entry.descriptionEn,
+      entry.descriptionRu,
+      ...entry.tags,
+    ]
+      .filter(Boolean)
+      .join(" ")
   ).includes(needle)
 }
 
@@ -136,7 +155,7 @@ export function IndexSearchDialog({
                       setOpen(false)
                     }}
                   >
-                    <span>{entry.name}</span>
+                    <span>{localizeCatalogItem(entry, locale).name}</span>
                     <span className="ledger-entry-kind">
                       {formatTechnologyKind(entry.kind, locale)}
                     </span>

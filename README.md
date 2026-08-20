@@ -199,9 +199,10 @@ The controlled 30-case run on 2026-08-03 passed at 1.00 precision, 1.00 recall,
 1.00 kind accuracy, and zero URL-grounding violations after the versioned prompt
 made every application-side semantic invariant explicit.
 
-The bilingual schema adds a Russian-description gate. The current synthetic
-corpus contains 31 cases; a controlled extraction run must also report zero
-Russian-description violations before production activation.
+The bilingual schema adds localized Russian display titles and a
+Russian-description gate. The current synthetic corpus contains 31 cases; a
+controlled extraction run must also report zero Russian-description violations
+before production activation.
 
 ## Weekly Telegram digest
 

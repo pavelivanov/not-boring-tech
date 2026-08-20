@@ -19,7 +19,9 @@ export const presentationSchema = z
     kind: z.enum(PRESENTATION_KINDS),
     category: z.enum(CATALOG_CATEGORIES),
     name: z.string(),
+    nameRu: z.string(),
     parentName: z.string().nullable(),
+    parentNameRu: z.string().nullable(),
     subjectUrl: z.string().nullable(),
     githubUrl: z.string().nullable(),
     descriptionEn: z.string(),
@@ -75,9 +77,13 @@ const normalizePresentation = (
   allowedLinks: ReadonlySet<string>,
 ): Presentation => {
   const parentName = presentation.parentName?.trim() || null;
-  if (presentation.kind !== "FEATURE" && parentName !== null) {
+  const parentNameRu = presentation.parentNameRu?.trim() || null;
+  if (
+    presentation.kind !== "FEATURE" &&
+    (parentName !== null || parentNameRu !== null)
+  ) {
     throw new SemanticAnalysisError(
-      "parentName is only allowed for FEATURE presentations",
+      "parent names are only allowed for FEATURE presentations",
     );
   }
 
@@ -119,10 +125,15 @@ const normalizePresentation = (
     kind: presentation.kind,
     category: presentation.category,
     name: boundedText(presentation.name, "name", MAX_NAME_LENGTH),
+    nameRu: boundedText(presentation.nameRu, "nameRu", MAX_NAME_LENGTH),
     parentName:
       parentName === null
         ? null
         : boundedText(parentName, "parentName", MAX_NAME_LENGTH),
+    parentNameRu:
+      parentNameRu === null
+        ? null
+        : boundedText(parentNameRu, "parentNameRu", MAX_NAME_LENGTH),
     subjectUrl,
     githubUrl,
     descriptionEn: boundedText(

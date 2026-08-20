@@ -22,15 +22,21 @@ const uniqueStrings = (values: readonly string[]): readonly string[] =>
 
 const searchTextFor = (input: {
   readonly name: string;
+  readonly nameRu: string;
   readonly parentName: string | null;
+  readonly parentNameRu: string | null;
   readonly descriptionEn: string;
+  readonly descriptionRu: string | null;
   readonly tags: readonly string[];
   readonly canonicalUrl: string | null;
 }): string =>
   [
     input.name,
+    input.nameRu,
     input.parentName,
+    input.parentNameRu,
     input.descriptionEn,
+    input.descriptionRu,
     ...input.tags,
     input.canonicalUrl,
   ]
@@ -110,7 +116,9 @@ const visibleCandidatesForItem = (
       kind: true,
       category: true,
       name: true,
+      nameRu: true,
       parentName: true,
+      parentNameRu: true,
       subjectUrl: true,
       githubUrl: true,
       descriptionEn: true,
@@ -163,8 +171,10 @@ export const refreshCatalogItems = async (
         kind: winner.kind,
         category,
         name: winner.name,
+        nameRu: winner.nameRu,
         nameSortKey: normalizeIdentityText(winner.name),
         parentName: winner.parentName,
+        parentNameRu: winner.parentNameRu,
         canonicalUrl,
         githubUrl,
         descriptionEn: winner.descriptionEn,
@@ -172,8 +182,11 @@ export const refreshCatalogItems = async (
         tags: [...tags],
         searchText: searchTextFor({
           name: winner.name,
+          nameRu: winner.nameRu,
           parentName: winner.parentName,
+          parentNameRu: winner.parentNameRu,
           descriptionEn: winner.descriptionEn,
+          descriptionRu: winner.descriptionRu,
           tags,
           canonicalUrl,
         }),
@@ -245,8 +258,10 @@ export const projectCandidateIds = async (
           kind: candidate.kind,
           category,
           name: candidate.name,
+          nameRu: candidate.nameRu,
           nameSortKey: identity.nameSortKey,
           parentName: candidate.parentName,
+          parentNameRu: candidate.parentNameRu,
           canonicalUrl: identity.canonicalUrl,
           githubUrl: candidate.githubUrl,
           descriptionEn: candidate.descriptionEn,
@@ -254,8 +269,11 @@ export const projectCandidateIds = async (
           tags: [...tags],
           searchText: searchTextFor({
             name: candidate.name,
+            nameRu: candidate.nameRu,
             parentName: candidate.parentName,
+            parentNameRu: candidate.parentNameRu,
             descriptionEn: candidate.descriptionEn,
+            descriptionRu: candidate.descriptionRu,
             tags,
             canonicalUrl: identity.canonicalUrl,
           }),

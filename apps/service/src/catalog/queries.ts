@@ -232,7 +232,16 @@ export const listCatalog = async (
 ): Promise<CatalogListResponse> => {
   const { filters } = parsedQuery;
   const conditions: Prisma.CatalogItemWhereInput[] = [visibleCatalogWhere];
-  if (filters.q) conditions.push({ searchText: { contains: filters.q } });
+  if (filters.q) {
+    conditions.push({
+      OR: [
+        { searchText: { contains: filters.q } },
+        { nameRu: { contains: filters.q, mode: "insensitive" } },
+        { parentNameRu: { contains: filters.q, mode: "insensitive" } },
+        { descriptionRu: { contains: filters.q, mode: "insensitive" } },
+      ],
+    });
+  }
   if (filters.kind.length > 0) {
     conditions.push({ kind: { in: [...filters.kind] } });
   }
@@ -278,13 +287,16 @@ export const listCatalog = async (
     select: {
       slug: true,
       name: true,
+      nameRu: true,
       kind: true,
       category: true,
       parentName: true,
+      parentNameRu: true,
       canonicalUrl: true,
       githubStars: true,
       githubStarsFetchedAt: true,
       descriptionEn: true,
+      descriptionRu: true,
       tags: true,
       firstMentionedAt: true,
       lastMentionedAt: true,
@@ -301,13 +313,16 @@ export const listCatalog = async (
   const items = page.map((row) => ({
     slug: row.slug,
     name: row.name,
+    nameRu: row.nameRu,
     kind: row.kind as TechnologyKind,
     category: row.category as CatalogCategory,
     parentName: row.parentName,
+    parentNameRu: row.parentNameRu,
     canonicalUrl: row.canonicalUrl,
     githubStars: row.githubStars,
     githubStarsUpdatedAt: row.githubStarsFetchedAt?.toISOString() ?? null,
     descriptionEn: row.descriptionEn,
+    descriptionRu: row.descriptionRu,
     tags: row.tags,
     firstMentionedAt: row.firstMentionedAt.toISOString(),
     lastMentionedAt: row.lastMentionedAt.toISOString(),
@@ -338,13 +353,16 @@ export const getCatalogDetail = async (
     select: {
       slug: true,
       name: true,
+      nameRu: true,
       kind: true,
       category: true,
       parentName: true,
+      parentNameRu: true,
       canonicalUrl: true,
       githubStars: true,
       githubStarsFetchedAt: true,
       descriptionEn: true,
+      descriptionRu: true,
       tags: true,
       firstMentionedAt: true,
       lastMentionedAt: true,
@@ -380,13 +398,16 @@ export const getCatalogDetail = async (
     item: {
       slug: row.slug,
       name: row.name,
+      nameRu: row.nameRu,
       kind: row.kind,
       category: row.category,
       parentName: row.parentName,
+      parentNameRu: row.parentNameRu,
       canonicalUrl: row.canonicalUrl,
       githubStars: row.githubStars,
       githubStarsUpdatedAt: row.githubStarsFetchedAt?.toISOString() ?? null,
       descriptionEn: row.descriptionEn,
+      descriptionRu: row.descriptionRu,
       tags: row.tags,
       firstMentionedAt: row.firstMentionedAt.toISOString(),
       lastMentionedAt: row.lastMentionedAt.toISOString(),

@@ -22,7 +22,11 @@ import { Separator } from "~/components/ui/separator"
 import { Skeleton } from "~/components/ui/skeleton"
 import { CatalogApiError, loadCatalogDetail } from "~/data/api-client"
 import { formatAbsoluteDate } from "~/domain/dates"
-import { formatTechnologyKind } from "~/domain/tools"
+import {
+  formatCatalogCategory,
+  formatTechnologyKind,
+  localizeCatalogItem,
+} from "~/domain/tools"
 import { canonicalMeta } from "~/domain/urls"
 import { useLocale } from "~/lib/locale"
 
@@ -94,6 +98,7 @@ export default function ToolDetail({
   if (!item) return <NotFound slug={params.slug} />
 
   const kindLabel = formatTechnologyKind(item.kind, locale)
+  const content = localizeCatalogItem(item, locale)
 
   return (
     <main id="main-content" tabIndex={-1} className="page-width py-12 md:py-20">
@@ -109,19 +114,21 @@ export default function ToolDetail({
         <div className="min-w-0">
           <div className="flex flex-wrap gap-2">
             <Badge variant="secondary">{kindLabel}</Badge>
-            <Badge variant="outline">{item.category}</Badge>
+            <Badge variant="outline">
+              {formatCatalogCategory(item.category, locale)}
+            </Badge>
           </div>
           <h1 className="mt-5 font-heading text-5xl font-semibold tracking-[-0.05em] md:text-7xl">
-            {item.name}
+            {content.name}
           </h1>
           <p className="mt-5 max-w-3xl text-lg leading-relaxed text-muted-foreground md:text-xl">
-            {item.descriptionEn}
+            {content.description}
           </p>
-          {item.parentName ? (
+          {content.parentName ? (
             <p className="mt-4 text-sm text-muted-foreground">
               {copy.detail.featureOf}{" "}
               <span className="font-medium text-foreground">
-                {item.parentName}
+                {content.parentName}
               </span>
             </p>
           ) : null}

@@ -194,7 +194,7 @@ const englishCopy = {
       },
       {
         title: "Attribution",
-        body: "Each presentation keeps its original channel, publication date, and direct public post link. Tool descriptions are short English summaries rather than reproductions of channel text.",
+        body: "Each presentation keeps its original channel, publication date, and direct public post link. Tool descriptions are short localized summaries rather than reproductions of channel text.",
       },
       {
         title: "Read-only by design",
@@ -394,7 +394,7 @@ const russianCopy: LocaleCopy = {
       },
       {
         title: "Атрибуция",
-        body: "У каждой публикации сохраняются исходный канал, дата и прямая публичная ссылка на пост. Описания инструментов — это краткие резюме на английском, а не копии текста каналов.",
+        body: "У каждой публикации сохраняются исходный канал, дата и прямая публичная ссылка на пост. Описания инструментов — это краткие локализованные резюме, а не копии текста каналов.",
       },
       {
         title: "Только для чтения",

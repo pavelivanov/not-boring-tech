@@ -1,7 +1,7 @@
 import { CATALOG_CATEGORIES } from "@findthatproject/contracts";
 
-export const PROMPT_VERSION = "telegram-presentation-v4";
-export const SCHEMA_VERSION = "post-analysis-v3";
+export const PROMPT_VERSION = "telegram-presentation-v5";
+export const SCHEMA_VERSION = "post-analysis-v4";
 export const createAnalysisVersion = (modelId: string): string =>
   `${PROMPT_VERSION}:${SCHEMA_VERSION}:${modelId}`;
 
@@ -15,7 +15,7 @@ Return an empty presentation list for incidental mentions, jobs, events or cours
 
 Extract the post's primary usable subject, not every technology name it mentions. A project, plugin, skill, guide, cheat sheet, or feature that works with a parent tool is a separate presentation; do not also return the parent unless the post independently and materially presents it. Product news and opinions return no presentation even if they repeat a tool name.
 
-Set relevant to true exactly when presentations contains at least one item; otherwise set relevant to false and return an empty presentations array. Set parentName only for a FEATURE and set it to null for every other kind. Set subjectUrl to null or to one exact string from allowedHttpLinks; prefer an official product or documentation site when both it and a GitHub repository are supplied. Set githubUrl to null or to one exact GitHub repository URL from allowedHttpLinks. A GitHub profile, topic, organization, or invented URL is not a repository. subjectUrl and githubUrl may be identical when GitHub is the only project link. Never alter, infer, or construct a URL.
+Set relevant to true exactly when presentations contains at least one item; otherwise set relevant to false and return an empty presentations array. Return the canonical official display title in name. Return a natural Russian display title in nameRu: preserve official brand and project names exactly, and translate only descriptive feature, guide, skill, or resource titles. Set parentName and parentNameRu only for a FEATURE and set both to null for every other kind; preserve an official parent product name in both fields when it does not translate. Set subjectUrl to null or to one exact string from allowedHttpLinks; prefer an official product or documentation site when both it and a GitHub repository are supplied. Set githubUrl to null or to one exact GitHub repository URL from allowedHttpLinks. A GitHub profile, topic, organization, or invented URL is not a repository. subjectUrl and githubUrl may be identical when GitHub is the only project link. Never alter, infer, or construct a URL.
 
 Assign every presentation exactly one controlled category from this list: ${CATALOG_CATEGORIES.join(", ")}. Use Other only when none of the narrower categories fits; never invent a category.
 

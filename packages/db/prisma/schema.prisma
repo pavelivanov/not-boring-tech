@@ -83,8 +83,10 @@ model CatalogItem {
   kind                 PresentationKind
   category             String                  @db.VarChar(40)
   name                 String                  @db.VarChar(120)
+  nameRu               String                  @db.VarChar(120)
   nameSortKey          String                  @db.VarChar(240)
   parentName           String?                 @db.VarChar(120)
+  parentNameRu         String?                 @db.VarChar(120)
   canonicalUrl         String?                 @db.VarChar(2048)
   githubUrl            String?                 @db.VarChar(2048)
   descriptionEn        String                  @db.VarChar(400)
@@ -156,7 +158,9 @@ model PresentationCandidate {
   kind           PresentationKind
   category       String           @default("Other") @db.VarChar(40)
   name           String           @db.VarChar(120)
+  nameRu         String           @db.VarChar(120)
   parentName     String?          @db.VarChar(120)
+  parentNameRu   String?          @db.VarChar(120)
   subjectUrl     String?          @db.VarChar(2048)
   githubUrl      String?          @db.VarChar(2048)
   descriptionEn  String           @db.VarChar(400)
@@ -199,15 +203,15 @@ model IngestionRun {
 }
 
 model WeeklyDigestRun {
-  id                 String                @id @default(uuid()) @db.Uuid
+  id                 String                 @id @default(uuid()) @db.Uuid
   eligibilityStartAt DateTime
   windowStart        DateTime
   windowEnd          DateTime
-  status             WeeklyDigestRunStatus @default(PENDING)
-  itemCount          Int                   @default(0)
-  failureClass       String?               @db.VarChar(80)
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime              @updatedAt
+  status             WeeklyDigestRunStatus  @default(PENDING)
+  itemCount          Int                    @default(0)
+  failureClass       String?                @db.VarChar(80)
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
   items              WeeklyDigestItem[]
   deliveries         WeeklyDigestDelivery[]
 
@@ -217,22 +221,23 @@ model WeeklyDigestRun {
 }
 
 model WeeklyDigestItem {
-  id                String          @id @default(uuid()) @db.Uuid
-  digestRunId       String          @db.Uuid
-  catalogItemId     String?         @db.Uuid
-  ordinal           Int
-  slug              String          @db.VarChar(160)
-  name              String          @db.VarChar(120)
-  canonicalUrl      String?         @db.VarChar(2048)
-  githubUrl         String?         @db.VarChar(2048)
-  githubRepository  String?         @db.VarChar(201)
-  githubStars       Int?
-  descriptionEn     String          @db.VarChar(400)
-  descriptionRu     String          @db.VarChar(400)
-  catalogCreatedAt  DateTime
-  createdAt         DateTime        @default(now())
-  digestRun         WeeklyDigestRun @relation(fields: [digestRunId], references: [id], onDelete: Cascade)
-  catalogItem       CatalogItem?    @relation(fields: [catalogItemId], references: [id], onDelete: SetNull)
+  id               String          @id @default(uuid()) @db.Uuid
+  digestRunId      String          @db.Uuid
+  catalogItemId    String?         @db.Uuid
+  ordinal          Int
+  slug             String          @db.VarChar(160)
+  name             String          @db.VarChar(120)
+  nameRu           String          @db.VarChar(120)
+  canonicalUrl     String?         @db.VarChar(2048)
+  githubUrl        String?         @db.VarChar(2048)
+  githubRepository String?         @db.VarChar(201)
+  githubStars      Int?
+  descriptionEn    String          @db.VarChar(400)
+  descriptionRu    String          @db.VarChar(400)
+  catalogCreatedAt DateTime
+  createdAt        DateTime        @default(now())
+  digestRun        WeeklyDigestRun @relation(fields: [digestRunId], references: [id], onDelete: Cascade)
+  catalogItem      CatalogItem?    @relation(fields: [catalogItemId], references: [id], onDelete: SetNull)
 
   @@unique([digestRunId, catalogItemId])
   @@unique([digestRunId, ordinal])

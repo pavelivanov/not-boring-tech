@@ -12,6 +12,7 @@ export interface DigestSnapshot {
   readonly ordinal: number;
   readonly slug: string;
   readonly name: string;
+  readonly nameRu: string;
   readonly canonicalUrl: string | null;
   readonly githubUrl: string | null;
   readonly githubRepository: string | null;
@@ -168,15 +169,13 @@ const itemBlock = (
   const labels = LABELS[language];
   const description =
     language === "EN" ? item.descriptionEn.trim() : item.descriptionRu.trim();
-  if (!item.name.trim() || !description) {
+  const name = language === "RU" ? item.nameRu.trim() : item.name.trim();
+  if (!name || !description) {
     throw new DigestRendererError("DIGEST_INVALID_SNAPSHOT");
   }
 
   const detailUrl = detailUrlFor(siteOrigin, item.slug);
-  const detailLink = anchor(
-    `${item.ordinal + 1}. ${item.name.trim()}`,
-    detailUrl,
-  );
+  const detailLink = anchor(`${item.ordinal + 1}. ${name}`, detailUrl);
   const mainUrl =
     item.canonicalUrl === null ? detailUrl : safeHttpUrl(item.canonicalUrl);
   const mainLink = anchor(labels.mainLink, mainUrl);

@@ -4,7 +4,7 @@ import { Link } from "react-router"
 
 import { TelegramIcon } from "~/components/telegram-icon"
 import { formatLedgerDate } from "~/domain/dates"
-import { formatTechnologyKind } from "~/domain/tools"
+import { formatTechnologyKind, localizeCatalogItem } from "~/domain/tools"
 import { useLocale } from "~/lib/locale"
 
 type ToolCardProps = {
@@ -45,7 +45,8 @@ export function EntryLink({
   children,
   onOpen,
 }: EntryLinkProps) {
-  const { copy } = useLocale()
+  const { locale, copy } = useLocale()
+  const content = localizeCatalogItem(tool, locale)
 
   if (tool.canonicalUrl) {
     return (
@@ -54,7 +55,7 @@ export function EntryLink({
         target="_blank"
         rel="noreferrer"
         className={className}
-        aria-label={copy.toolCard.externalProject(tool.name)}
+        aria-label={copy.toolCard.externalProject(content.name)}
         onClick={onOpen}
       >
         {children}
@@ -67,7 +68,7 @@ export function EntryLink({
       to={`/tools/${tool.slug}`}
       state={{ from: search }}
       className={className}
-      aria-label={copy.toolCard.read(tool.name)}
+      aria-label={copy.toolCard.read(content.name)}
       onClick={onOpen}
     >
       {children}
@@ -77,6 +78,7 @@ export function EntryLink({
 
 export function ToolCard({ tool, search, unseen, onMarkSeen }: ToolCardProps) {
   const { locale, copy } = useLocale()
+  const content = localizeCatalogItem(tool, locale)
   const markSeen = () => onMarkSeen(tool.slug)
   const sourceLabel = copy.toolCard.sourceCount(tool.channelCount)
   const exactStarCount =
@@ -107,16 +109,16 @@ export function ToolCard({ tool, search, unseen, onMarkSeen }: ToolCardProps) {
           className="ledger-row-title"
           onOpen={markSeen}
         >
-          <h3>{tool.name}</h3>
+          <h3>{content.name}</h3>
         </EntryLink>
 
-        <p className="ledger-entry-description">{tool.descriptionEn}</p>
+        <p className="ledger-entry-description">{content.description}</p>
 
         <Link
           to={`/tools/${tool.slug}`}
           state={{ from: search }}
           className="ledger-row-source"
-          aria-label={copy.toolCard.provenance(tool.name)}
+          aria-label={copy.toolCard.provenance(content.name)}
           onClick={markSeen}
         >
           <TelegramIcon size={11} />

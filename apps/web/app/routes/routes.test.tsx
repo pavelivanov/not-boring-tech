@@ -37,13 +37,16 @@ const now = "2026-08-03T10:00:00.000Z"
 const item = {
   slug: "dynamic-signal",
   name: "Dynamic Signal",
+  nameRu: "Динамический сигнал",
   kind: "LIBRARY",
   category: "Developer tools",
   parentName: "Runtime Parent",
+  parentNameRu: "Родитель среды выполнения",
   canonicalUrl: "https://dynamic.example.test/",
   githubStars: 12_438,
   githubStarsUpdatedAt: "2026-08-03T08:00:00.000Z",
   descriptionEn: "A synthetic subject returned only by the test API.",
+  descriptionRu: "Синтетическая запись, возвращаемая только тестовым API.",
   tags: ["runtime", "signal"],
   firstMentionedAt: "2026-08-01T10:00:00.000Z",
   lastMentionedAt: now,
@@ -314,6 +317,16 @@ describe("home route", () => {
     renderAt()
 
     expect(await screen.findByRole("button", { name: "Поиск" })).toBeVisible()
+    expect(
+      screen.getByRole("link", {
+        name: /Динамический сигнал — сайт проекта/,
+      })
+    ).toBeVisible()
+    expect(
+      screen.getByText(
+        "Синтетическая запись, возвращаемая только тестовым API."
+      )
+    ).toBeVisible()
     expect(document.documentElement).toHaveAttribute("lang", "ru")
     expect(screen.getByRole("radio", { name: "Русский" })).toHaveAttribute(
       "data-state",
@@ -323,6 +336,12 @@ describe("home route", () => {
     await user.click(screen.getByRole("radio", { name: "English" }))
 
     expect(screen.getByRole("button", { name: "Search" })).toBeVisible()
+    expect(
+      screen.getByRole("link", { name: /Dynamic Signal project/ })
+    ).toBeVisible()
+    expect(
+      screen.getByText("A synthetic subject returned only by the test API.")
+    ).toBeVisible()
     expect(document.documentElement).toHaveAttribute("lang", "en")
     await waitFor(() =>
       expect(window.localStorage.getItem(localeStorageKey)).toBe("en")
@@ -540,6 +559,25 @@ describe("home route", () => {
 })
 
 describe("tool detail route", () => {
+  it("renders localized item content and category in Russian", async () => {
+    window.localStorage.setItem(localeStorageKey, "ru")
+    renderAt("/tools/dynamic-signal")
+
+    expect(
+      await screen.findByRole("heading", {
+        level: 1,
+        name: "Динамический сигнал",
+      })
+    ).toBeVisible()
+    expect(
+      screen.getByText(
+        "Синтетическая запись, возвращаемая только тестовым API."
+      )
+    ).toBeVisible()
+    expect(screen.getByText("Инструменты разработчика")).toBeVisible()
+    expect(screen.getByText("Родитель среды выполнения")).toBeVisible()
+  })
+
   it("resolves an arbitrary runtime slug with full source provenance", async () => {
     renderAt("/tools/dynamic-signal")
 

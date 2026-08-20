@@ -13,6 +13,7 @@ const snapshot = (overrides: Partial<DigestSnapshot> = {}): DigestSnapshot => ({
   ordinal: 0,
   slug: "nanochat",
   name: "Nanochat",
+  nameRu: "Наночат",
   canonicalUrl: "https://nanochat.example/",
   githubUrl: "https://github.com/karpathy/nanochat",
   githubRepository: "karpathy/nanochat",
@@ -52,6 +53,7 @@ describe("renderDigestMessages", () => {
 
     const [russian] = renderDigestMessages(input({ language: "RU" }));
     expect(russian?.renderedHtml).toContain("Еженедельный дайджест");
+    expect(russian?.renderedHtml).toContain("1. Наночат");
     expect(russian?.renderedHtml).toContain("Компактный проект для изучения");
     expect(russian?.renderedHtml).toContain("Ссылка на проект");
   });

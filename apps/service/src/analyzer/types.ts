@@ -22,7 +22,9 @@ export interface Presentation {
   readonly kind: PresentationKind;
   readonly category: CatalogCategory;
   readonly name: string;
+  readonly nameRu: string;
   readonly parentName: string | null;
+  readonly parentNameRu: string | null;
   readonly subjectUrl: string | null;
   readonly githubUrl: string | null;
   readonly descriptionEn: string;

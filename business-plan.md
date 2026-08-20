@@ -54,7 +54,7 @@ This preserves broad retrieval vocabulary without presenting generated labels as
 Hybrid from day one: Postgres `tsvector` for exact tool names, pgvector for "thing that does X", blended with reciprocal rank fusion. Default ranking uses **cross-channel mention count**, not recency — this is the one ranking signal no single channel can offer.
 
 ### Website
-- **Single product surface** — a responsive English-language web app with search plus type, topic, and source filters, and one public page per tool with all mentions listed.
+- **Single product surface** — a responsive English/Russian web app with search plus type, topic, and source filters, and one public page per tool with all mentions listed.
 - **Open access** — the entire index is available without authentication, accounts, subscriptions, or access restrictions.
 - **Free use** — every feature is free; there are no paid tiers, upgrades, or payment flows.
 - **Read-only UI** — visitors cannot edit the index through the website. The ingestion and maintenance tooling is the only way to update content.
@@ -104,7 +104,7 @@ The goal is not to compete with these products or build a defensible business. T
 
 ## 7. Language
 
-The website interface, normalized website descriptions, categories, and tags are in **English**. Extraction also stores a bounded Russian description for the owner-managed Russian weekly digest. Source links still point to the original Telegram posts regardless of their language.
+The website interface and catalog item content are available in **English and Russian**. Extraction stores localized display titles and bounded descriptions for both the website and the owner-managed weekly digests; canonical product names remain unchanged when they do not translate. Controlled categories are translated in the interface, while source links still point to the original Telegram posts regardless of their language.
 
 ---
 
@@ -194,7 +194,7 @@ Quality can be checked directly during normal use:
 - **Classification:** embedding + centroid matching against the category registry; HDBSCAN over the unclassified queue on a schedule.
 - **Search:** hybrid `tsvector` + pgvector, RRF blend, mention-count ranking.
 - **Discovery controls:** text search plus type, topic, and source filters; generated tags enrich search internally.
-- **Language:** English UI and website metadata, plus a bounded Russian digest description.
+- **Language:** English/Russian UI and localized catalog content, with bilingual weekly digests.
 - **Surface:** one responsive public website as the searchable product, plus two fixed owner-managed outbound digest channels. No interactive Telegram bot or native app.
 - **Access:** free and unrestricted, with no auth or accounts.
 - **Writes:** the website UI is read-only; only ingestion and maintenance tooling can update content.
@@ -205,6 +205,6 @@ Quality can be checked directly during normal use:
 ## 14. Product decisions
 
 1. **Channels and schedule:** support up to approximately 10 channels, each publishing around 1–3 posts per day. Sync twice a day.
-2. **Language:** English.
+2. **Language:** English and Russian.
 3. **Initial discovery features:** text search plus type, topic, and source filters.
 4. **History and dates:** attempt to backfill three months of channel history. Store both the original post publication time and the collection time, and show how long ago the tool was originally presented.

@@ -1,6 +1,13 @@
+import type { CatalogListItem } from "@findthatproject/contracts"
+
 import { ToolCard } from "~/components/tool-card"
 import { Button } from "~/components/ui/button"
-import type { LooseMatch } from "~/domain/search"
+
+type LooseMatch = {
+  readonly item: CatalogListItem
+  readonly term: string
+  readonly field: string
+}
 
 type LooseMatchListProps = {
   readonly matches: readonly LooseMatch[]
@@ -21,24 +28,17 @@ export function LooseMatchList({
   onMarkSeen,
   onClearSearch,
 }: LooseMatchListProps) {
-  const maxStars = matches.reduce(
-    (maximum, match) => Math.max(maximum, match.item.githubStars ?? 0),
-    0
-  )
-
   return (
     <div className="ledger-loose">
       <p className="ledger-loose-label">Loose matches</p>
 
       <div className="ledger-list">
-        {matches.map(({ item, term, field }) => (
+        {matches.map(({ item }) => (
           <ToolCard
             key={item.slug}
             tool={item}
             search={search}
             unseen={unseenSlugs.has(item.slug)}
-            maxStars={maxStars}
-            reason={`matched “${term}” in ${field}`}
             onMarkSeen={onMarkSeen}
           />
         ))}
