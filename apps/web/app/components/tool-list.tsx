@@ -21,7 +21,6 @@ export type LedgerEmptyState = {
 
 type ToolListProps = {
   readonly tools: readonly CatalogListItem[]
-  readonly search: string
   readonly unseenSlugs: ReadonlySet<string>
   readonly onMarkSeen: (slug: string) => void
   readonly emptyState: LedgerEmptyState
@@ -29,7 +28,6 @@ type ToolListProps = {
 
 export function ToolList({
   tools,
-  search,
   unseenSlugs,
   onMarkSeen,
   emptyState,
@@ -61,7 +59,6 @@ export function ToolList({
         <ToolCard
           key={tool.slug}
           tool={tool}
-          search={search}
           unseen={unseenSlugs.has(tool.slug)}
           onMarkSeen={onMarkSeen}
         />

@@ -1,6 +1,5 @@
 import type { CatalogListItem } from "@findthatproject/contracts"
 import type { ReactNode } from "react"
-import { Link } from "react-router"
 
 import { TelegramIcon } from "~/components/telegram-icon"
 import { formatLedgerDate } from "~/domain/dates"
@@ -9,14 +8,12 @@ import { useLocale } from "~/lib/locale"
 
 type ToolCardProps = {
   readonly tool: CatalogListItem
-  readonly search: string
   readonly unseen: boolean
   readonly onMarkSeen: (slug: string) => void
 }
 
 export type EntryLinkProps = {
   readonly tool: CatalogListItem
-  readonly search: string
   readonly className: string
   readonly children: ReactNode
   readonly onOpen: () => void
@@ -40,7 +37,6 @@ const exactCountFormatters = {
 
 export function EntryLink({
   tool,
-  search,
   className,
   children,
   onOpen,
@@ -48,39 +44,28 @@ export function EntryLink({
   const { locale, copy } = useLocale()
   const content = localizeCatalogItem(tool, locale)
 
-  if (tool.canonicalUrl) {
-    return (
-      <a
-        href={tool.canonicalUrl}
-        target="_blank"
-        rel="noreferrer"
-        className={className}
-        aria-label={copy.toolCard.externalProject(content.name)}
-        onClick={onOpen}
-      >
-        {children}
-      </a>
-    )
-  }
-
   return (
-    <Link
-      to={`/tools/${tool.slug}`}
-      state={{ from: search }}
+    <a
+      href={tool.canonicalUrl ?? tool.sourceUrl}
+      target="_blank"
+      rel="noreferrer"
       className={className}
-      aria-label={copy.toolCard.read(content.name)}
+      aria-label={
+        tool.canonicalUrl
+          ? copy.toolCard.externalProject(content.name)
+          : copy.toolCard.sourceLink(content.name)
+      }
       onClick={onOpen}
     >
       {children}
-    </Link>
+    </a>
   )
 }
 
-export function ToolCard({ tool, search, unseen, onMarkSeen }: ToolCardProps) {
+export function ToolCard({ tool, unseen, onMarkSeen }: ToolCardProps) {
   const { locale, copy } = useLocale()
   const content = localizeCatalogItem(tool, locale)
   const markSeen = () => onMarkSeen(tool.slug)
-  const sourceLabel = copy.toolCard.sourceCount(tool.channelCount)
   const exactStarCount =
     tool.githubStars === null
       ? null
@@ -103,27 +88,23 @@ export function ToolCard({ tool, search, unseen, onMarkSeen }: ToolCardProps) {
           {formatTechnologyKind(tool.kind, locale)}
         </p>
 
-        <EntryLink
-          tool={tool}
-          search={search}
-          className="ledger-row-title"
-          onOpen={markSeen}
-        >
+        <EntryLink tool={tool} className="ledger-row-title" onOpen={markSeen}>
           <h3>{content.name}</h3>
         </EntryLink>
 
         <p className="ledger-entry-description">{content.description}</p>
 
-        <Link
-          to={`/tools/${tool.slug}`}
-          state={{ from: search }}
+        <a
+          href={tool.sourceUrl}
+          target="_blank"
+          rel="noreferrer"
           className="ledger-row-source"
-          aria-label={copy.toolCard.provenance(content.name)}
+          aria-label={copy.toolCard.sourceLink(content.name)}
           onClick={markSeen}
         >
           <TelegramIcon size={11} />
-          {sourceLabel}
-        </Link>
+          {copy.toolCard.source}
+        </a>
       </div>
 
       <div className="ledger-row-meta">

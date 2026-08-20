@@ -452,7 +452,6 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
             entries={[...knownEntries.values()]}
             suggestions={unseenEntries}
             query={filters.query}
-            search={location.search}
             onSubmitQuery={(next) => updateFilters({ ...filters, query: next })}
             onOpenEntry={markSeen}
           />
@@ -593,7 +592,6 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
           <div className="index-surface" aria-busy={isFiltering}>
             <ToolList
               tools={visibleItems}
-              search={location.search}
               unseenSlugs={unseenSlugs}
               onMarkSeen={markSeen}
               emptyState={resolveEmptyState()}

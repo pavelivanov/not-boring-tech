@@ -1,10 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 
-import {
-  CatalogApiError,
-  loadCatalogDetail,
-  loadHomeCatalog,
-} from "./api-client"
+import { loadHomeCatalog } from "./api-client"
 
 const baseUrl = "https://api.example.test/root/"
 
@@ -99,30 +95,46 @@ describe("catalog API client", () => {
 
   it("passes cancellation signals to fetch", async () => {
     const controller = new AbortController()
-    let receivedSignal: AbortSignal | null | undefined
+    const receivedSignals: Array<AbortSignal | null | undefined> = []
     const fetcher = vi.fn(
-      async (_input: string | URL | Request, init?: RequestInit) => {
-        receivedSignal = init?.signal
-        return jsonResponse(
-          {
-            error: {
-              code: "NOT_FOUND",
-              message: "Catalog item not found",
-              requestId: "request-404",
-            },
-          },
-          404
+      async (input: string | URL | Request, init?: RequestInit) => {
+        receivedSignals.push(init?.signal)
+        const url = new URL(
+          input instanceof Request ? input.url : input.toString()
         )
+        if (url.pathname.endsWith("/v1/catalog")) {
+          return jsonResponse({
+            items: [],
+            nextCursor: null,
+            filters: {
+              q: "",
+              kind: [],
+              category: [],
+              channel: [],
+              tag: [],
+              sort: "latest",
+              limit: 24,
+            },
+          })
+        }
+        if (url.pathname.endsWith("/v1/facets")) {
+          return jsonResponse({ categories: [], kinds: [], channels: [] })
+        }
+        return jsonResponse({ channels: [] })
       }
     )
 
     await expect(
-      loadCatalogDetail("runtime-item", controller.signal, {
+      loadHomeCatalog("https://web.example.test/", controller.signal, {
         baseUrl,
         fetcher: fetcher as typeof fetch,
       })
-    ).resolves.toBeNull()
-    expect(receivedSignal).toBe(controller.signal)
+    ).resolves.toBeDefined()
+    expect(receivedSignals).toEqual([
+      controller.signal,
+      controller.signal,
+      controller.signal,
+    ])
   })
 
   it("rejects successful responses that do not satisfy the DTO contract", async () => {
@@ -131,13 +143,13 @@ describe("catalog API client", () => {
     )
 
     await expect(
-      loadCatalogDetail("broken", undefined, {
+      loadHomeCatalog("https://web.example.test/", undefined, {
         baseUrl,
         fetcher: fetcher as typeof fetch,
       })
     ).rejects.toMatchObject({
       status: 200,
       code: "API_INVALID_RESPONSE",
-    } satisfies Partial<CatalogApiError>)
+    })
   })
 })

@@ -86,6 +86,7 @@ export const catalogListItemSchema = z
     tags: z.array(boundedText(48)).max(30),
     firstMentionedAt: dateTimeSchema,
     lastMentionedAt: dateTimeSchema,
+    sourceUrl: httpUrlSchema,
     mentionCount: nonNegativeCountSchema,
     channelCount: nonNegativeCountSchema,
   })

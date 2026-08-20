@@ -1,12 +1,10 @@
 import {
   apiErrorResponseSchema,
   catalogChannelsResponseSchema,
-  catalogDetailResponseSchema,
   catalogFacetsResponseSchema,
   catalogListResponseSchema,
   type CatalogActiveFilters,
   type CatalogChannelsResponse,
-  type CatalogDetailResponse,
   type CatalogFacetsResponse,
   type CatalogListResponse,
 } from "@findthatproject/contracts"
@@ -209,21 +207,3 @@ export const loadNextCatalogPage = (
     signal,
     options
   )
-
-export const loadCatalogDetail = async (
-  slug: string,
-  signal?: AbortSignal,
-  options: ApiClientOptions = {}
-): Promise<CatalogDetailResponse | null> => {
-  try {
-    return await requestJson(
-      `v1/catalog/${encodeURIComponent(slug)}`,
-      catalogDetailResponseSchema,
-      signal,
-      options
-    )
-  } catch (error) {
-    if (error instanceof CatalogApiError && error.status === 404) return null
-    throw error
-  }
-}

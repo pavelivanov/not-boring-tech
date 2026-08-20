@@ -19,6 +19,7 @@ export interface DigestSnapshot {
   readonly githubStars: number | null;
   readonly descriptionEn: string;
   readonly descriptionRu: string;
+  readonly sourceUrl: string;
 }
 
 export interface DigestRenderInput {
@@ -44,6 +45,7 @@ interface Labels {
   readonly heading: string;
   readonly catalog: string;
   readonly mainLink: string;
+  readonly sourceLink: string;
   readonly empty: string;
   readonly part: (index: number, total: number) => string;
 }
@@ -53,6 +55,7 @@ const LABELS: Readonly<Record<DigestLanguage, Labels>> = {
     heading: "Weekly FindThatProject digest",
     catalog: "Full catalog",
     mainLink: "Project link",
+    sourceLink: "Source",
     empty: "No new items this week.",
     part: (index, total) => `Part ${index}/${total}`,
   },
@@ -60,6 +63,7 @@ const LABELS: Readonly<Record<DigestLanguage, Labels>> = {
     heading: "Еженедельный дайджест FindThatProject",
     catalog: "Полный каталог",
     mainLink: "Ссылка на проект",
+    sourceLink: "Источник",
     empty: "На этой неделе новых проектов нет.",
     part: (index, total) => `Часть ${index}/${total}`,
   },
@@ -144,9 +148,6 @@ const headingFor = (
   };
 };
 
-const detailUrlFor = (siteOrigin: string, slug: string): string =>
-  safeHttpUrl(new URL(`/tools/${encodeURIComponent(slug)}`, siteOrigin).href);
-
 const normalizedComparisonUrl = (value: string): string => {
   const url = new URL(safeHttpUrl(value));
   url.hash = "";
@@ -164,7 +165,6 @@ const starsText = (stars: number, language: DigestLanguage): string => {
 const itemBlock = (
   item: DigestSnapshot,
   language: DigestLanguage,
-  siteOrigin: string,
 ): RenderedFragment => {
   const labels = LABELS[language];
   const description =
@@ -174,11 +174,14 @@ const itemBlock = (
     throw new DigestRendererError("DIGEST_INVALID_SNAPSHOT");
   }
 
-  const detailUrl = detailUrlFor(siteOrigin, item.slug);
-  const detailLink = anchor(`${item.ordinal + 1}. ${name}`, detailUrl);
-  const mainUrl =
-    item.canonicalUrl === null ? detailUrl : safeHttpUrl(item.canonicalUrl);
-  const mainLink = anchor(labels.mainLink, mainUrl);
+  const mainUrl = safeHttpUrl(
+    item.canonicalUrl ?? item.githubUrl ?? item.sourceUrl,
+  );
+  const mainLabel =
+    item.canonicalUrl === null && item.githubUrl === null
+      ? labels.sourceLink
+      : labels.mainLink;
+  const mainLink = anchor(mainLabel, mainUrl);
   const repositoryUrl = canonicalGitHubRepositoryUrl(
     item.githubUrl ?? item.canonicalUrl,
   );
@@ -193,14 +196,14 @@ const itemBlock = (
       : "";
 
   const htmlLines = [
-    `<b>${detailLink.html}</b>`,
+    `<b>${escapeHtml(`${item.ordinal + 1}. ${name}`)}</b>`,
     escapeHtml(description),
-    `${escapeHtml(labels.mainLink)}: ${mainLink.html}${escapeHtml(mainStars)}`,
+    `${escapeHtml(mainLabel)}: ${mainLink.html}${escapeHtml(mainStars)}`,
   ];
   const textLines = [
-    detailLink.text,
+    `${item.ordinal + 1}. ${name}`,
     description,
-    `${labels.mainLink}: ${mainLink.text}${mainStars}`,
+    `${mainLabel}: ${mainLink.text}${mainStars}`,
   ];
 
   if (repositoryUrl !== null && repository !== null && !sameMainAndRepository) {
@@ -302,9 +305,7 @@ export const renderDigestMessages = (
     ];
   }
 
-  const blocks = orderedItems.map((item) =>
-    itemBlock(item, input.language, siteOrigin),
-  );
+  const blocks = orderedItems.map((item) => itemBlock(item, input.language));
   const single = combine(headingFor(input, siteOrigin), blocks);
   if (fits(single)) {
     return [

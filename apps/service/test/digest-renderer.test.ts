@@ -20,6 +20,7 @@ const snapshot = (overrides: Partial<DigestSnapshot> = {}): DigestSnapshot => ({
   githubStars: 0,
   descriptionEn: "A compact project for learning how chat models work.",
   descriptionRu: "Компактный проект для изучения диалоговых моделей.",
+  sourceUrl: "https://t.me/source_channel/42",
   ...overrides,
 });
 
@@ -35,13 +36,11 @@ const input = (
 });
 
 describe("renderDigestMessages", () => {
-  it("renders the localized item contract with detail, main, repository, and zero stars", () => {
+  it("renders the localized item contract with main, repository, and zero stars", () => {
     const [message] = renderDigestMessages(input());
 
     expect(message?.renderedHtml).toContain("Weekly FindThatProject digest");
-    expect(message?.renderedHtml).toContain(
-      'href="https://findthatproject.com/tools/nanochat"',
-    );
+    expect(message?.renderedHtml).not.toContain("/tools/nanochat");
     expect(message?.renderedHtml).toContain('href="https://nanochat.example/"');
     expect(message?.renderedHtml).toContain(
       'href="https://github.com/karpathy/nanochat"',
@@ -80,7 +79,7 @@ describe("renderDigestMessages", () => {
     ).toThrowError(DigestRendererError);
   });
 
-  it("uses the detail page as the main-link fallback", () => {
+  it("uses the first source as the main-link fallback", () => {
     const [message] = renderDigestMessages(
       input({
         items: [
@@ -94,11 +93,10 @@ describe("renderDigestMessages", () => {
       }),
     );
 
-    expect(
-      message?.renderedHtml.match(
-        /https:\/\/findthatproject\.com\/tools\/nanochat/g,
-      ),
-    ).toHaveLength(2);
+    expect(message?.renderedHtml).toContain(
+      'href="https://t.me/source_channel/42"',
+    );
+    expect(message?.renderedHtml).toContain("Source");
     expect(message?.renderedHtml).not.toContain("GitHub:");
   });
 

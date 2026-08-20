@@ -28,6 +28,7 @@ const item = {
   tags: ["synthetic", "testing"],
   firstMentionedAt: "2026-08-01T09:00:00.000Z",
   lastMentionedAt: "2026-08-02T09:00:00.000Z",
+  sourceUrl: "https://t.me/synthetic_channel/42",
   mentionCount: 2,
   channelCount: 1,
 };

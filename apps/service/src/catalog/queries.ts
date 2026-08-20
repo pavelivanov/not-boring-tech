@@ -144,7 +144,7 @@ export const parseCatalogQuery = (
   };
 };
 
-const visibleCandidateWhere = {
+export const visibleCandidateWhere = {
   analyzedPost: {
     status: AnalyzedPostStatus.PRESENTATIONS_SAVED,
     channel: { enabled: true },
@@ -302,8 +302,14 @@ export const listCatalog = async (
       lastMentionedAt: true,
       presentations: {
         where: visibleCandidateWhere,
+        orderBy: [{ analyzedPost: { publishedAt: "desc" } }, { id: "asc" }],
         select: {
-          analyzedPost: { select: { channel: { select: { handle: true } } } },
+          analyzedPost: {
+            select: {
+              sourceUrl: true,
+              channel: { select: { handle: true } },
+            },
+          },
         },
       },
     },
@@ -326,6 +332,7 @@ export const listCatalog = async (
     tags: row.tags,
     firstMentionedAt: row.firstMentionedAt.toISOString(),
     lastMentionedAt: row.lastMentionedAt.toISOString(),
+    sourceUrl: row.presentations[0]!.analyzedPost.sourceUrl,
     mentionCount: row.presentations.length,
     channelCount: new Set(
       row.presentations.map(
@@ -411,6 +418,7 @@ export const getCatalogDetail = async (
       tags: row.tags,
       firstMentionedAt: row.firstMentionedAt.toISOString(),
       lastMentionedAt: row.lastMentionedAt.toISOString(),
+      sourceUrl: mentions[0]!.sourceUrl,
       mentionCount: mentions.length,
       channelCount: new Set(mentions.map((mention) => mention.channelHandle))
         .size,

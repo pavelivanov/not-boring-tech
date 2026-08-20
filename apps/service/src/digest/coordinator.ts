@@ -6,7 +6,7 @@ import {
   type DbTransaction,
 } from "@findthatproject/db";
 
-import { visibleCatalogWhere } from "../catalog/queries";
+import { visibleCandidateWhere, visibleCatalogWhere } from "../catalog/queries";
 import { renderDigestMessages } from "./renderer";
 import {
   TelegramPublishError,
@@ -125,6 +125,12 @@ const prepareRun = async (
       descriptionEn: true,
       descriptionRu: true,
       createdAt: true,
+      presentations: {
+        where: visibleCandidateWhere,
+        orderBy: [{ analyzedPost: { publishedAt: "desc" } }, { id: "asc" }],
+        take: 1,
+        select: { analyzedPost: { select: { sourceUrl: true } } },
+      },
     },
   });
 
@@ -154,6 +160,7 @@ const prepareRun = async (
     githubStars: item.githubStars,
     descriptionEn: item.descriptionEn,
     descriptionRu: item.descriptionRu!,
+    sourceUrl: item.presentations[0]!.analyzedPost.sourceUrl,
   }));
   const renderedEn = renderDigestMessages({
     windowStart,

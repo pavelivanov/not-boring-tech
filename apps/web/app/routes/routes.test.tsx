@@ -1,7 +1,6 @@
 import type {
   CatalogActiveFilters,
   CatalogCategory,
-  CatalogDetailItem,
   CatalogListItem,
   TechnologyKind,
 } from "@findthatproject/contracts"
@@ -25,10 +24,6 @@ import Home, {
   HydrateFallback as HomeHydrateFallback,
 } from "./home"
 import NotFound from "./not-found"
-import ToolDetail, {
-  clientLoader as detailClientLoader,
-  ErrorBoundary as DetailErrorBoundary,
-} from "./tool-detail"
 import { LocaleProvider, localeStorageKey } from "~/lib/locale"
 
 const apiOrigin = "https://catalog-api.example.test"
@@ -50,23 +45,10 @@ const item = {
   tags: ["runtime", "signal"],
   firstMentionedAt: "2026-08-01T10:00:00.000Z",
   lastMentionedAt: now,
+  sourceUrl: "https://t.me/signal_lab/42",
   mentionCount: 2,
   channelCount: 1,
 } satisfies CatalogListItem
-
-const detailItem = {
-  ...item,
-  mentions: [
-    {
-      channelHandle: "@signal_lab",
-      channelTitle: "Signal Lab",
-      channelPublicUrl: "https://t.me/signal_lab",
-      sourceUrl: "https://t.me/signal_lab/42",
-      publishedAt: now,
-      confidence: 0.94,
-    },
-  ],
-} satisfies CatalogDetailItem
 
 const baseFilters = {
   q: "",
@@ -153,23 +135,6 @@ function installApiFake() {
       })
     }
 
-    if (url.pathname === "/v1/catalog/dynamic-signal") {
-      return jsonResponse({ item: detailItem })
-    }
-
-    if (url.pathname.startsWith("/v1/catalog/")) {
-      return jsonResponse(
-        {
-          error: {
-            code: "NOT_FOUND",
-            message: "Catalog item not found",
-            requestId: "request-not-found",
-          },
-        },
-        404
-      )
-    }
-
     if (url.pathname === "/v1/catalog") {
       if (catalogUnavailable) {
         return jsonResponse(
@@ -203,10 +168,6 @@ async function runHomeLoader({ request }: LoaderFunctionArgs) {
   return homeClientLoader({ request } as Parameters<typeof homeClientLoader>[0])
 }
 
-async function runDetailLoader(args: LoaderFunctionArgs) {
-  return detailClientLoader(args as Parameters<typeof detailClientLoader>[0])
-}
-
 function HomeTestRoute() {
   const props = {
     loaderData: useLoaderData<Awaited<ReturnType<typeof homeClientLoader>>>(),
@@ -227,26 +188,6 @@ function HomeTestErrorBoundary() {
   return <HomeErrorBoundary {...props} />
 }
 
-function DetailTestRoute() {
-  const props = {
-    loaderData: useLoaderData<Awaited<ReturnType<typeof detailClientLoader>>>(),
-    params: useParams(),
-    matches: [],
-  } as unknown as Parameters<typeof ToolDetail>[0]
-
-  return <ToolDetail {...props} />
-}
-
-function DetailTestErrorBoundary() {
-  const props = {
-    error: useRouteError(),
-    params: useParams(),
-    matches: [],
-  } as unknown as Parameters<typeof DetailErrorBoundary>[0]
-
-  return <DetailErrorBoundary {...props} />
-}
-
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -254,12 +195,6 @@ const routes: RouteObject[] = [
     Component: HomeTestRoute,
     ErrorBoundary: HomeTestErrorBoundary,
     HydrateFallback: HomeHydrateFallback,
-  },
-  {
-    path: "/tools/:slug",
-    loader: runDetailLoader,
-    Component: DetailTestRoute,
-    ErrorBoundary: DetailTestErrorBoundary,
   },
   {
     path: "*",
@@ -358,9 +293,13 @@ describe("home route", () => {
     expect(projectLink).toHaveAttribute("target", "_blank")
     expect(projectLink).toHaveAttribute("rel", "noreferrer")
     expect(screen.getByLabelText("12,438 GitHub stars")).toBeVisible()
-    expect(
-      screen.getByRole("link", { name: "View Dynamic Signal provenance" })
-    ).toHaveAttribute("href", "/tools/dynamic-signal")
+    const sourceLink = screen.getByRole("link", {
+      name: "Open Dynamic Signal source (opens in a new tab)",
+    })
+    expect(sourceLink).toHaveTextContent(/^source$/i)
+    expect(sourceLink).toHaveAttribute("href", "https://t.me/signal_lab/42")
+    expect(sourceLink).toHaveAttribute("target", "_blank")
+    expect(sourceLink).toHaveAttribute("rel", "noreferrer")
     expect(screen.getByText("1 AUG 2026")).toBeVisible()
     expect(
       screen.getByText("1 entry indexed so far — all new on your first visit")
@@ -558,54 +497,15 @@ describe("home route", () => {
   })
 })
 
-describe("tool detail route", () => {
-  it("renders localized item content and category in Russian", async () => {
-    window.localStorage.setItem(localeStorageKey, "ru")
+describe("catch-all route", () => {
+  it("does not expose the removed item detail page", async () => {
     renderAt("/tools/dynamic-signal")
 
     expect(
       await screen.findByRole("heading", {
         level: 1,
-        name: "Динамический сигнал",
+        name: "That page never made it into the index.",
       })
-    ).toBeVisible()
-    expect(
-      screen.getByText(
-        "Синтетическая запись, возвращаемая только тестовым API."
-      )
-    ).toBeVisible()
-    expect(screen.getByText("Инструменты разработчика")).toBeVisible()
-    expect(screen.getByText("Родитель среды выполнения")).toBeVisible()
-  })
-
-  it("resolves an arbitrary runtime slug with full source provenance", async () => {
-    renderAt("/tools/dynamic-signal")
-
-    expect(
-      await screen.findByRole("heading", { level: 1, name: "Dynamic Signal" })
-    ).toBeVisible()
-    expect(screen.getByText("Feature of")).toHaveTextContent(
-      "Feature of Runtime Parent"
-    )
-    const sourceLink = screen.getByRole("link", {
-      name: /Open Telegram source/,
-    })
-    expect(sourceLink).toHaveAttribute("href", "https://t.me/signal_lab/42")
-    expect(sourceLink).toHaveAttribute("target", "_blank")
-    expect(sourceLink).toHaveAttribute("rel", "noreferrer")
-  })
-
-  it("renders a real not-found state for an unknown API slug", async () => {
-    renderAt("/tools/not-created-at-build-time")
-
-    expect(
-      await screen.findByRole("heading", {
-        level: 1,
-        name: "This subject is not in the index.",
-      })
-    ).toBeVisible()
-    expect(
-      screen.getByText("Unknown subject / not-created-at-build-time")
     ).toBeVisible()
   })
 

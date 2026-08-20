@@ -167,6 +167,7 @@ describe.skipIf(!testDatabaseUrl)("catalog API integration", () => {
           descriptionEn:
             "Alpha Project is a synthetic API integration subject.",
           descriptionRu: "Alpha Project — синтетический проект для теста API.",
+          sourceUrl: "https://t.me/channel_two/2",
           mentionCount: 2,
           channelCount: 2,
         },

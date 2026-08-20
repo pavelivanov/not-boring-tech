@@ -146,40 +146,10 @@ const englishCopy = {
   },
   toolCard: {
     externalProject: (name: string) => `${name} project (opens in a new tab)`,
-    read: (name: string) => `Read ${name}`,
     newSinceVisit: "New since your last visit",
-    sourceCount: (count: number) => englishCount(count, "source", "sources"),
-    provenance: (name: string) => `View ${name} provenance`,
+    source: "source",
+    sourceLink: (name: string) => `Open ${name} source (opens in a new tab)`,
     stars: (count: string) => `${count} GitHub stars`,
-  },
-  relativeDate: {
-    presented: (date: string) => `Presented ${date}`,
-  },
-  detail: {
-    unknownSubject: (slug: string) => `Unknown subject / ${slug}`,
-    missingSlug: "missing-slug",
-    notInIndex: "This subject is not in the index.",
-    backToFiltered: "Back to filtered results",
-    backToIndex: "Back to index",
-    featureOf: "Feature of",
-    openWebsite: "Open website",
-    firstPresented: "First presented",
-    sourceStats: (channels: number, mentions: number) =>
-      `${englishCount(channels, "channel", "channels")} · ${englishCount(
-        mentions,
-        "mention",
-        "mentions"
-      )}`,
-    stars: (count: string) => `${count} GitHub stars`,
-    provenance: "Provenance",
-    everyPresentation: "Every presentation",
-    newestSourceFirst: "Newest source first",
-    confidence: (percent: number) => `${percent}% confidence`,
-    openTelegram: "Open Telegram source",
-    loadingItem: "Loading catalog item",
-    loadFailure: "The subject could not be loaded",
-    loadFailureBody: "Retry the live catalog request.",
-    requestId: "Request ID",
   },
   about: {
     back: "Back to index",
@@ -339,47 +309,11 @@ const russianCopy: LocaleCopy = {
   toolCard: {
     externalProject: (name: string) =>
       `${name} — сайт проекта (откроется в новой вкладке)`,
-    read: (name: string) => `Читать о ${name}`,
     newSinceVisit: "Новое с прошлого визита",
-    sourceCount: (count: number) =>
-      `${count} ${russianNoun(count, "источник", "источника", "источников")}`,
-    provenance: (name: string) => `Источники ${name}`,
+    source: "источник",
+    sourceLink: (name: string) =>
+      `Открыть источник ${name} (откроется в новой вкладке)`,
     stars: (count: string) => `${count} звёзд на GitHub`,
-  },
-  relativeDate: {
-    presented: (date: string) => `Опубликовано ${date}`,
-  },
-  detail: {
-    unknownSubject: (slug: string) => `Неизвестная запись / ${slug}`,
-    missingSlug: "нет-адреса",
-    notInIndex: "Этой записи нет в каталоге.",
-    backToFiltered: "Назад к результатам поиска",
-    backToIndex: "Назад в каталог",
-    featureOf: "Часть проекта",
-    openWebsite: "Открыть сайт",
-    firstPresented: "Впервые опубликовано",
-    sourceStats: (channels: number, mentions: number) =>
-      `${channels} ${russianNoun(
-        channels,
-        "канал",
-        "канала",
-        "каналов"
-      )} · ${mentions} ${russianNoun(
-        mentions,
-        "упоминание",
-        "упоминания",
-        "упоминаний"
-      )}`,
-    stars: (count: string) => `${count} звёзд на GitHub`,
-    provenance: "Источники",
-    everyPresentation: "Все публикации",
-    newestSourceFirst: "Сначала новые источники",
-    confidence: (percent: number) => `уверенность ${percent}%`,
-    openTelegram: "Открыть источник в Telegram",
-    loadingItem: "Загрузка записи каталога",
-    loadFailure: "Не удалось загрузить запись",
-    loadFailureBody: "Повторите запрос к каталогу.",
-    requestId: "ID запроса",
   },
   about: {
     back: "Назад в каталог",

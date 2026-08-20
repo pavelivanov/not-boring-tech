@@ -25,7 +25,6 @@ type IndexSearchDialogProps = {
   readonly entries: readonly CatalogListItem[]
   readonly suggestions: readonly CatalogListItem[]
   readonly query: string
-  readonly search: string
   readonly onSubmitQuery: (query: string) => void
   readonly onOpenEntry: (slug: string) => void
 }
@@ -55,7 +54,6 @@ export function IndexSearchDialog({
   entries,
   suggestions,
   query,
-  search,
   onSubmitQuery,
   onOpenEntry,
 }: IndexSearchDialogProps) {
@@ -148,7 +146,6 @@ export function IndexSearchDialog({
                 <li key={entry.slug}>
                   <EntryLink
                     tool={entry}
-                    search={search}
                     className="index-search-result"
                     onOpen={() => {
                       onOpenEntry(entry.slug)

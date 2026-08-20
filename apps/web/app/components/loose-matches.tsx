@@ -12,7 +12,6 @@ type LooseMatch = {
 type LooseMatchListProps = {
   readonly matches: readonly LooseMatch[]
   readonly query: string
-  readonly search: string
   readonly unseenSlugs: ReadonlySet<string>
   readonly suggestUrl: string
   readonly onMarkSeen: (slug: string) => void
@@ -22,7 +21,6 @@ type LooseMatchListProps = {
 export function LooseMatchList({
   matches,
   query,
-  search,
   unseenSlugs,
   suggestUrl,
   onMarkSeen,
@@ -37,7 +35,6 @@ export function LooseMatchList({
           <ToolCard
             key={item.slug}
             tool={item}
-            search={search}
             unseen={unseenSlugs.has(item.slug)}
             onMarkSeen={onMarkSeen}
           />
