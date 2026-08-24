@@ -174,6 +174,9 @@ export function CatalogSurface({
   const [seenSlugs, setSeenSlugs] = useState<ReadonlySet<string>>(
     () => new Set()
   )
+  const [sessionReadSlugs, setSessionReadSlugs] = useState<ReadonlySet<string>>(
+    () => new Set()
+  )
   const [seenThrough, setSeenThrough] = useState<string | null>(null)
   const [previousVisit, setPreviousVisit] = useState<string | null>(null)
   const [readStateRestored, setReadStateRestored] = useState(false)
@@ -282,13 +285,16 @@ export function CatalogSurface({
   const visibleItems = useMemo(() => {
     const inScope =
       mode === "new"
-        ? items.filter((item) => unseenSlugs.has(item.slug))
+        ? items.filter(
+            (item) =>
+              unseenSlugs.has(item.slug) || sessionReadSlugs.has(item.slug)
+          )
         : items
 
     return inScope.toSorted(
       mode === "new" || sort === "newest" ? compareNewest : compareTraction
     )
-  }, [items, mode, sort, unseenSlugs])
+  }, [items, mode, sessionReadSlugs, sort, unseenSlugs])
 
   const newEntryGroups = useMemo(
     () => groupNewEntries(visibleItems, Date.now()),
@@ -310,6 +316,12 @@ export function CatalogSurface({
   }, [kindOptions, unseenEntries])
 
   const markSeen = useCallback((slug: string) => {
+    setSessionReadSlugs((current) => {
+      if (current.has(slug)) return current
+      const next = new Set(current)
+      next.add(slug)
+      return next
+    })
     setSeenSlugs((current) => {
       if (current.has(slug)) return current
       const next = new Set(current)
@@ -319,11 +331,13 @@ export function CatalogSurface({
   }, [])
 
   function markAllSeen() {
+    setSessionReadSlugs(new Set())
     setSeenSlugs((current) => new Set([...current, ...knownEntries.keys()]))
     setSeenThrough(new Date().toISOString())
   }
 
   function resetReadState() {
+    setSessionReadSlugs(new Set())
     setSeenSlugs(new Set())
     setSeenThrough(null)
   }
@@ -649,7 +663,6 @@ export function CatalogSurface({
                     unseenSlugs={unseenSlugs}
                     onMarkSeen={markSeen}
                     emptyState={resolveEmptyState()}
-                    showUnseenMarker={false}
                   />
                 </section>
               ))
@@ -659,7 +672,6 @@ export function CatalogSurface({
                 unseenSlugs={unseenSlugs}
                 onMarkSeen={markSeen}
                 emptyState={resolveEmptyState()}
-                showUnseenMarker={false}
               />
             )}
             {catalogTail}

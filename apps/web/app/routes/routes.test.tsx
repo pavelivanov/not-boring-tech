@@ -4,7 +4,13 @@ import type {
   CatalogListItem,
   TechnologyKind,
 } from "@findthatproject/contracts"
-import { render, screen, waitFor, within } from "@testing-library/react"
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import {
   createMemoryRouter,
@@ -370,13 +376,47 @@ describe("home route", () => {
     expect(screen.getByText("Newest first")).toBeVisible()
   })
 
-  it("keeps an opened entry in the index but off the counter", async () => {
+  it("keeps an opened entry visible as read until the page reloads", async () => {
     const user = userEvent.setup()
     renderAt()
 
-    await user.click(
-      await screen.findByRole("link", { name: /Dynamic Signal project/ })
+    const projectLink = await screen.findByRole("link", {
+      name: /Dynamic Signal project/,
+    })
+    const row = projectLink.closest("article")
+    expect(row).not.toBeNull()
+    expect(
+      within(row as HTMLElement).getByRole("img", {
+        name: "New since your last visit",
+      })
+    ).toBeVisible()
+
+    await user.click(projectLink)
+    expect(
+      await screen.findByRole("heading", {
+        level: 1,
+        name: "0 entries you have not seen",
+      })
+    ).toBeVisible()
+    expect(
+      screen.getByRole("link", { name: /Dynamic Signal project/ })
+    ).toBeVisible()
+    expect(
+      within(row as HTMLElement).queryByRole("img", {
+        name: "New since your last visit",
+      })
+    ).toBeNull()
+
+    await waitFor(() =>
+      expect(
+        JSON.parse(
+          window.localStorage.getItem("findthatproject:read-state:v1") ?? "{}"
+        ).seen
+      ).toContain("dynamic-signal")
     )
+
+    cleanup()
+    renderAt()
     expect(
       await screen.findByRole("heading", {
         level: 2,
@@ -384,19 +424,8 @@ describe("home route", () => {
       })
     ).toBeVisible()
     expect(
-      screen.getByRole("heading", {
-        level: 1,
-        name: "0 entries you have not seen",
-      })
-    ).toBeVisible()
-    expect(
       screen.queryByRole("link", { name: /Dynamic Signal project/ })
     ).toBeNull()
-
-    await user.click(screen.getByRole("link", { name: "Browse full index" }))
-    expect(
-      await screen.findByRole("link", { name: /Dynamic Signal project/ })
-    ).toBeVisible()
   })
 
   it("suggests unseen entries in the search dialog before a query", async () => {
