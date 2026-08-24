@@ -513,7 +513,10 @@ export function CatalogSurface({
       <header className="index-header">
         <div className="index-brand-block">
           <Link to="/" className="index-brand" aria-label={copy.home.homeLabel}>
-            FindThatProject<span>/</span>
+            <img src="/logo.svg" alt="" aria-hidden="true" />
+            <span className="index-brand-name">
+              FindThatProject<span className="index-brand-accent">/</span>
+            </span>
           </Link>
           <p className="index-tagline">{copy.home.tagline}</p>
         </div>
@@ -784,7 +787,10 @@ export function CatalogHydrateFallback({
       <header className="index-header">
         <div className="index-brand-block">
           <span className="index-brand" aria-hidden="true">
-            FindThatProject<span>/</span>
+            <img src="/logo.svg" alt="" />
+            <span className="index-brand-name">
+              FindThatProject<span className="index-brand-accent">/</span>
+            </span>
           </span>
           <p className="index-tagline">{copy.home.tagline}</p>
         </div>

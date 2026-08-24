@@ -13,7 +13,7 @@ import "./app.css"
 import { LocaleProvider, useLocale } from "~/lib/locale"
 
 export const links: Route.LinksFunction = () => [
-  { rel: "icon", href: "/favicon.ico" },
+  { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
 ]
 
 export function Layout({ children }: { children: React.ReactNode }) {
