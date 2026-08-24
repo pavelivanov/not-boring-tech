@@ -23,6 +23,10 @@ import Home, {
   ErrorBoundary as HomeErrorBoundary,
   HydrateFallback as HomeHydrateFallback,
 } from "./home"
+import Index, {
+  clientLoader as indexClientLoader,
+  HydrateFallback as IndexHydrateFallback,
+} from "./index"
 import NotFound from "./not-found"
 import { LocaleProvider, localeStorageKey } from "~/lib/locale"
 
@@ -168,6 +172,12 @@ async function runHomeLoader({ request }: LoaderFunctionArgs) {
   return homeClientLoader({ request } as Parameters<typeof homeClientLoader>[0])
 }
 
+async function runIndexLoader({ request }: LoaderFunctionArgs) {
+  return indexClientLoader({
+    request,
+  } as Parameters<typeof indexClientLoader>[0])
+}
+
 function HomeTestRoute() {
   const props = {
     loaderData: useLoaderData<Awaited<ReturnType<typeof homeClientLoader>>>(),
@@ -188,6 +198,16 @@ function HomeTestErrorBoundary() {
   return <HomeErrorBoundary {...props} />
 }
 
+function IndexTestRoute() {
+  const props = {
+    loaderData: useLoaderData<Awaited<ReturnType<typeof indexClientLoader>>>(),
+    params: useParams(),
+    matches: [],
+  } as unknown as Parameters<typeof Index>[0]
+
+  return <Index {...props} />
+}
+
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -195,6 +215,13 @@ const routes: RouteObject[] = [
     Component: HomeTestRoute,
     ErrorBoundary: HomeTestErrorBoundary,
     HydrateFallback: HomeHydrateFallback,
+  },
+  {
+    path: "/index",
+    loader: runIndexLoader,
+    Component: IndexTestRoute,
+    ErrorBoundary: HomeTestErrorBoundary,
+    HydrateFallback: IndexHydrateFallback,
   },
   {
     path: "*",
@@ -283,8 +310,8 @@ describe("home route", () => {
     )
   })
 
-  it("renders the traction-led ledger from the live API", async () => {
-    renderAt()
+  it("renders the traction-led full index from the live API", async () => {
+    renderAt("/index")
 
     const projectLink = await screen.findByRole("link", {
       name: /Dynamic Signal project/,
@@ -301,20 +328,39 @@ describe("home route", () => {
     expect(sourceLink).toHaveAttribute("target", "_blank")
     expect(sourceLink).toHaveAttribute("rel", "noreferrer")
     expect(screen.getByText("1 AUG 2026")).toBeVisible()
-    expect(
-      screen.getByText("1 entry indexed so far — all new on your first visit")
-    ).toBeVisible()
-    expect(
-      screen.getByRole("button", { name: "Show only new" })
-    ).toHaveAttribute("aria-pressed", "false")
     expect(screen.getByRole("button", { name: /^Library 1$/ })).toBeVisible()
     expect(screen.getByText(/All · Showing 1 of 1/)).toBeVisible()
     expect(screen.getByText("Sorted by traction")).toBeVisible()
+    expect(screen.getByRole("link", { name: "Full index" })).toHaveAttribute(
+      "aria-current",
+      "page"
+    )
+  })
+
+  it("renders new entries as a dedicated catch-up page", async () => {
+    renderAt()
+
+    expect(
+      await screen.findByRole("heading", {
+        level: 1,
+        name: "1 entry you have not seen",
+      })
+    ).toBeVisible()
+    expect(screen.getByText("Earlier this week")).toBeVisible()
+    expect(screen.getByText("1 entry")).toBeVisible()
+    expect(screen.getByRole("button", { name: /^All 1$/ })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    )
+    expect(screen.getByRole("link", { name: /^New 1$/ })).toHaveAttribute(
+      "aria-current",
+      "page"
+    )
   })
 
   it("switches the ledger between traction and newest order", async () => {
     const user = userEvent.setup()
-    renderAt()
+    renderAt("/index")
 
     await user.click(await screen.findByRole("button", { name: "Newest" }))
     expect(screen.getByRole("button", { name: "Newest" })).toHaveAttribute(
@@ -331,14 +377,25 @@ describe("home route", () => {
     await user.click(
       await screen.findByRole("link", { name: /Dynamic Signal project/ })
     )
-    expect(await screen.findByText("You are up to date.")).toBeVisible()
     expect(
-      screen.getByRole("link", { name: /Dynamic Signal project/ })
+      await screen.findByRole("heading", {
+        level: 2,
+        name: "You are caught up",
+      })
     ).toBeVisible()
-
-    await user.click(screen.getByRole("button", { name: "Show only new" }))
     expect(
-      await screen.findByText("You have read everything new.")
+      screen.getByRole("heading", {
+        level: 1,
+        name: "0 entries you have not seen",
+      })
+    ).toBeVisible()
+    expect(
+      screen.queryByRole("link", { name: /Dynamic Signal project/ })
+    ).toBeNull()
+
+    await user.click(screen.getByRole("link", { name: "Browse full index" }))
+    expect(
+      await screen.findByRole("link", { name: /Dynamic Signal project/ })
     ).toBeVisible()
   })
 
@@ -361,29 +418,34 @@ describe("home route", () => {
     ).toBeVisible()
   })
 
-  it("narrows the ledger to entries indexed since the last visit", async () => {
+  it("navigates between the separate New and Full Index pages", async () => {
     const user = userEvent.setup()
     renderAt()
 
-    await user.click(
-      await screen.findByRole("button", { name: "Show only new" })
+    const indexLink = await screen.findByRole("link", { name: "Full index" })
+    expect(screen.getByRole("link", { name: /^New 1$/ })).toHaveAttribute(
+      "aria-current",
+      "page"
     )
-    expect(
-      screen.getByRole("button", { name: "Showing new only" })
-    ).toHaveAttribute("aria-pressed", "true")
-    expect(
-      screen.getByRole("link", { name: /Dynamic Signal project/ })
-    ).toBeVisible()
+
+    await user.click(indexLink)
+    expect(await screen.findByText("Sorted by traction")).toBeVisible()
+    expect(screen.getByRole("link", { name: "Full index" })).toHaveAttribute(
+      "aria-current",
+      "page"
+    )
   })
 
   it("keeps type and search filters in URL state", async () => {
     const user = userEvent.setup()
-    const router = renderAt()
+    const router = renderAt("/index")
 
     await screen.findByRole("link", { name: /Dynamic Signal project/ })
     await user.click(screen.getByRole("button", { name: /^Library 1$/ }))
     await waitFor(() =>
-      expect(router.state.location.search).toBe("?kind=LIBRARY")
+      expect(
+        router.state.location.pathname + router.state.location.search
+      ).toBe("/index?kind=LIBRARY")
     )
     await user.click(screen.getByRole("button", { name: "Search" }))
     await user.type(
@@ -413,19 +475,46 @@ describe("home route", () => {
   })
 
   it("mark all seen drains the counter and reset restores it", async () => {
+    window.localStorage.setItem(
+      "findthatproject:read-state:v1",
+      JSON.stringify({
+        seen: [],
+        seenThrough: null,
+        lastVisit: "2026-08-02T10:00:00.000Z",
+      })
+    )
     const user = userEvent.setup()
     renderAt()
 
     await user.click(
       await screen.findByRole("button", { name: "Mark all seen" })
     )
-    expect(await screen.findByText("You are up to date.")).toBeVisible()
-
-    await user.click(screen.getByRole("button", { name: "Reset read state" }))
     expect(
-      await screen.findByText(
-        "1 entry indexed so far — all new on your first visit"
+      await screen.findByRole("heading", {
+        level: 2,
+        name: "You are caught up",
+      })
+    ).toBeVisible()
+    expect(
+      screen.getByText(
+        "Everything indexed since 2 August is marked as seen. New entries land here as they are added."
       )
+    ).toBeVisible()
+    expect(
+      screen.getByRole("link", { name: "Browse full index" })
+    ).toHaveAttribute("href", "/index")
+    expect(
+      screen.queryByRole("navigation", {
+        name: "Filter new entries by type",
+      })
+    ).toBeNull()
+
+    await user.click(screen.getByRole("button", { name: "Show them again" }))
+    expect(
+      await screen.findByRole("heading", {
+        level: 1,
+        name: "1 entry you have not seen",
+      })
     ).toBeVisible()
   })
 
@@ -436,7 +525,7 @@ describe("home route", () => {
     await screen.findByRole("link", { name: /Dynamic Signal project/ })
     await user.click(screen.getByRole("button", { name: "Mark all seen" }))
     await user.click(
-      await screen.findByRole("button", { name: "Reset read state" })
+      await screen.findByRole("button", { name: "Show them again" })
     )
 
     expect(router.state.location.search).toBe("?q=runtime&kind=LIBRARY")

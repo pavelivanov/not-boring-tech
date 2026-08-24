@@ -5,5 +5,5 @@ export default {
     v8_viteEnvironmentApi: true,
   },
   ssr: false,
-  prerender: ["/", "/about"],
+  prerender: ["/", "/index", "/about"],
 } satisfies Config

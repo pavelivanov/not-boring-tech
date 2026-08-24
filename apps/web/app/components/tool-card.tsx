@@ -10,6 +10,7 @@ type ToolCardProps = {
   readonly tool: CatalogListItem
   readonly unseen: boolean
   readonly onMarkSeen: (slug: string) => void
+  readonly showUnseenMarker?: boolean
 }
 
 export type EntryLinkProps = {
@@ -62,7 +63,12 @@ export function EntryLink({
   )
 }
 
-export function ToolCard({ tool, unseen, onMarkSeen }: ToolCardProps) {
+export function ToolCard({
+  tool,
+  unseen,
+  onMarkSeen,
+  showUnseenMarker = true,
+}: ToolCardProps) {
   const { locale, copy } = useLocale()
   const content = localizeCatalogItem(tool, locale)
   const markSeen = () => onMarkSeen(tool.slug)
@@ -72,16 +78,22 @@ export function ToolCard({ tool, unseen, onMarkSeen }: ToolCardProps) {
       : exactCountFormatters[locale].format(tool.githubStars)
 
   return (
-    <article className="ledger-row" data-unseen={unseen || undefined}>
-      <span className="ledger-row-marker">
-        {unseen ? (
-          <span
-            className="ledger-unseen-dot"
-            role="img"
-            aria-label={copy.toolCard.newSinceVisit}
-          />
-        ) : null}
-      </span>
+    <article
+      className="ledger-row"
+      data-unseen={unseen || undefined}
+      data-markerless={!showUnseenMarker || undefined}
+    >
+      {showUnseenMarker ? (
+        <span className="ledger-row-marker">
+          {unseen ? (
+            <span
+              className="ledger-unseen-dot"
+              role="img"
+              aria-label={copy.toolCard.newSinceVisit}
+            />
+          ) : null}
+        </span>
+      ) : null}
 
       <div className="ledger-row-copy">
         <p className="ledger-entry-kind">

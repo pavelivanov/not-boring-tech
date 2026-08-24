@@ -58,6 +58,21 @@ const englishCopy = {
   home: {
     tagline: "Hand-indexed tools, projects & podcasts",
     homeLabel: "FindThatProject home",
+    views: "Catalog views",
+    newView: "New",
+    indexView: "Full index",
+    newFilters: "Filter new entries by type",
+    newToIndex: "New to the index",
+    sinceVisit: (date: string) => `Since your last visit · ${date}`,
+    unseenTitle: (count: number) =>
+      `${englishCount(count, "entry", "entries")} you have not seen`,
+    newGroup: {
+      day: "Last 24 hours",
+      week: "Earlier this week",
+      older: "Earlier",
+    },
+    entryCount: (count: number) => englishCount(count, "entry", "entries"),
+    newCount: (count: number) => `${count} new`,
     weeklyDigest: "Weekly digest",
     digestLabel: (locale: string) =>
       `${locale} weekly digest on Telegram (opens in a new tab)`,
@@ -106,6 +121,13 @@ const englishCopy = {
     nothingNewUnder: (kind: string) => `Nothing new under ${kind}`,
     otherTypesNew: "Other types picked up entries since your last visit.",
     allNewEntries: "All new entries",
+    caughtUpTitle: "You are caught up",
+    caughtUpBody: (date: string | null) =>
+      date
+        ? `Everything indexed since ${date} is marked as seen. New entries land here as they are added.`
+        : "Everything currently indexed is marked as seen. New entries land here as they are added.",
+    browseFullIndex: "Browse full index",
+    showThemAgain: "Show them again",
     readEverything: "You have read everything new.",
     readEverythingBody:
       "A few entries land every day. The banner up top will be holding them next time you drop in.",
@@ -206,6 +228,27 @@ const russianCopy: LocaleCopy = {
   home: {
     tagline: "Инструменты, проекты и подкасты — вручную",
     homeLabel: "Главная FindThatProject",
+    views: "Разделы каталога",
+    newView: "Новое",
+    indexView: "Весь каталог",
+    newFilters: "Фильтр новых записей по типу",
+    newToIndex: "Новое в каталоге",
+    sinceVisit: (date: string) => `С прошлого визита · ${date}`,
+    unseenTitle: (count: number) =>
+      `${count} ${russianNoun(
+        count,
+        "новая запись",
+        "новые записи",
+        "новых записей"
+      )}`,
+    newGroup: {
+      day: "За последние 24 часа",
+      week: "Раньше на этой неделе",
+      older: "Раньше",
+    },
+    entryCount: (count: number) =>
+      `${count} ${russianNoun(count, "запись", "записи", "записей")}`,
+    newCount: (count: number) => `${count} новых`,
     weeklyDigest: "Еженедельный дайджест",
     digestLabel: (locale: string) =>
       `${locale}-дайджест в Telegram (откроется в новой вкладке)`,
@@ -262,6 +305,13 @@ const russianCopy: LocaleCopy = {
     otherTypesNew:
       "После вашего прошлого визита появились записи других типов.",
     allNewEntries: "Все новые записи",
+    caughtUpTitle: "Вы всё просмотрели",
+    caughtUpBody: (date: string | null) =>
+      date
+        ? `Всё, что добавлено с ${date}, отмечено просмотренным. Новые записи будут появляться здесь.`
+        : "Всё в каталоге отмечено просмотренным. Новые записи будут появляться здесь.",
+    browseFullIndex: "Открыть весь каталог",
+    showThemAgain: "Показать снова",
     readEverything: "Вы прочитали всё новое.",
     readEverythingBody:
       "Каждый день появляется несколько записей. При следующем визите они будут ждать в верхнем блоке.",

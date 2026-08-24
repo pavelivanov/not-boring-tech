@@ -38,20 +38,17 @@ import {
   serializeSearchParams,
   type SearchFilters,
 } from "~/domain/search"
-import {
-  formatTechnologyKind,
-  formatTechnologyKindPlural,
-} from "~/domain/tools"
+import { formatTechnologyKind } from "~/domain/tools"
 import { canonicalMeta } from "~/domain/urls"
 import { useLocale } from "~/lib/locale"
 
 export function meta() {
   return [
-    { title: "FindThatProject · Catch up or find it again" },
+    { title: "New · FindThatProject" },
     {
       name: "description",
       content:
-        "Catch up on newly indexed technology, then search the full cross-channel index when you need to find it again.",
+        "Catch up on technology added to FindThatProject since your last visit.",
     },
     ...canonicalMeta("/"),
   ]
@@ -69,6 +66,12 @@ type StoredReadState = {
 }
 
 type LedgerSort = "traction" | "newest"
+export type CatalogPageMode = "new" | "index"
+
+type NewEntryGroup = {
+  readonly key: "day" | "week" | "older"
+  readonly items: readonly CatalogListItem[]
+}
 
 const readStateStorageKey = "findthatproject:read-state:v1"
 
@@ -134,13 +137,40 @@ function compareNewest(left: CatalogListItem, right: CatalogListItem): number {
   )
 }
 
-function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
+function groupNewEntries(
+  entries: readonly CatalogListItem[],
+  referenceTime: number
+): readonly NewEntryGroup[] {
+  const day = 24 * 60 * 60 * 1_000
+  const groups: Record<NewEntryGroup["key"], CatalogListItem[]> = {
+    day: [],
+    week: [],
+    older: [],
+  }
+
+  for (const entry of entries) {
+    const age = Math.max(0, referenceTime - Date.parse(entry.firstMentionedAt))
+    const key = age <= day ? "day" : age <= day * 7 ? "week" : "older"
+    groups[key].push(entry)
+  }
+
+  return (["day", "week", "older"] as const).flatMap((key) =>
+    groups[key].length > 0 ? [{ key, items: groups[key] }] : []
+  )
+}
+
+export function CatalogSurface({
+  data,
+  mode,
+}: {
+  readonly data: HomeCatalogData
+  readonly mode: CatalogPageMode
+}) {
   const { locale, copy } = useLocale()
   const [, setSearchParams] = useSearchParams()
   const location = useLocation()
   const navigation = useNavigation()
   const [sort, setSort] = useState<LedgerSort>("traction")
-  const [onlyUnseen, setOnlyUnseen] = useState(false)
   const [seenSlugs, setSeenSlugs] = useState<ReadonlySet<string>>(
     () => new Set()
   )
@@ -249,13 +279,35 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
     [isUnseen, knownEntries]
   )
 
-  const visibleItems = useMemo(
-    () =>
-      items
-        .filter((item) => !onlyUnseen || unseenSlugs.has(item.slug))
-        .toSorted(sort === "newest" ? compareNewest : compareTraction),
-    [items, onlyUnseen, sort, unseenSlugs]
+  const visibleItems = useMemo(() => {
+    const inScope =
+      mode === "new"
+        ? items.filter((item) => unseenSlugs.has(item.slug))
+        : items
+
+    return inScope.toSorted(
+      mode === "new" || sort === "newest" ? compareNewest : compareTraction
+    )
+  }, [items, mode, sort, unseenSlugs])
+
+  const newEntryGroups = useMemo(
+    () => groupNewEntries(visibleItems, Date.now()),
+    [visibleItems]
   )
+
+  const newKindOptions = useMemo(() => {
+    const counts = new Map<TechnologyKind, number>()
+    for (const item of unseenEntries) {
+      counts.set(item.kind, (counts.get(item.kind) ?? 0) + 1)
+    }
+
+    return kindOptions
+      .map((option) => ({
+        value: option.value,
+        count: counts.get(option.value) ?? 0,
+      }))
+      .filter((option) => option.count > 0)
+  }, [kindOptions, unseenEntries])
 
   const markSeen = useCallback((slug: string) => {
     setSeenSlugs((current) => {
@@ -321,40 +373,17 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
     : null
   const shownCount = visibleItems.length
   const unseenCount = unseenEntries.length
-  const unseenInView = items.filter((item) => unseenSlugs.has(item.slug)).length
   const scopeCount = filters.kind
     ? (kindOptions.find((option) => option.value === filters.kind)?.count ??
       shownCount)
     : totalCount
-
-  function bannerLine(): string {
-    if (unseenCount === 0) {
-      return lastVisitDate
-        ? copy.home.upToDateSince(lastVisitDate)
-        : copy.home.upToDate
-    }
-
-    if (!lastVisitDate) {
-      return copy.home.firstVisit(unseenCount)
-    }
-
-    if (kindLabel) {
-      return copy.home.newInKind(
-        unseenCount,
-        lastVisitDate,
-        unseenInView,
-        formatTechnologyKindPlural(filters.kind as TechnologyKind, locale)
-      )
-    }
-
-    return copy.home.sinceLastVisit(unseenCount, lastVisitDate)
-  }
+  const isCaughtUp =
+    mode === "new" && unseenCount === 0 && knownEntries.size > 0
 
   function scopeLine() {
     if (isFiltering) return copy.home.updatingEntries
 
-    const total = onlyUnseen ? unseenInView : scopeCount
-    const counts = ` · ${copy.home.showing(shownCount, total)}`
+    const counts = ` · ${copy.home.showing(shownCount, scopeCount)}`
 
     // The scope line is set in uppercase mono, so the searched term keeps its
     // own casing to stay recognisable as what was typed.
@@ -377,8 +406,22 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
       }
     }
 
+    if (isCaughtUp) {
+      return {
+        title: copy.home.caughtUpTitle,
+        body: copy.home.caughtUpBody(lastVisitDate),
+        variant: "caught-up",
+        primaryLink: {
+          label: copy.home.browseFullIndex,
+          to: "/index",
+        },
+        secondaryActionLabel: copy.home.showThemAgain,
+        onSecondaryAction: resetReadState,
+      }
+    }
+
     if (query) {
-      if (onlyUnseen && items.length > 0) {
+      if (mode === "new" && items.length > 0) {
         return {
           title: copy.home.noNewQueryTitle(query),
           body:
@@ -386,7 +429,7 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
               ? copy.home.oneOldQueryMatch
               : copy.home.oldQueryMatches(items.length),
           actionLabel: copy.home.searchWholeIndex,
-          onAction: () => setOnlyUnseen(false),
+          onAction: clearFilters,
         }
       }
 
@@ -402,7 +445,7 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
       }
     }
 
-    if (onlyUnseen) {
+    if (mode === "new") {
       if (kindLabel) {
         return {
           title: copy.home.nothingNewUnder(kindLabel),
@@ -415,8 +458,6 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
       return {
         title: copy.home.readEverything,
         body: copy.home.readEverythingBody,
-        actionLabel: copy.home.backToIndex,
-        onAction: () => setOnlyUnseen(false),
       }
     }
 
@@ -437,8 +478,38 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
     }
   }
 
+  const catalogTail = (
+    <>
+      {loadMoreFailed ? (
+        <Alert className="catalog-inline-alert" variant="destructive">
+          <AlertCircleIcon aria-hidden="true" />
+          <AlertTitle>{copy.home.loadFailureTitle}</AlertTitle>
+          <AlertDescription>{copy.home.loadFailureBody}</AlertDescription>
+          <AlertAction>
+            <Button variant="outline" size="sm" onClick={loadMore}>
+              {copy.common.retry}
+            </Button>
+          </AlertAction>
+        </Alert>
+      ) : null}
+
+      {nextCursor ? (
+        <div className="catalog-load-more">
+          <button
+            type="button"
+            className="ledger-load-more"
+            disabled={loadingMore}
+            onClick={loadMore}
+          >
+            {loadingMore ? copy.home.loadingMore : copy.home.loadMore}
+          </button>
+        </div>
+      ) : null}
+    </>
+  )
+
   return (
-    <div className="index-page">
+    <div className="index-page" data-page={mode}>
       <header className="index-header">
         <div className="index-brand-block">
           <Link to="/" className="index-brand" aria-label={copy.home.homeLabel}>
@@ -446,6 +517,19 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
           </Link>
           <p className="index-tagline">{copy.home.tagline}</p>
         </div>
+
+        <nav className="index-view-switcher" aria-label={copy.home.views}>
+          <Link to="/" aria-current={mode === "new" ? "page" : undefined}>
+            {copy.home.newView}
+            <span>{unseenCount}</span>
+          </Link>
+          <Link
+            to="/index"
+            aria-current={mode === "index" ? "page" : undefined}
+          >
+            {copy.home.indexView}
+          </Link>
+        </nav>
 
         <div className="index-header-tools">
           <IndexSearchDialog
@@ -479,152 +563,186 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
 
           <span className="index-header-divider" aria-hidden="true" />
           <LocaleSwitcher />
-          <span className="index-header-divider" aria-hidden="true" />
-          <nav className="index-utility-nav" aria-label={copy.home.siteLinks}>
-            <Link to="/about">{copy.home.about}</Link>
-          </nav>
         </div>
       </header>
 
-      <div className="index-body">
-        <aside className="index-sidebar" aria-label={copy.home.indexFilters}>
-          <div className="index-facet">
-            <h2 className="index-facet-title">{copy.home.type}</h2>
-            <nav className="index-facet-list">
-              <button
-                type="button"
-                className="index-facet-option"
-                aria-pressed={!filters.kind}
-                onClick={() => changeKind()}
-              >
-                <span>{copy.home.all}</span>
-                <span>{totalCount}</span>
-              </button>
-              {kindOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className="index-facet-option"
-                  aria-pressed={filters.kind === option.value}
-                  onClick={() => changeKind(option.value)}
-                >
-                  <span>{formatTechnologyKind(option.value, locale)}</span>
-                  <span>{option.count}</span>
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          <div className="index-facet index-facet-sort">
-            <h2 className="index-facet-title">{copy.home.sort}</h2>
-            <div className="index-facet-list">
-              <button
-                type="button"
-                className="index-facet-option"
-                aria-pressed={sort === "traction"}
-                onClick={() => setSort("traction")}
-              >
-                <span>{copy.home.traction}</span>
-              </button>
-              <button
-                type="button"
-                className="index-facet-option"
-                aria-pressed={sort === "newest"}
-                onClick={() => setSort("newest")}
-              >
-                <span>{copy.home.newest}</span>
-              </button>
-            </div>
-          </div>
-        </aside>
-
-        <main id="main-content" tabIndex={-1} className="index-main">
-          <h1 className="sr-only">{copy.home.pageTitle}</h1>
-
+      {mode === "new" ? (
+        <main id="main-content" tabIndex={-1} className="new-main">
           <section
-            className="ledger-banner"
-            data-quiet={unseenCount === 0 || undefined}
-            aria-live="polite"
+            className="new-hero"
+            data-caught-up={isCaughtUp || undefined}
+            aria-labelledby="new-page-title"
           >
-            <p className="ledger-banner-line">
-              <span className="ledger-banner-dot" aria-hidden="true" />
-              {bannerLine()}
+            <p className="new-eyebrow">
+              <span aria-hidden="true" />
+              {lastVisitDate
+                ? copy.home.sinceVisit(lastVisitDate)
+                : copy.home.newToIndex}
             </p>
 
-            <div className="ledger-banner-actions">
+            <div className="new-title-row">
+              <h1 id="new-page-title" aria-live="polite">
+                {isCaughtUp
+                  ? copy.home.unseenTitle(0)
+                  : unseenCount > 0
+                    ? copy.home.unseenTitle(unseenCount)
+                    : knownEntries.size > 0
+                      ? copy.home.readEverything
+                      : copy.home.unseenTitle(0)}
+              </h1>
               {unseenCount > 0 ? (
                 <button
                   type="button"
-                  className="ledger-banner-quiet-action"
+                  className="new-mark-seen"
                   onClick={markAllSeen}
                 >
                   {copy.home.markAllSeen}
                 </button>
-              ) : (
+              ) : null}
+            </div>
+
+            {isCaughtUp ? null : (
+              <nav
+                className="new-kind-filters"
+                aria-label={copy.home.newFilters}
+              >
                 <button
                   type="button"
-                  className="ledger-banner-quiet-action"
-                  onClick={resetReadState}
+                  aria-pressed={!filters.kind}
+                  onClick={() => changeKind()}
                 >
-                  {copy.home.resetReadState}
+                  <span>{copy.home.all}</span>
+                  <span>{unseenCount}</span>
                 </button>
-              )}
-              <button
-                type="button"
-                className="ledger-banner-toggle"
-                aria-pressed={onlyUnseen}
-                onClick={() => setOnlyUnseen((current) => !current)}
-              >
-                {onlyUnseen ? copy.home.showingNewOnly : copy.home.showOnlyNew}
-              </button>
-            </div>
+                {newKindOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={filters.kind === option.value}
+                    onClick={() => changeKind(option.value)}
+                  >
+                    <span>{formatTechnologyKind(option.value, locale)}</span>
+                    <span>{option.count}</span>
+                  </button>
+                ))}
+              </nav>
+            )}
           </section>
 
-          <div className="ledger-scope">
-            <p aria-live="polite">{scopeLine()}</p>
-            <p>
-              {sort === "newest"
-                ? copy.home.newestFirst
-                : copy.home.sortedByTraction}
-            </p>
-          </div>
-
-          <div className="index-surface" aria-busy={isFiltering}>
-            <ToolList
-              tools={visibleItems}
-              unseenSlugs={unseenSlugs}
-              onMarkSeen={markSeen}
-              emptyState={resolveEmptyState()}
-            />
-
-            {loadMoreFailed ? (
-              <Alert className="catalog-inline-alert" variant="destructive">
-                <AlertCircleIcon aria-hidden="true" />
-                <AlertTitle>{copy.home.loadFailureTitle}</AlertTitle>
-                <AlertDescription>{copy.home.loadFailureBody}</AlertDescription>
-                <AlertAction>
-                  <Button variant="outline" size="sm" onClick={loadMore}>
-                    {copy.common.retry}
-                  </Button>
-                </AlertAction>
-              </Alert>
-            ) : null}
-
-            {nextCursor ? (
-              <div className="catalog-load-more">
-                <button
-                  type="button"
-                  className="ledger-load-more"
-                  disabled={loadingMore}
-                  onClick={loadMore}
-                >
-                  {loadingMore ? copy.home.loadingMore : copy.home.loadMore}
-                </button>
-              </div>
-            ) : null}
+          <div
+            className="new-feed"
+            data-caught-up={isCaughtUp || undefined}
+            aria-busy={isFiltering}
+          >
+            {newEntryGroups.length > 0 ? (
+              newEntryGroups.map((group) => (
+                <section className="new-entry-group" key={group.key}>
+                  <header>
+                    <h2>{copy.home.newGroup[group.key]}</h2>
+                    <span>{copy.home.entryCount(group.items.length)}</span>
+                  </header>
+                  <ToolList
+                    tools={group.items}
+                    unseenSlugs={unseenSlugs}
+                    onMarkSeen={markSeen}
+                    emptyState={resolveEmptyState()}
+                    showUnseenMarker={false}
+                  />
+                </section>
+              ))
+            ) : (
+              <ToolList
+                tools={[]}
+                unseenSlugs={unseenSlugs}
+                onMarkSeen={markSeen}
+                emptyState={resolveEmptyState()}
+                showUnseenMarker={false}
+              />
+            )}
+            {catalogTail}
           </div>
         </main>
-      </div>
+      ) : (
+        <div className="index-body">
+          <aside className="index-sidebar" aria-label={copy.home.indexFilters}>
+            <div className="index-facet">
+              <h2 className="index-facet-title">{copy.home.type}</h2>
+              <nav className="index-facet-list">
+                <button
+                  type="button"
+                  className="index-facet-option"
+                  aria-pressed={!filters.kind}
+                  onClick={() => changeKind()}
+                >
+                  <span>{copy.home.all}</span>
+                  <span>{totalCount}</span>
+                </button>
+                {kindOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className="index-facet-option"
+                    aria-pressed={filters.kind === option.value}
+                    onClick={() => changeKind(option.value)}
+                  >
+                    <span>{formatTechnologyKind(option.value, locale)}</span>
+                    <span>{option.count}</span>
+                  </button>
+                ))}
+              </nav>
+            </div>
+
+            <div className="index-facet index-facet-sort">
+              <h2 className="index-facet-title">{copy.home.sort}</h2>
+              <div className="index-facet-list">
+                <button
+                  type="button"
+                  className="index-facet-option"
+                  aria-pressed={sort === "traction"}
+                  onClick={() => setSort("traction")}
+                >
+                  <span>{copy.home.traction}</span>
+                </button>
+                <button
+                  type="button"
+                  className="index-facet-option"
+                  aria-pressed={sort === "newest"}
+                  onClick={() => setSort("newest")}
+                >
+                  <span>{copy.home.newest}</span>
+                </button>
+              </div>
+            </div>
+
+            <Link to="/" className="index-new-callout">
+              <span aria-hidden="true" />
+              {copy.home.newCount(unseenCount)}
+            </Link>
+          </aside>
+
+          <main id="main-content" tabIndex={-1} className="index-main">
+            <h1 className="sr-only">{copy.home.pageTitle}</h1>
+            <div className="ledger-scope">
+              <p aria-live="polite">{scopeLine()}</p>
+              <p>
+                {sort === "newest"
+                  ? copy.home.newestFirst
+                  : copy.home.sortedByTraction}
+              </p>
+            </div>
+
+            <div className="index-surface" aria-busy={isFiltering}>
+              <ToolList
+                tools={visibleItems}
+                unseenSlugs={unseenSlugs}
+                onMarkSeen={markSeen}
+                emptyState={resolveEmptyState()}
+              />
+              {catalogTail}
+            </div>
+          </main>
+        </div>
+      )}
 
       <footer className="index-footer">
         <p>
@@ -647,10 +765,18 @@ function CatalogSurface({ data }: { readonly data: HomeCatalogData }) {
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  return <CatalogSurface data={loaderData} />
+  return <CatalogSurface data={loaderData} mode="new" />
 }
 
 export function HydrateFallback() {
+  return <CatalogHydrateFallback mode="new" />
+}
+
+export function CatalogHydrateFallback({
+  mode,
+}: {
+  readonly mode: CatalogPageMode
+}) {
   const { copy } = useLocale()
 
   return (
@@ -662,14 +788,20 @@ export function HydrateFallback() {
           </span>
           <p className="index-tagline">{copy.home.tagline}</p>
         </div>
+        <Skeleton className="h-9 w-56" />
         <Skeleton className="h-8 w-40" />
       </header>
-      <div className="index-body">
-        <aside className="index-sidebar">
-          <Skeleton className="h-64 w-full" />
-        </aside>
-        <main id="main-content" className="index-main">
-          <Skeleton className="h-12 w-full" />
+      <div className={mode === "new" ? "new-main" : "index-body"}>
+        {mode === "index" ? (
+          <aside className="index-sidebar">
+            <Skeleton className="h-64 w-full" />
+          </aside>
+        ) : null}
+        <main
+          id="main-content"
+          className={mode === "new" ? "new-feed" : "index-main"}
+        >
+          <Skeleton className="h-24 w-full" />
           <div className="ledger-loading-list">
             {Array.from({ length: 6 }, (_, index) => (
               <Skeleton key={index} className="h-28 w-full" />

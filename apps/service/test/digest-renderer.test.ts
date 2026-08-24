@@ -43,6 +43,10 @@ describe("renderDigestMessages", () => {
     expect(message?.renderedHtml).not.toContain("/tools/nanochat");
     expect(message?.renderedHtml).toContain('href="https://nanochat.example/"');
     expect(message?.renderedHtml).toContain(
+      '<a href="https://nanochat.example/">Project link</a> · <a href="https://t.me/source_channel/42">Source</a>',
+    );
+    expect(message?.renderedHtml).not.toContain("Project link:");
+    expect(message?.renderedHtml).toContain(
       'href="https://github.com/karpathy/nanochat"',
     );
     expect(message?.renderedHtml).toContain("★ 0");
@@ -55,6 +59,10 @@ describe("renderDigestMessages", () => {
     expect(russian?.renderedHtml).toContain("1. Наночат");
     expect(russian?.renderedHtml).toContain("Компактный проект для изучения");
     expect(russian?.renderedHtml).toContain("Ссылка на проект");
+    expect(russian?.renderedHtml).toContain(
+      '<a href="https://t.me/source_channel/42">Источник</a>',
+    );
+    expect(russian?.renderedHtml).not.toContain("Ссылка на проект:");
   });
 
   it("escapes database text and rejects an unsafe main URL", () => {
@@ -98,6 +106,7 @@ describe("renderDigestMessages", () => {
     );
     expect(message?.renderedHtml).toContain("Source");
     expect(message?.renderedHtml).not.toContain("GitHub:");
+    expect(message?.renderedHtml.match(/source_channel\/42/gu)).toHaveLength(1);
   });
 
   it("does not duplicate a repository link that is already the main link", () => {

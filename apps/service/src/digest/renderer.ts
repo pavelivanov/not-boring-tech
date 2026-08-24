@@ -182,6 +182,10 @@ const itemBlock = (
       ? labels.sourceLink
       : labels.mainLink;
   const mainLink = anchor(mainLabel, mainUrl);
+  const sourceLink = anchor(labels.sourceLink, item.sourceUrl);
+  const sameMainAndSource =
+    normalizedComparisonUrl(mainUrl) ===
+    normalizedComparisonUrl(item.sourceUrl);
   const repositoryUrl = canonicalGitHubRepositoryUrl(
     item.githubUrl ?? item.canonicalUrl,
   );
@@ -192,19 +196,25 @@ const itemBlock = (
     normalizedComparisonUrl(repositoryUrl) === normalizedComparisonUrl(mainUrl);
   const mainStars =
     sameMainAndRepository && item.githubStars !== null
-      ? ` · ${starsText(item.githubStars, language)}`
-      : "";
+      ? starsText(item.githubStars, language)
+      : null;
+  const htmlLinks = [
+    mainLink.html,
+    ...(sameMainAndSource ? [] : [sourceLink.html]),
+    ...(mainStars === null ? [] : [escapeHtml(mainStars)]),
+  ].join(" · ");
+  const textLinks = [
+    mainLink.text,
+    ...(sameMainAndSource ? [] : [sourceLink.text]),
+    ...(mainStars === null ? [] : [mainStars]),
+  ].join(" · ");
 
   const htmlLines = [
     `<b>${escapeHtml(`${item.ordinal + 1}. ${name}`)}</b>`,
     escapeHtml(description),
-    `${escapeHtml(mainLabel)}: ${mainLink.html}${escapeHtml(mainStars)}`,
+    htmlLinks,
   ];
-  const textLines = [
-    `${item.ordinal + 1}. ${name}`,
-    description,
-    `${mainLabel}: ${mainLink.text}${mainStars}`,
-  ];
+  const textLines = [`${item.ordinal + 1}. ${name}`, description, textLinks];
 
   if (repositoryUrl !== null && repository !== null && !sameMainAndRepository) {
     const repositoryLink = anchor(repository.fullName, repositoryUrl);
