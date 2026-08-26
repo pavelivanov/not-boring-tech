@@ -34,7 +34,10 @@ export function filtersFromActive(
   }
 }
 
-export function serializeSearchParams(filters: SearchFilters): URLSearchParams {
+export function serializeSearchParams(
+  filters: SearchFilters,
+  defaultSort: CatalogSort = "latest"
+): URLSearchParams {
   const params = new URLSearchParams()
   const query = filters.query.replace(/\s+/gu, " ").trim()
 
@@ -47,6 +50,6 @@ export function serializeSearchParams(filters: SearchFilters): URLSearchParams {
   )) {
     params.append("tag", tag)
   }
-  if (filters.sort !== "latest") params.set("sort", filters.sort)
+  if (filters.sort !== defaultSort) params.set("sort", filters.sort)
   return params
 }

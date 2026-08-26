@@ -337,6 +337,12 @@ describe("home route", () => {
     expect(screen.getByRole("button", { name: /^Library 1$/ })).toBeVisible()
     expect(screen.getByText(/All · Showing 1 of 1/)).toBeVisible()
     expect(screen.getByText("Sorted by traction")).toBeVisible()
+    expect(
+      fetchSpy.mock.calls
+        .map(([input]) => new URL(input.toString()))
+        .find((url) => url.pathname === "/v1/catalog")
+        ?.searchParams.get("sort")
+    ).toBe("stars")
     expect(screen.getByRole("link", { name: "Full index" })).toHaveAttribute(
       "aria-current",
       "page"
@@ -366,14 +372,24 @@ describe("home route", () => {
 
   it("switches the ledger between traction and newest order", async () => {
     const user = userEvent.setup()
-    renderAt("/index")
+    const router = renderAt("/index")
 
     await user.click(await screen.findByRole("button", { name: "Newest" }))
+    await waitFor(() =>
+      expect(router.state.location.search).toBe("?sort=latest")
+    )
     expect(screen.getByRole("button", { name: "Newest" })).toHaveAttribute(
       "aria-pressed",
       "true"
     )
     expect(screen.getByText("Newest first")).toBeVisible()
+    expect(
+      fetchSpy.mock.calls
+        .map(([input]) => new URL(input.toString()))
+        .filter((url) => url.pathname === "/v1/catalog")
+        .at(-1)
+        ?.searchParams.get("sort")
+    ).toBe("latest")
   })
 
   it("keeps an opened entry visible as read until the page reloads", async () => {
@@ -494,9 +510,13 @@ describe("home route", () => {
     expect(
       requestedUrls.filter((url) => url.pathname === "/v1/channels")
     ).toHaveLength(1)
+    const catalogUrls = requestedUrls.filter(
+      (url) => url.pathname === "/v1/catalog"
+    )
+    expect(catalogUrls).toHaveLength(3)
     expect(
-      requestedUrls.filter((url) => url.pathname === "/v1/catalog")
-    ).toHaveLength(3)
+      catalogUrls.every((url) => url.searchParams.get("sort") === "stars")
+    ).toBe(true)
     expect(screen.getByRole("button", { name: /^Library 1$/ })).toHaveAttribute(
       "aria-pressed",
       "true"

@@ -69,4 +69,19 @@ describe("search URL state", () => {
       }).toString()
     ).toBe("sort=stars")
   })
+
+  it("supports a stars-first page default while preserving explicit newest sorting", () => {
+    expect(
+      serializeSearchParams(
+        { query: "", tags: [], sort: "stars" },
+        "stars"
+      ).toString()
+    ).toBe("")
+    expect(
+      serializeSearchParams(
+        { query: "", tags: [], sort: "latest" },
+        "stars"
+      ).toString()
+    ).toBe("sort=latest")
+  })
 })

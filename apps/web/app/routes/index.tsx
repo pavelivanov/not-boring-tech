@@ -16,7 +16,17 @@ export function meta() {
 }
 
 export async function clientLoader({ request }: Route.ClientLoaderArgs) {
-  return loadHomeCatalog(request.url, request.signal)
+  const url = new URL(request.url)
+  const requestedSort = url.searchParams.get("sort")
+
+  // Traction is the full index's default view. Put that order on the API query
+  // so pagination operates over the globally highest-starred entries instead
+  // of reordering only the latest page in the browser.
+  if (requestedSort !== "latest" && requestedSort !== "stars") {
+    url.searchParams.set("sort", "stars")
+  }
+
+  return loadHomeCatalog(url.href, request.signal)
 }
 clientLoader.hydrate = true as const
 

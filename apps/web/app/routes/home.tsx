@@ -170,7 +170,6 @@ export function CatalogSurface({
   const [, setSearchParams] = useSearchParams()
   const location = useLocation()
   const navigation = useNavigation()
-  const [sort, setSort] = useState<LedgerSort>("traction")
   const [seenSlugs, setSeenSlugs] = useState<ReadonlySet<string>>(
     () => new Set()
   )
@@ -192,6 +191,8 @@ export function CatalogSurface({
   const activeRequest = useRef<AbortController | null>(null)
   const currentVisit = useRef("")
   const filters = filtersFromActive(data.catalog.filters)
+  const sort: LedgerSort =
+    data.catalog.filters.sort === "stars" ? "traction" : "newest"
   const totalCount = data.facets.categories.reduce(
     (total, facet) => total + facet.count,
     0
@@ -257,9 +258,12 @@ export function CatalogSurface({
 
   const updateFilters = useCallback(
     (next: SearchFilters, replace = false) => {
-      setSearchParams(serializeSearchParams(next), { replace })
+      setSearchParams(
+        serializeSearchParams(next, mode === "index" ? "stars" : "latest"),
+        { replace }
+      )
     },
-    [setSearchParams]
+    [mode, setSearchParams]
   )
 
   const isUnseen = useCallback(
@@ -291,10 +295,8 @@ export function CatalogSurface({
           )
         : items
 
-    return inScope.toSorted(
-      mode === "new" || sort === "newest" ? compareNewest : compareTraction
-    )
-  }, [items, mode, sessionReadSlugs, sort, unseenSlugs])
+    return inScope
+  }, [items, mode, sessionReadSlugs, unseenSlugs])
 
   const newEntryGroups = useMemo(
     () => groupNewEntries(visibleItems, Date.now()),
@@ -353,6 +355,13 @@ export function CatalogSurface({
         ? { ...remainingFilters, kind }
         : remainingFilters
     )
+  }
+
+  function changeSort(next: LedgerSort) {
+    updateFilters({
+      ...filters,
+      sort: next === "traction" ? "stars" : "latest",
+    })
   }
 
   async function loadMore() {
@@ -711,7 +720,7 @@ export function CatalogSurface({
                   type="button"
                   className="index-facet-option"
                   aria-pressed={sort === "traction"}
-                  onClick={() => setSort("traction")}
+                  onClick={() => changeSort("traction")}
                 >
                   <span>{copy.home.traction}</span>
                 </button>
@@ -719,7 +728,7 @@ export function CatalogSurface({
                   type="button"
                   className="index-facet-option"
                   aria-pressed={sort === "newest"}
-                  onClick={() => setSort("newest")}
+                  onClick={() => changeSort("newest")}
                 >
                   <span>{copy.home.newest}</span>
                 </button>
