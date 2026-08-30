@@ -58,7 +58,7 @@ const LABELS: Readonly<Record<DigestLanguage, Labels>> = {
       "A fresh batch of projects, tools, and ideas we found this week. Everything worth opening is below.",
     catalog: "All projects on FindThatProject →",
     mainLink: "Link",
-    sourceLink: "Source",
+    sourceLink: "#",
     empty: "No new items this week.",
     part: (index, total) => `Part ${index}/${total}`,
   },
@@ -68,7 +68,7 @@ const LABELS: Readonly<Record<DigestLanguage, Labels>> = {
       "Свежие проекты, инструменты и идеи, которые мы нашли за неделю. Всё самое интересное — ниже.",
     catalog: "Все проекты на FindThatProject →",
     mainLink: "Ссылка",
-    sourceLink: "Источник",
+    sourceLink: "#",
     empty: "На этой неделе новых проектов нет.",
     part: (index, total) => `Часть ${index}/${total}`,
   },
@@ -212,13 +212,13 @@ const itemBlock = (
       : null;
   const linkedNumber = anchor(String(item.ordinal + 1), mainUrl);
   const htmlLinks = [
-    mainLink.html,
     sourceLink.html,
+    mainLink.html,
     ...(mainStars === null ? [] : [escapeHtml(mainStars)]),
   ];
   const textLinks = [
-    mainLink.text,
     sourceLink.text,
+    mainLink.text,
     ...(mainStars === null ? [] : [mainStars]),
   ];
 

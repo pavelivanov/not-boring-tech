@@ -49,7 +49,7 @@ describe("renderDigestMessages", () => {
       '<b><a href="https://nanochat.example/">1</a></b> <b>Nanochat</b>',
     );
     expect(message?.renderedHtml).toContain(
-      '<a href="https://nanochat.example/">Link</a> • <a href="https://t.me/source_channel/42">Source</a>',
+      '<a href="https://t.me/source_channel/42">#</a> • <a href="https://nanochat.example/">Link</a>',
     );
     expect(message?.renderedHtml).toContain(
       'href="https://github.com/karpathy/nanochat"',
@@ -66,7 +66,7 @@ describe("renderDigestMessages", () => {
     );
     expect(russian?.renderedHtml).toContain("Компактный проект для изучения");
     expect(russian?.renderedHtml).toContain(
-      '<a href="https://nanochat.example/">Ссылка</a> • <a href="https://t.me/source_channel/42">Источник</a>',
+      '<a href="https://t.me/source_channel/42">#</a> • <a href="https://nanochat.example/">Ссылка</a>',
     );
   });
 
@@ -109,8 +109,8 @@ describe("renderDigestMessages", () => {
     expect(message?.renderedHtml).toContain(
       'href="https://t.me/source_channel/42"',
     );
-    expect(message?.renderedHtml).toContain(">Link</a> •");
-    expect(message?.renderedHtml).toContain(">Source</a>");
+    expect(message?.renderedHtml).toContain(">#</a> •");
+    expect(message?.renderedHtml).toContain(">Link</a>");
     expect(message?.renderedHtml).not.toContain("GitHub");
     expect(message?.renderedHtml.match(/source_channel\/42/gu)).toHaveLength(3);
   });
