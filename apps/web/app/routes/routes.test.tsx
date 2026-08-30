@@ -28,6 +28,7 @@ import Home, {
   clientLoader as homeClientLoader,
   ErrorBoundary as HomeErrorBoundary,
   HydrateFallback as HomeHydrateFallback,
+  meta as homeMeta,
 } from "./home"
 import Index, {
   clientLoader as indexClientLoader,
@@ -264,6 +265,22 @@ afterEach(() => {
 })
 
 describe("home route", () => {
+  it("publishes the branded large-preview image metadata", () => {
+    vi.stubEnv("VITE_PUBLIC_SITE_ORIGIN", "https://findthatproject.test")
+
+    expect(homeMeta()).toEqual(
+      expect.arrayContaining([
+        {
+          property: "og:image",
+          content: "https://findthatproject.test/weekly-digest-cover.png",
+        },
+        { property: "og:image:width", content: "1200" },
+        { property: "og:image:height", content: "630" },
+        { name: "twitter:card", content: "summary_large_image" },
+      ])
+    )
+  })
+
   it("links to both weekly digest channels", async () => {
     renderAt()
 

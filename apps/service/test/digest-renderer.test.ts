@@ -39,13 +39,18 @@ describe("renderDigestMessages", () => {
   it("renders the localized item contract with main, repository, and zero stars", () => {
     const [message] = renderDigestMessages(input());
 
-    expect(message?.renderedHtml).toContain("Weekly FindThatProject digest");
+    expect(message?.renderedHtml).toContain("The weekly project drop 🎉");
+    expect(message?.renderedHtml).toContain(
+      "A fresh batch of projects, tools, and ideas",
+    );
     expect(message?.renderedHtml).not.toContain("/tools/nanochat");
     expect(message?.renderedHtml).toContain('href="https://nanochat.example/"');
     expect(message?.renderedHtml).toContain(
-      '<a href="https://nanochat.example/">Project link</a> · <a href="https://t.me/source_channel/42">Source</a>',
+      '<b><a href="https://nanochat.example/">1</a></b> <b>Nanochat</b>',
     );
-    expect(message?.renderedHtml).not.toContain("Project link:");
+    expect(message?.renderedHtml).toContain(
+      '<a href="https://nanochat.example/">Link</a> • <a href="https://t.me/source_channel/42">Source</a>',
+    );
     expect(message?.renderedHtml).toContain(
       'href="https://github.com/karpathy/nanochat"',
     );
@@ -55,14 +60,14 @@ describe("renderDigestMessages", () => {
     );
 
     const [russian] = renderDigestMessages(input({ language: "RU" }));
-    expect(russian?.renderedHtml).toContain("Еженедельный дайджест");
-    expect(russian?.renderedHtml).toContain("1. Наночат");
-    expect(russian?.renderedHtml).toContain("Компактный проект для изучения");
-    expect(russian?.renderedHtml).toContain("Ссылка на проект");
+    expect(russian?.renderedHtml).toContain("Большая недельная подборка 🎉");
     expect(russian?.renderedHtml).toContain(
-      '<a href="https://t.me/source_channel/42">Источник</a>',
+      '<b><a href="https://nanochat.example/">1</a></b> <b>Наночат</b>',
     );
-    expect(russian?.renderedHtml).not.toContain("Ссылка на проект:");
+    expect(russian?.renderedHtml).toContain("Компактный проект для изучения");
+    expect(russian?.renderedHtml).toContain(
+      '<a href="https://nanochat.example/">Ссылка</a> • <a href="https://t.me/source_channel/42">Источник</a>',
+    );
   });
 
   it("escapes database text and rejects an unsafe main URL", () => {
@@ -104,9 +109,10 @@ describe("renderDigestMessages", () => {
     expect(message?.renderedHtml).toContain(
       'href="https://t.me/source_channel/42"',
     );
-    expect(message?.renderedHtml).toContain("Source");
-    expect(message?.renderedHtml).not.toContain("GitHub:");
-    expect(message?.renderedHtml.match(/source_channel\/42/gu)).toHaveLength(1);
+    expect(message?.renderedHtml).toContain(">Link</a> •");
+    expect(message?.renderedHtml).toContain(">Source</a>");
+    expect(message?.renderedHtml).not.toContain("GitHub");
+    expect(message?.renderedHtml.match(/source_channel\/42/gu)).toHaveLength(3);
   });
 
   it("does not duplicate a repository link that is already the main link", () => {
@@ -122,7 +128,7 @@ describe("renderDigestMessages", () => {
       }),
     );
 
-    expect(message?.renderedHtml).not.toContain("GitHub:");
+    expect(message?.renderedHtml).not.toContain(">GitHub</a>");
     expect(message?.renderedHtml).toContain("★ 123,456");
   });
 

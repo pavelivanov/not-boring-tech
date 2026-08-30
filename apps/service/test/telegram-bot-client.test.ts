@@ -8,6 +8,7 @@ import {
 const tokenSentinel = "token-secret-sentinel";
 const targetSentinel = "@private-target-sentinel";
 const htmlSentinel = "<b>private-html-sentinel</b>";
+const previewUrlSentinel = "https://preview.example/";
 
 const client = (
   request: typeof fetch,
@@ -25,7 +26,11 @@ const client = (
   });
 
 const send = (publisher: TelegramBotApiClient) =>
-  publisher.sendMessage({ chatId: targetSentinel, html: htmlSentinel });
+  publisher.sendMessage({
+    chatId: targetSentinel,
+    html: htmlSentinel,
+    linkPreviewUrl: previewUrlSentinel,
+  });
 
 const rejectedResponse = (
   status: number,
@@ -53,7 +58,7 @@ const safeErrorText = async (promise: Promise<unknown>): Promise<string> => {
 };
 
 describe("TelegramBotApiClient", () => {
-  it("posts HTML with previews disabled and returns the positive message ID", async () => {
+  it("posts HTML with a large preview above the text and returns the positive message ID", async () => {
     const request = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(JSON.stringify({ ok: true, result: { message_id: 42 } }), {
         status: 200,
@@ -72,7 +77,11 @@ describe("TelegramBotApiClient", () => {
           chat_id: targetSentinel,
           text: htmlSentinel,
           parse_mode: "HTML",
-          link_preview_options: { is_disabled: true },
+          link_preview_options: {
+            url: previewUrlSentinel,
+            prefer_large_media: true,
+            show_above_text: true,
+          },
         }),
       }),
     );

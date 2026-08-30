@@ -18,6 +18,7 @@ export interface TelegramDigestPublisher {
   sendMessage(input: {
     readonly chatId: string;
     readonly html: string;
+    readonly linkPreviewUrl: string;
   }): Promise<{ readonly messageId: bigint; readonly attempts: number }>;
 }
 
@@ -89,6 +90,7 @@ export class TelegramBotApiClient implements TelegramDigestPublisher {
   async sendMessage(input: {
     readonly chatId: string;
     readonly html: string;
+    readonly linkPreviewUrl: string;
   }): Promise<{ readonly messageId: bigint; readonly attempts: number }> {
     for (let attempt = 1; attempt <= this.#maxAttempts; attempt += 1) {
       let response: Response;
@@ -100,7 +102,11 @@ export class TelegramBotApiClient implements TelegramDigestPublisher {
             chat_id: input.chatId,
             text: input.html,
             parse_mode: "HTML",
-            link_preview_options: { is_disabled: true },
+            link_preview_options: {
+              url: input.linkPreviewUrl,
+              prefer_large_media: true,
+              show_above_text: true,
+            },
           }),
           signal: AbortSignal.timeout(this.#requestTimeoutMs),
         });

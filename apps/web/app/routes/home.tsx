@@ -39,10 +39,15 @@ import {
   type SearchFilters,
 } from "~/domain/search"
 import { formatTechnologyKind } from "~/domain/tools"
-import { canonicalMeta } from "~/domain/urls"
+import { canonicalMeta, siteUrl } from "~/domain/urls"
 import { useLocale } from "~/lib/locale"
 
 export function meta() {
+  const socialImage = siteUrl(
+    "/weekly-digest-cover.png",
+    import.meta.env.VITE_PUBLIC_SITE_ORIGIN
+  )
+
   return [
     { title: "New · FindThatProject" },
     {
@@ -50,6 +55,26 @@ export function meta() {
       content:
         "Catch up on technology added to FindThatProject since your last visit.",
     },
+    { property: "og:title", content: "FindThatProject" },
+    {
+      property: "og:description",
+      content: "Fresh projects, tools, and ideas worth opening this week.",
+    },
+    { property: "og:type", content: "website" },
+    ...(socialImage
+      ? [
+          { property: "og:image", content: socialImage },
+          { property: "og:image:width", content: "1200" },
+          { property: "og:image:height", content: "630" },
+          {
+            property: "og:image:alt",
+            content:
+              "A warm orange beam revealing software projects above a laptop",
+          },
+          { name: "twitter:card", content: "summary_large_image" },
+          { name: "twitter:image", content: socialImage },
+        ]
+      : []),
     ...canonicalMeta("/"),
   ]
 }

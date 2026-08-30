@@ -34,8 +34,11 @@ const assertDisposableDatabase = (databaseUrl: string): void => {
 };
 
 class ScriptedPublisher implements TelegramDigestPublisher {
-  readonly calls: Array<{ readonly chatId: string; readonly html: string }> =
-    [];
+  readonly calls: Array<{
+    readonly chatId: string;
+    readonly html: string;
+    readonly linkPreviewUrl: string;
+  }> = [];
   readonly #outcomes: Array<
     { readonly messageId: bigint; readonly attempts: number } | Error
   >;
@@ -51,6 +54,7 @@ class ScriptedPublisher implements TelegramDigestPublisher {
   async sendMessage(input: {
     readonly chatId: string;
     readonly html: string;
+    readonly linkPreviewUrl: string;
   }): Promise<{ readonly messageId: bigint; readonly attempts: number }> {
     this.calls.push(input);
     const outcome = this.#outcomes.shift() ?? {

@@ -213,6 +213,12 @@ independently, so a successful language or split part is never repeated merely
 because another delivery failed. An empty week still sends one localized health
 message per channel. Every part links to the FindThatProject website.
 
+Digest posts use a short editorial introduction, blue linked item numbers,
+inline project/source/GitHub links, and a branded large website preview above
+the text. The preview image is the public `weekly-digest-cover.png` asset exposed
+through the homepage Open Graph metadata; deploy `web` together with `digest`
+when changing this presentation.
+
 For local configuration, copy the digest variables from `.env.example` into an
 ignored `.env`. The bot must be dedicated to outbound delivery and must be an
 administrator in exactly the two owner-managed broadcast channels with

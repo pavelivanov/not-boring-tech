@@ -43,6 +43,7 @@ interface RenderedFragment {
 
 interface Labels {
   readonly heading: string;
+  readonly intro: string;
   readonly catalog: string;
   readonly mainLink: string;
   readonly sourceLink: string;
@@ -52,17 +53,21 @@ interface Labels {
 
 const LABELS: Readonly<Record<DigestLanguage, Labels>> = {
   EN: {
-    heading: "Weekly FindThatProject digest",
-    catalog: "Full catalog",
-    mainLink: "Project link",
+    heading: "The weekly project drop 🎉",
+    intro:
+      "A fresh batch of projects, tools, and ideas we found this week. Everything worth opening is below.",
+    catalog: "All projects on FindThatProject →",
+    mainLink: "Link",
     sourceLink: "Source",
     empty: "No new items this week.",
     part: (index, total) => `Part ${index}/${total}`,
   },
   RU: {
-    heading: "Еженедельный дайджест FindThatProject",
-    catalog: "Полный каталог",
-    mainLink: "Ссылка на проект",
+    heading: "Большая недельная подборка 🎉",
+    intro:
+      "Свежие проекты, инструменты и идеи, которые мы нашли за неделю. Всё самое интересное — ниже.",
+    catalog: "Все проекты на FindThatProject →",
+    mainLink: "Ссылка",
     sourceLink: "Источник",
     empty: "На этой неделе новых проектов нет.",
     part: (index, total) => `Часть ${index}/${total}`,
@@ -119,11 +124,23 @@ const anchor = (label: string, url: string): RenderedFragment => ({
   text: label,
 });
 
-const utcDate = (date: Date): string => {
+const validateDate = (date: Date): Date => {
   if (!Number.isFinite(date.getTime())) {
     throw new DigestRendererError("DIGEST_INVALID_WINDOW");
   }
-  return date.toISOString().slice(0, 10);
+  return date;
+};
+
+const dateRange = (
+  start: Date,
+  end: Date,
+  language: DigestLanguage,
+): string => {
+  const formatter = new Intl.DateTimeFormat(
+    language === "RU" ? "ru-RU" : "en-US",
+    { day: "numeric", month: "long", timeZone: "UTC" },
+  );
+  return formatter.formatRange(validateDate(start), validateDate(end));
 };
 
 const headingFor = (
@@ -133,20 +150,22 @@ const headingFor = (
   partCount?: number,
 ): RenderedFragment => {
   const labels = LABELS[input.language];
-  const pieces = [
-    labels.heading,
-    `${utcDate(input.windowStart)}–${utcDate(input.windowEnd)}`,
+  const details = [
+    dateRange(input.windowStart, input.windowEnd, input.language),
   ];
   if (partIndex !== undefined && partCount !== undefined) {
-    pieces.push(labels.part(partIndex, partCount));
+    details.push(labels.part(partIndex, partCount));
   }
-  const heading = pieces.join(" · ");
-  const catalog = anchor(labels.catalog, siteOrigin);
   return {
-    html: `<b>${escapeHtml(heading)}</b>\n${catalog.html}`,
-    text: `${heading}\n${catalog.text}`,
+    html: `<b>${escapeHtml(labels.heading)}</b>\n<i>${escapeHtml(details.join(" · "))}</i>\n\n${escapeHtml(labels.intro)}`,
+    text: `${labels.heading}\n${details.join(" · ")}\n\n${labels.intro}`,
   };
 };
+
+const footerFor = (
+  language: DigestLanguage,
+  siteOrigin: string,
+): RenderedFragment => anchor(LABELS[language].catalog, siteOrigin);
 
 const normalizedComparisonUrl = (value: string): string => {
   const url = new URL(safeHttpUrl(value));
@@ -177,15 +196,8 @@ const itemBlock = (
   const mainUrl = safeHttpUrl(
     item.canonicalUrl ?? item.githubUrl ?? item.sourceUrl,
   );
-  const mainLabel =
-    item.canonicalUrl === null && item.githubUrl === null
-      ? labels.sourceLink
-      : labels.mainLink;
-  const mainLink = anchor(mainLabel, mainUrl);
+  const mainLink = anchor(labels.mainLink, mainUrl);
   const sourceLink = anchor(labels.sourceLink, item.sourceUrl);
-  const sameMainAndSource =
-    normalizedComparisonUrl(mainUrl) ===
-    normalizedComparisonUrl(item.sourceUrl);
   const repositoryUrl = canonicalGitHubRepositoryUrl(
     item.githubUrl ?? item.canonicalUrl,
   );
@@ -198,33 +210,36 @@ const itemBlock = (
     sameMainAndRepository && item.githubStars !== null
       ? starsText(item.githubStars, language)
       : null;
+  const linkedNumber = anchor(String(item.ordinal + 1), mainUrl);
   const htmlLinks = [
     mainLink.html,
-    ...(sameMainAndSource ? [] : [sourceLink.html]),
+    sourceLink.html,
     ...(mainStars === null ? [] : [escapeHtml(mainStars)]),
-  ].join(" · ");
+  ];
   const textLinks = [
     mainLink.text,
-    ...(sameMainAndSource ? [] : [sourceLink.text]),
+    sourceLink.text,
     ...(mainStars === null ? [] : [mainStars]),
-  ].join(" · ");
+  ];
 
   const htmlLines = [
-    `<b>${escapeHtml(`${item.ordinal + 1}. ${name}`)}</b>`,
-    escapeHtml(description),
-    htmlLinks,
+    `<b>${linkedNumber.html}</b> <b>${escapeHtml(name)}</b> — ${escapeHtml(description)}`,
   ];
-  const textLines = [`${item.ordinal + 1}. ${name}`, description, textLinks];
+  const textLines = [`${item.ordinal + 1} ${name} — ${description}`];
 
   if (repositoryUrl !== null && repository !== null && !sameMainAndRepository) {
-    const repositoryLink = anchor(repository.fullName, repositoryUrl);
-    const stars =
-      item.githubStars === null
-        ? ""
-        : ` · ${starsText(item.githubStars, language)}`;
-    htmlLines.push(`GitHub: ${repositoryLink.html}${escapeHtml(stars)}`);
-    textLines.push(`GitHub: ${repositoryLink.text}${stars}`);
+    const repositoryLink = anchor("GitHub", repositoryUrl);
+    htmlLinks.push(repositoryLink.html);
+    textLinks.push(repositoryLink.text);
+    if (item.githubStars !== null) {
+      const stars = starsText(item.githubStars, language);
+      htmlLinks.push(escapeHtml(stars));
+      textLinks.push(stars);
+    }
   }
+
+  htmlLines.push(htmlLinks.join(" • "));
+  textLines.push(textLinks.join(" • "));
 
   return { html: htmlLines.join("\n"), text: textLines.join("\n") };
 };
@@ -232,8 +247,9 @@ const itemBlock = (
 const combine = (
   heading: RenderedFragment,
   blocks: readonly RenderedFragment[],
+  footer: RenderedFragment,
 ): RenderedFragment => {
-  const fragments = [heading, ...blocks];
+  const fragments = [heading, ...blocks, footer];
   return {
     html: fragments.map((fragment) => fragment.html).join("\n\n"),
     text: fragments.map((fragment) => fragment.text).join("\n\n"),
@@ -256,7 +272,8 @@ const packForPartCount = (
   for (const block of blocks) {
     const partIndex = parts.length + 1;
     const heading = headingFor(input, siteOrigin, partIndex, assumedPartCount);
-    if (fits(combine(heading, [...current, block]))) {
+    const footer = footerFor(input.language, siteOrigin);
+    if (fits(combine(heading, [...current, block], footer))) {
       current.push(block);
       continue;
     }
@@ -271,7 +288,7 @@ const packForPartCount = (
       parts.length + 1,
       assumedPartCount,
     );
-    if (!fits(combine(nextHeading, current))) {
+    if (!fits(combine(nextHeading, current, footer))) {
       throw new DigestRendererError("DIGEST_ITEM_TOO_LARGE");
     }
   }
@@ -299,11 +316,12 @@ export const renderDigestMessages = (
 
   if (orderedItems.length === 0) {
     const heading = headingFor(input, siteOrigin);
+    const footer = footerFor(input.language, siteOrigin);
     const empty = {
       html: escapeHtml(LABELS[input.language].empty),
       text: LABELS[input.language].empty,
     };
-    const message = combine(heading, [empty]);
+    const message = combine(heading, [empty], footer);
     if (!fits(message))
       throw new DigestRendererError("DIGEST_MESSAGE_TOO_LARGE");
     return [
@@ -316,7 +334,8 @@ export const renderDigestMessages = (
   }
 
   const blocks = orderedItems.map((item) => itemBlock(item, input.language));
-  const single = combine(headingFor(input, siteOrigin), blocks);
+  const footer = footerFor(input.language, siteOrigin);
+  const single = combine(headingFor(input, siteOrigin), blocks, footer);
   if (fits(single)) {
     return [
       {
@@ -342,6 +361,7 @@ export const renderDigestMessages = (
     const message = combine(
       headingFor(input, siteOrigin, partIndex + 1, parts.length),
       part,
+      footer,
     );
     if (!fits(message))
       throw new DigestRendererError("DIGEST_MESSAGE_TOO_LARGE");

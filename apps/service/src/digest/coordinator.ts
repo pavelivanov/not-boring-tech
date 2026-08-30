@@ -408,6 +408,7 @@ export const publishWeeklyDigest = async (
       const sent = await dependencies.publisher.sendMessage({
         chatId: delivery.targetChatId,
         html: delivery.renderedHtml,
+        linkPreviewUrl: config.siteOrigin,
       });
       await dependencies.database.weeklyDigestDelivery.update({
         where: { id: delivery.id },
