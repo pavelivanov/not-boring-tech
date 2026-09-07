@@ -1,10 +1,12 @@
 import {
+  WeeklyDigestDeliveryKind,
   WeeklyDigestDeliveryStatus,
   WeeklyDigestLanguage,
   WeeklyDigestRunStatus,
   type DbClient,
   type DbTransaction,
 } from "@findthatproject/db";
+import { technologyKindSchema } from "@findthatproject/contracts";
 
 import { visibleCandidateWhere, visibleCatalogWhere } from "../catalog/queries";
 import { renderDigestMessages } from "./renderer";
@@ -15,6 +17,11 @@ import {
 
 const MINIMUM_INTERVAL_MS = 144 * 60 * 60 * 1_000;
 const MAXIMUM_INITIAL_LOOKBACK_MS = 14 * 24 * 60 * 60 * 1_000;
+const DIGEST_COVER_PATH = "/weekly-digest-cover.png";
+const DIGEST_COVER_FALLBACK_HTML = {
+  EN: "<b>FindThatProject Weekly Digest</b>",
+  RU: "<b>Недельная подборка FindThatProject</b>",
+} as const;
 
 export interface DigestCoordinatorConfig {
   readonly initialStartAt: Date;
@@ -116,6 +123,7 @@ const prepareRun = async (
     select: {
       id: true,
       slug: true,
+      kind: true,
       name: true,
       nameRu: true,
       canonicalUrl: true,
@@ -152,6 +160,7 @@ const prepareRun = async (
   const snapshots = items.map((item, ordinal) => ({
     ordinal,
     slug: item.slug,
+    kind: technologyKindSchema.parse(item.kind),
     name: item.name,
     nameRu: item.nameRu,
     canonicalUrl: item.canonicalUrl,
@@ -176,6 +185,7 @@ const prepareRun = async (
     language: "RU",
     siteOrigin: config.siteOrigin,
   });
+  const coverUrl = new URL(DIGEST_COVER_PATH, config.siteOrigin).href;
   const run = await transaction.weeklyDigestRun.create({
     data: {
       eligibilityStartAt,
@@ -192,6 +202,7 @@ const prepareRun = async (
         catalogItemId: item.id,
         ordinal,
         slug: item.slug,
+        kind: item.kind,
         name: item.name,
         nameRu: item.nameRu,
         canonicalUrl: item.canonicalUrl,
@@ -206,17 +217,37 @@ const prepareRun = async (
   }
   await transaction.weeklyDigestDelivery.createMany({
     data: [
+      {
+        digestRunId: run.id,
+        language: WeeklyDigestLanguage.EN,
+        kind: WeeklyDigestDeliveryKind.PHOTO,
+        partIndex: 0,
+        targetChatId: config.channelEn,
+        renderedHtml: DIGEST_COVER_FALLBACK_HTML.EN,
+        mediaUrl: coverUrl,
+      },
       ...renderedEn.map((message) => ({
         digestRunId: run.id,
         language: WeeklyDigestLanguage.EN,
-        partIndex: message.partIndex,
+        kind: WeeklyDigestDeliveryKind.TEXT,
+        partIndex: message.partIndex + 1,
         targetChatId: config.channelEn,
         renderedHtml: message.renderedHtml,
       })),
+      {
+        digestRunId: run.id,
+        language: WeeklyDigestLanguage.RU,
+        kind: WeeklyDigestDeliveryKind.PHOTO,
+        partIndex: 0,
+        targetChatId: config.channelRu,
+        renderedHtml: DIGEST_COVER_FALLBACK_HTML.RU,
+        mediaUrl: coverUrl,
+      },
       ...renderedRu.map((message) => ({
         digestRunId: run.id,
         language: WeeklyDigestLanguage.RU,
-        partIndex: message.partIndex,
+        kind: WeeklyDigestDeliveryKind.TEXT,
+        partIndex: message.partIndex + 1,
         targetChatId: config.channelRu,
         renderedHtml: message.renderedHtml,
       })),
@@ -282,12 +313,16 @@ const aggregateRun = async (
     where: { id: runId },
     include: {
       deliveries: {
-        select: { language: true, status: true },
+        select: { language: true, kind: true, status: true },
       },
     },
   });
   const deliveriesFor = (language: WeeklyDigestLanguage) =>
-    run.deliveries.filter((delivery) => delivery.language === language);
+    run.deliveries.filter(
+      (delivery) =>
+        delivery.language === language &&
+        delivery.kind === WeeklyDigestDeliveryKind.TEXT,
+    );
   return {
     runId: run.id,
     windowStart: run.windowStart.toISOString(),
@@ -405,11 +440,16 @@ export const publishWeeklyDigest = async (
     if (transition.count !== 1) continue;
 
     try {
-      const sent = await dependencies.publisher.sendMessage({
-        chatId: delivery.targetChatId,
-        html: delivery.renderedHtml,
-        linkPreviewUrl: config.siteOrigin,
-      });
+      const sent =
+        delivery.kind === WeeklyDigestDeliveryKind.PHOTO
+          ? await dependencies.publisher.sendPhoto({
+              chatId: delivery.targetChatId,
+              photoUrl: delivery.mediaUrl!,
+            })
+          : await dependencies.publisher.sendMessage({
+              chatId: delivery.targetChatId,
+              html: delivery.renderedHtml,
+            });
       await dependencies.database.weeklyDigestDelivery.update({
         where: { id: delivery.id },
         data: {

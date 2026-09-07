@@ -18,7 +18,10 @@ export interface TelegramDigestPublisher {
   sendMessage(input: {
     readonly chatId: string;
     readonly html: string;
-    readonly linkPreviewUrl: string;
+  }): Promise<{ readonly messageId: bigint; readonly attempts: number }>;
+  sendPhoto(input: {
+    readonly chatId: string;
+    readonly photoUrl: string;
   }): Promise<{ readonly messageId: bigint; readonly attempts: number }>;
 }
 
@@ -62,7 +65,7 @@ const isSafeToRetry = (status: number): boolean =>
   status === 429 || status >= 500;
 
 export class TelegramBotApiClient implements TelegramDigestPublisher {
-  readonly #endpoint: string;
+  readonly #endpointRoot: string;
   readonly #requestTimeoutMs: number;
   readonly #maxAttempts: number;
   readonly #fetch: typeof globalThis.fetch;
@@ -80,7 +83,7 @@ export class TelegramBotApiClient implements TelegramDigestPublisher {
     ) {
       throw new Error("TELEGRAM_CONFIG");
     }
-    this.#endpoint = `https://api.telegram.org/bot${options.token}/sendMessage`;
+    this.#endpointRoot = `https://api.telegram.org/bot${options.token}`;
     this.#requestTimeoutMs = options.requestTimeoutMs;
     this.#maxAttempts = options.maxAttempts;
     this.#fetch = options.fetch ?? globalThis.fetch;
@@ -90,24 +93,36 @@ export class TelegramBotApiClient implements TelegramDigestPublisher {
   async sendMessage(input: {
     readonly chatId: string;
     readonly html: string;
-    readonly linkPreviewUrl: string;
   }): Promise<{ readonly messageId: bigint; readonly attempts: number }> {
+    return this.#send("sendMessage", {
+      chat_id: input.chatId,
+      text: input.html,
+      parse_mode: "HTML",
+      link_preview_options: { is_disabled: true },
+    });
+  }
+
+  async sendPhoto(input: {
+    readonly chatId: string;
+    readonly photoUrl: string;
+  }): Promise<{ readonly messageId: bigint; readonly attempts: number }> {
+    return this.#send("sendPhoto", {
+      chat_id: input.chatId,
+      photo: input.photoUrl,
+    });
+  }
+
+  async #send(
+    method: "sendMessage" | "sendPhoto",
+    body: Readonly<Record<string, unknown>>,
+  ): Promise<{ readonly messageId: bigint; readonly attempts: number }> {
     for (let attempt = 1; attempt <= this.#maxAttempts; attempt += 1) {
       let response: Response;
       try {
-        response = await this.#fetch(this.#endpoint, {
+        response = await this.#fetch(`${this.#endpointRoot}/${method}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: input.chatId,
-            text: input.html,
-            parse_mode: "HTML",
-            link_preview_options: {
-              url: input.linkPreviewUrl,
-              prefer_large_media: true,
-              show_above_text: true,
-            },
-          }),
+          body: JSON.stringify(body),
           signal: AbortSignal.timeout(this.#requestTimeoutMs),
         });
       } catch {

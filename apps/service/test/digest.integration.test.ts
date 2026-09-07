@@ -7,6 +7,7 @@ import {
   createDbClient,
   type DbClient,
 } from "@findthatproject/db";
+import type { TechnologyKind } from "@findthatproject/contracts";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import {
@@ -34,11 +35,18 @@ const assertDisposableDatabase = (databaseUrl: string): void => {
 };
 
 class ScriptedPublisher implements TelegramDigestPublisher {
-  readonly calls: Array<{
-    readonly chatId: string;
-    readonly html: string;
-    readonly linkPreviewUrl: string;
-  }> = [];
+  readonly calls: Array<
+    | {
+        readonly kind: "TEXT";
+        readonly chatId: string;
+        readonly html: string;
+      }
+    | {
+        readonly kind: "PHOTO";
+        readonly chatId: string;
+        readonly photoUrl: string;
+      }
+  > = [];
   readonly #outcomes: Array<
     { readonly messageId: bigint; readonly attempts: number } | Error
   >;
@@ -54,9 +62,23 @@ class ScriptedPublisher implements TelegramDigestPublisher {
   async sendMessage(input: {
     readonly chatId: string;
     readonly html: string;
-    readonly linkPreviewUrl: string;
   }): Promise<{ readonly messageId: bigint; readonly attempts: number }> {
-    this.calls.push(input);
+    this.calls.push({ kind: "TEXT", ...input });
+    return this.nextOutcome();
+  }
+
+  async sendPhoto(input: {
+    readonly chatId: string;
+    readonly photoUrl: string;
+  }): Promise<{ readonly messageId: bigint; readonly attempts: number }> {
+    this.calls.push({ kind: "PHOTO", ...input });
+    return this.nextOutcome();
+  }
+
+  private nextOutcome(): {
+    readonly messageId: bigint;
+    readonly attempts: number;
+  } {
     const outcome = this.#outcomes.shift() ?? {
       messageId: BigInt(this.calls.length),
       attempts: 1,
@@ -65,6 +87,14 @@ class ScriptedPublisher implements TelegramDigestPublisher {
     return outcome;
   }
 }
+
+const textCalls = (publisher: ScriptedPublisher) =>
+  publisher.calls.filter(
+    (
+      call,
+    ): call is Extract<(typeof publisher.calls)[number], { kind: "TEXT" }> =>
+      call.kind === "TEXT",
+  );
 
 const config = (
   overrides: Partial<DigestCoordinatorConfig> = {},
@@ -87,15 +117,17 @@ const createCatalogItem = async (
     readonly visible?: boolean;
     readonly channelEnabled?: boolean;
     readonly descriptionRu?: string | null;
+    readonly kind?: TechnologyKind;
   },
 ): Promise<string> => {
   seedOrdinal += 1;
   const suffix = seedOrdinal.toString(16).padStart(64, "0");
+  const kind = input.kind ?? "PROJECT";
   const item = await database.catalogItem.create({
     data: {
       identityKey: `url:${suffix}`,
       slug: input.slug,
-      kind: "PROJECT",
+      kind,
       category: "Developer tools",
       name: `Project ${input.slug}`,
       nameRu: `Проект ${input.slug}`,
@@ -129,6 +161,7 @@ const createCatalogItem = async (
       input.descriptionRu === undefined
         ? `Русское описание проекта ${input.slug}.`
         : input.descriptionRu,
+      kind,
     );
   }
   return item.id;
@@ -141,6 +174,7 @@ const makeCatalogItemVisible = async (
   publishedAt: Date,
   enabled = true,
   descriptionRu: string | null = `Русское описание проекта ${slug}.`,
+  kind: TechnologyKind = "PROJECT",
 ): Promise<void> => {
   seedOrdinal += 1;
   const handle = `@digest_seed_${seedOrdinal}`;
@@ -171,7 +205,7 @@ const makeCatalogItemVisible = async (
     data: {
       analyzedPostId: post.id,
       ordinal: 0,
-      kind: "PROJECT",
+      kind,
       category: "Developer tools",
       name: `Project ${slug}`,
       nameRu: `Проект ${slug}`,
@@ -219,6 +253,7 @@ describe.skipIf(!testDatabaseUrl)("weekly digest integration", () => {
     const firstItemId = await createCatalogItem(database, {
       slug: "first-visible",
       createdAt: new Date("2026-08-11T10:00:00.000Z"),
+      kind: "SERVICE",
     });
     const delayedItemId = await createCatalogItem(database, {
       slug: "delayed",
@@ -241,14 +276,33 @@ describe.skipIf(!testDatabaseUrl)("weekly digest integration", () => {
       status: WeeklyDigestRunStatus.SUCCEEDED,
       sentCounts: { EN: 1, RU: 1 },
     });
-    expect(firstPublisher.calls).toHaveLength(2);
+    expect(firstPublisher.calls).toEqual([
+      {
+        kind: "PHOTO",
+        chatId: "@digest_en",
+        photoUrl: "https://findthatproject.example/weekly-digest-cover.png",
+      },
+      expect.objectContaining({ kind: "TEXT", chatId: "@digest_en" }),
+      {
+        kind: "PHOTO",
+        chatId: "@digest_ru",
+        photoUrl: "https://findthatproject.example/weekly-digest-cover.png",
+      },
+      expect.objectContaining({ kind: "TEXT", chatId: "@digest_ru" }),
+    ]);
+    expect(textCalls(firstPublisher)[0]?.html).toContain("<b>Service</b>");
+    expect(textCalls(firstPublisher)[1]?.html).toContain("<b>Сервис</b>");
     await expect(
       database.weeklyDigestItem.findMany({
         where: { digestRunId: first.runId! },
-        select: { catalogItemId: true, name: true },
+        select: { catalogItemId: true, kind: true, name: true },
       }),
     ).resolves.toEqual([
-      { catalogItemId: firstItemId, name: "Project first-visible" },
+      {
+        catalogItemId: firstItemId,
+        kind: "SERVICE",
+        name: "Project first-visible",
+      },
     ]);
 
     await database.catalogItem.update({
@@ -306,8 +360,8 @@ describe.skipIf(!testDatabaseUrl)("weekly digest integration", () => {
       now: () => new Date("2026-08-17T09:00:00.000Z"),
     });
     expect(first).toMatchObject({ itemCount: 0, status: "SUCCEEDED" });
-    expect(publisher.calls[0]?.html).toContain("No new items this week.");
-    expect(publisher.calls[1]?.html).toContain(
+    expect(textCalls(publisher)[0]?.html).toContain("No new items this week.");
+    expect(textCalls(publisher)[1]?.html).toContain(
       "На этой неделе новых проектов нет.",
     );
 
@@ -328,6 +382,8 @@ describe.skipIf(!testDatabaseUrl)("weekly digest integration", () => {
     });
     const firstPublisher = new ScriptedPublisher([
       { messageId: 11n, attempts: 1 },
+      { messageId: 12n, attempts: 1 },
+      { messageId: 13n, attempts: 1 },
       new TelegramPublishError("TELEGRAM_TARGET", false, 1),
     ]);
     const first = await publishWeeklyDigest(config(), {
@@ -370,6 +426,7 @@ describe.skipIf(!testDatabaseUrl)("weekly digest integration", () => {
     }
     const firstPublisher = new ScriptedPublisher([
       { messageId: 31n, attempts: 1 },
+      { messageId: 32n, attempts: 1 },
       new TelegramPublishError("TELEGRAM_SERVER", false, 1),
     ]);
     const first = await publishWeeklyDigest(config(), {
@@ -379,7 +436,12 @@ describe.skipIf(!testDatabaseUrl)("weekly digest integration", () => {
     });
     expect(first.partCounts.EN).toBeGreaterThan(1);
     expect(first.sentCounts.EN).toBe(1);
-    const firstSentHtml = firstPublisher.calls[0]?.html;
+    expect(
+      firstPublisher.calls.filter(
+        (call) => call.kind === "PHOTO" && call.chatId === "@digest_en",
+      ),
+    ).toHaveLength(1);
+    const firstSentHtml = textCalls(firstPublisher)[0]?.html;
 
     const resumePublisher = new ScriptedPublisher();
     const resumed = await publishWeeklyDigest(config(), {
@@ -392,8 +454,11 @@ describe.skipIf(!testDatabaseUrl)("weekly digest integration", () => {
     expect(
       resumePublisher.calls.every((call) => call.chatId === "@digest_en"),
     ).toBe(true);
+    expect(resumePublisher.calls.every((call) => call.kind === "TEXT")).toBe(
+      true,
+    );
     expect(
-      resumePublisher.calls.some((call) => call.html === firstSentHtml),
+      textCalls(resumePublisher).some((call) => call.html === firstSentHtml),
     ).toBe(false);
   });
 
@@ -403,6 +468,7 @@ describe.skipIf(!testDatabaseUrl)("weekly digest integration", () => {
       createdAt: new Date("2026-08-12T10:00:00.000Z"),
     });
     const publisher = new ScriptedPublisher([
+      { messageId: 21n, attempts: 1 },
       new Error("connection-loss-private-detail"),
       { messageId: 22n, attempts: 1 },
     ]);

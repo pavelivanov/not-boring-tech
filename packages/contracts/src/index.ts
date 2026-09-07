@@ -40,6 +40,72 @@ export type TechnologyKind = z.infer<typeof technologyKindSchema>;
 export type CatalogCategory = z.infer<typeof catalogCategorySchema>;
 export type CatalogSort = z.infer<typeof catalogSortSchema>;
 
+export const TECHNOLOGY_KIND_LABELS = {
+  en: {
+    PROJECT: "Project",
+    TOOL: "Tool",
+    LIBRARY: "Library",
+    SERVICE: "Service",
+    PRODUCT: "Product",
+    FEATURE: "Feature",
+    PLUGIN: "Plugin",
+    SKILL: "Skill",
+    GUIDE: "Guide",
+    CHEAT_SHEET: "Cheat sheet",
+    PODCAST: "Podcast",
+    OTHER_TECH: "Technology",
+  },
+  ru: {
+    PROJECT: "Проект",
+    TOOL: "Инструмент",
+    LIBRARY: "Библиотека",
+    SERVICE: "Сервис",
+    PRODUCT: "Продукт",
+    FEATURE: "Функция",
+    PLUGIN: "Плагин",
+    SKILL: "Навык",
+    GUIDE: "Руководство",
+    CHEAT_SHEET: "Шпаргалка",
+    PODCAST: "Подкаст",
+    OTHER_TECH: "Технология",
+  },
+} as const satisfies Readonly<
+  Record<"en" | "ru", Readonly<Record<TechnologyKind, string>>>
+>;
+
+export const CATALOG_CATEGORY_LABELS = {
+  en: {
+    "AI development": "AI development",
+    "AI productivity": "AI productivity",
+    "Creative AI": "Creative AI",
+    "Data systems": "Data systems",
+    Design: "Design",
+    "Developer tools": "Developer tools",
+    Frontend: "Frontend",
+    Infrastructure: "Infrastructure",
+    "Learning resources": "Learning resources",
+    Operations: "Operations",
+    Security: "Security",
+    Other: "Other",
+  },
+  ru: {
+    "AI development": "Разработка с ИИ",
+    "AI productivity": "ИИ для продуктивности",
+    "Creative AI": "Творческий ИИ",
+    "Data systems": "Системы данных",
+    Design: "Дизайн",
+    "Developer tools": "Инструменты разработчика",
+    Frontend: "Фронтенд",
+    Infrastructure: "Инфраструктура",
+    "Learning resources": "Учебные материалы",
+    Operations: "Операционные процессы",
+    Security: "Безопасность",
+    Other: "Другое",
+  },
+} as const satisfies Readonly<
+  Record<"en" | "ru", Readonly<Record<CatalogCategory, string>>>
+>;
+
 const boundedText = (maximum: number) => z.string().min(1).max(maximum);
 const nonNegativeCountSchema = z.number().int().min(0);
 const httpUrlSchema = z

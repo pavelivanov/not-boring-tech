@@ -207,6 +207,8 @@ Each localized part has this logical shape:
 <localized digest heading> · <window dates> · <part X/Y when split>
 <localized full-catalog label>: <DIGEST_SITE_ORIGIN>
 
+<localized website content-type heading>
+
 1. <name>
 <localized description>
 <localized main-link label>: <canonical URL or site detail URL>
@@ -217,8 +219,12 @@ Build each item as an indivisible block and greedily pack blocks in ordinal
 order. Keep both the rendered HTML string and its visible text conservatively
 below Telegram's documented message maximum: use an internal target of at most
 3,500 UTF-16 code units of visible text and at most 3,900 code units of rendered
-HTML. Repeat the heading and site link in every part. Disable link previews to
-prevent a digest from becoming a wall of preview cards.
+HTML. Send `weekly-digest-cover.png` once per target as a standalone photo,
+then send the numbered text parts. Group items by content type in the website's
+canonical order, preserve chronological order within each type, and repeat a
+type heading when its group continues in a later part. Repeat the digest heading
+and site link in every part and disable link previews to prevent a digest from
+becoming a wall of preview cards.
 
 Send parts sequentially per target. Do not use paid broadcast options. Honor a
 Bot API `retry_after` value for explicit rate-limit responses, cap a wait at 60
@@ -237,13 +243,13 @@ WeeklyDigestRun
   failureClass?, createdAt, updatedAt
 
 WeeklyDigestItem
-  id, digestRunId, catalogItemId?, ordinal, slug, name,
+  id, digestRunId, catalogItemId?, ordinal, slug, kind, name,
   canonicalUrl?, githubUrl?, githubRepository?, githubStars?,
   descriptionEn, descriptionRu, catalogCreatedAt, createdAt
 
 WeeklyDigestDelivery
-  id, digestRunId, language (EN|RU), partIndex,
-  targetChatId, renderedHtml, status,
+  id, digestRunId, language (EN|RU), kind (TEXT|PHOTO), partIndex,
+  targetChatId, renderedHtml, mediaUrl?, status,
   attemptCount, telegramMessageId?, lastAttemptedAt?, sentAt?,
   failureClass?, resolvedAt?, createdAt, updatedAt
 ```
@@ -588,6 +594,7 @@ metadata.
 Requirements:
 
 - fixed EN/RU labels and UTC date formatting;
+- localized content-type headings in the website's canonical order;
 - HTML-escape `&`, `<`, `>`, and quotes where relevant;
 - validate every URL before placing it in `href`;
 - no full raw URL as anchor text—use bounded labels/repository name;
@@ -622,12 +629,16 @@ interface TelegramDigestPublisher {
     readonly chatId: string;
     readonly html: string;
   }): Promise<{ readonly messageId: bigint }>;
+  sendPhoto(input: {
+    readonly chatId: string;
+    readonly photoUrl: string;
+  }): Promise<{ readonly messageId: bigint }>;
 }
 ```
 
 The production implementation must:
 
-- POST JSON to `sendMessage`;
+- POST JSON to `sendMessage` and `sendPhoto`;
 - use `parse_mode: "HTML"` and disabled link previews;
 - enforce request timeout and configured attempt bounds;
 - parse success/error JSON with Zod before use;

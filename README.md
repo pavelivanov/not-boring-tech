@@ -213,9 +213,12 @@ independently, so a successful language or split part is never repeated merely
 because another delivery failed. An empty week still sends one localized health
 message per channel. Every part links to the FindThatProject website.
 
-Digest posts use a short editorial introduction, blue linked item numbers,
-inline project/source/GitHub links, and a branded large website preview above
-the text. The preview image is the public `weekly-digest-cover.png` asset exposed
+Digest posts use a short editorial introduction, localized website content-type
+headings, blue linked item numbers, and inline project/source/GitHub links.
+Types follow the website's canonical order, with chronological order inside
+each group. Each channel receives the branded
+`weekly-digest-cover.png` once as a standalone photo, followed by the text-only
+digest parts with link previews disabled. The same public asset is exposed
 through the homepage Open Graph metadata; deploy `web` together with `digest`
 when changing this presentation.
 

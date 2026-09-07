@@ -12,6 +12,7 @@ import {
 const snapshot = (overrides: Partial<DigestSnapshot> = {}): DigestSnapshot => ({
   ordinal: 0,
   slug: "nanochat",
+  kind: "PROJECT",
   name: "Nanochat",
   nameRu: "Наночат",
   canonicalUrl: "https://nanochat.example/",
@@ -40,6 +41,7 @@ describe("renderDigestMessages", () => {
     const [message] = renderDigestMessages(input());
 
     expect(message?.renderedHtml).toContain("The weekly project drop 🎉");
+    expect(message?.renderedHtml).toContain("<b>Project</b>");
     expect(message?.renderedHtml).toContain(
       "A fresh batch of projects, tools, and ideas",
     );
@@ -61,6 +63,7 @@ describe("renderDigestMessages", () => {
 
     const [russian] = renderDigestMessages(input({ language: "RU" }));
     expect(russian?.renderedHtml).toContain("Большая недельная подборка 🎉");
+    expect(russian?.renderedHtml).toContain("<b>Проект</b>");
     expect(russian?.renderedHtml).toContain(
       '<b><a href="https://nanochat.example/">1</a></b> <b>Наночат</b>',
     );
@@ -161,6 +164,54 @@ describe("renderDigestMessages", () => {
     }
   });
 
+  it("groups items by the website kind order with localized headings", () => {
+    const items = [
+      snapshot({
+        ordinal: 0,
+        kind: "SERVICE",
+        name: "Hosted Search",
+        nameRu: "Облачный поиск",
+      }),
+      snapshot({
+        ordinal: 1,
+        kind: "PROJECT",
+        name: "Model Lab",
+        nameRu: "Лаборатория моделей",
+      }),
+      snapshot({
+        ordinal: 2,
+        kind: "SERVICE",
+        name: "Code Hosting",
+        nameRu: "Хостинг кода",
+      }),
+    ];
+    const [english] = renderDigestMessages(input({ items }));
+    const englishHtml = english!.renderedHtml;
+
+    expect(englishHtml.indexOf("<b>Project</b>")).toBeLessThan(
+      englishHtml.indexOf("Model Lab"),
+    );
+    expect(englishHtml.indexOf("Model Lab")).toBeLessThan(
+      englishHtml.indexOf("<b>Service</b>"),
+    );
+    expect(englishHtml.indexOf("<b>Service</b>")).toBeLessThan(
+      englishHtml.indexOf("Hosted Search"),
+    );
+    expect(englishHtml.indexOf("Hosted Search")).toBeLessThan(
+      englishHtml.indexOf("Code Hosting"),
+    );
+    expect(englishHtml).toContain(
+      '<b><a href="https://nanochat.example/">1</a></b> <b>Model Lab</b>',
+    );
+    expect(englishHtml).toContain(
+      '<b><a href="https://nanochat.example/">2</a></b> <b>Hosted Search</b>',
+    );
+
+    const [russian] = renderDigestMessages(input({ items, language: "RU" }));
+    expect(russian?.renderedHtml).toContain("<b>Проект</b>");
+    expect(russian?.renderedHtml).toContain("<b>Сервис</b>");
+  });
+
   it("splits only between items and repeats the heading and site link", () => {
     const items = Array.from({ length: 24 }, (_, ordinal) =>
       snapshot({
@@ -181,6 +232,7 @@ describe("renderDigestMessages", () => {
       expect(message.renderedHtml).toContain(
         'href="https://findthatproject.com/"',
       );
+      expect(message.renderedHtml).toContain("<b>Project</b>");
       expect(message.visibleTextLength).toBeLessThanOrEqual(
         DIGEST_VISIBLE_TEXT_LIMIT,
       );

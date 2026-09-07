@@ -1,4 +1,10 @@
 import {
+  TECHNOLOGY_KINDS,
+  TECHNOLOGY_KIND_LABELS,
+  type TechnologyKind,
+} from "@findthatproject/contracts";
+
+import {
   canonicalGitHubRepositoryUrl,
   parseGitHubRepositoryUrl,
 } from "../github/repository-url";
@@ -11,6 +17,7 @@ export type DigestLanguage = "EN" | "RU";
 export interface DigestSnapshot {
   readonly ordinal: number;
   readonly slug: string;
+  readonly kind: TechnologyKind;
   readonly name: string;
   readonly nameRu: string;
   readonly canonicalUrl: string | null;
@@ -39,6 +46,11 @@ export interface RenderedDigestMessage {
 interface RenderedFragment {
   readonly html: string;
   readonly text: string;
+}
+
+interface GroupedItemBlock {
+  readonly kind: TechnologyKind;
+  readonly item: RenderedFragment;
 }
 
 interface Labels {
@@ -184,6 +196,7 @@ const starsText = (stars: number, language: DigestLanguage): string => {
 const itemBlock = (
   item: DigestSnapshot,
   language: DigestLanguage,
+  displayIndex: number,
 ): RenderedFragment => {
   const labels = LABELS[language];
   const description =
@@ -210,7 +223,7 @@ const itemBlock = (
     sameMainAndRepository && item.githubStars !== null
       ? starsText(item.githubStars, language)
       : null;
-  const linkedNumber = anchor(String(item.ordinal + 1), mainUrl);
+  const linkedNumber = anchor(String(displayIndex + 1), mainUrl);
   const htmlLinks = [
     sourceLink.html,
     mainLink.html,
@@ -225,7 +238,7 @@ const itemBlock = (
   const htmlLines = [
     `<b>${linkedNumber.html}</b> <b>${escapeHtml(name)}</b> — ${escapeHtml(description)}`,
   ];
-  const textLines = [`${item.ordinal + 1} ${name} — ${description}`];
+  const textLines = [`${displayIndex + 1} ${name} — ${description}`];
 
   if (repositoryUrl !== null && repository !== null && !sameMainAndRepository) {
     const repositoryLink = anchor("GitHub", repositoryUrl);
@@ -242,6 +255,33 @@ const itemBlock = (
   textLines.push(textLinks.join(" • "));
 
   return { html: htmlLines.join("\n"), text: textLines.join("\n") };
+};
+
+const kindHeading = (
+  kind: TechnologyKind,
+  language: DigestLanguage,
+): RenderedFragment => {
+  const label = TECHNOLOGY_KIND_LABELS[language === "RU" ? "ru" : "en"][kind];
+  return {
+    html: `<b>${escapeHtml(label)}</b>`,
+    text: label,
+  };
+};
+
+const materializeBlocks = (
+  blocks: readonly GroupedItemBlock[],
+  language: DigestLanguage,
+): readonly RenderedFragment[] => {
+  const fragments: RenderedFragment[] = [];
+  let previousKind: TechnologyKind | null = null;
+  for (const block of blocks) {
+    if (block.kind !== previousKind) {
+      fragments.push(kindHeading(block.kind, language));
+      previousKind = block.kind;
+    }
+    fragments.push(block.item);
+  }
+  return fragments;
 };
 
 const combine = (
@@ -263,17 +303,25 @@ const fits = (fragment: RenderedFragment): boolean =>
 const packForPartCount = (
   input: DigestRenderInput,
   siteOrigin: string,
-  blocks: readonly RenderedFragment[],
+  blocks: readonly GroupedItemBlock[],
   assumedPartCount: number,
-): readonly (readonly RenderedFragment[])[] => {
-  const parts: RenderedFragment[][] = [];
-  let current: RenderedFragment[] = [];
+): readonly (readonly GroupedItemBlock[])[] => {
+  const parts: GroupedItemBlock[][] = [];
+  let current: GroupedItemBlock[] = [];
 
   for (const block of blocks) {
     const partIndex = parts.length + 1;
     const heading = headingFor(input, siteOrigin, partIndex, assumedPartCount);
     const footer = footerFor(input.language, siteOrigin);
-    if (fits(combine(heading, [...current, block], footer))) {
+    if (
+      fits(
+        combine(
+          heading,
+          materializeBlocks([...current, block], input.language),
+          footer,
+        ),
+      )
+    ) {
       current.push(block);
       continue;
     }
@@ -288,7 +336,15 @@ const packForPartCount = (
       parts.length + 1,
       assumedPartCount,
     );
-    if (!fits(combine(nextHeading, current, footer))) {
+    if (
+      !fits(
+        combine(
+          nextHeading,
+          materializeBlocks(current, input.language),
+          footer,
+        ),
+      )
+    ) {
       throw new DigestRendererError("DIGEST_ITEM_TOO_LARGE");
     }
   }
@@ -313,6 +369,12 @@ export const renderDigestMessages = (
   ) {
     throw new DigestRendererError("DIGEST_INVALID_ORDINALS");
   }
+  const kindOrder = new Map(
+    TECHNOLOGY_KINDS.map((kind, index) => [kind, index]),
+  );
+  if (orderedItems.some((item) => !kindOrder.has(item.kind))) {
+    throw new DigestRendererError("DIGEST_INVALID_KIND");
+  }
 
   if (orderedItems.length === 0) {
     const heading = headingFor(input, siteOrigin);
@@ -333,9 +395,21 @@ export const renderDigestMessages = (
     ];
   }
 
-  const blocks = orderedItems.map((item) => itemBlock(item, input.language));
+  const groupedItems = [...orderedItems].sort(
+    (left, right) =>
+      kindOrder.get(left.kind)! - kindOrder.get(right.kind)! ||
+      left.ordinal - right.ordinal,
+  );
+  const blocks = groupedItems.map((item, displayIndex) => ({
+    kind: item.kind,
+    item: itemBlock(item, input.language, displayIndex),
+  }));
   const footer = footerFor(input.language, siteOrigin);
-  const single = combine(headingFor(input, siteOrigin), blocks, footer);
+  const single = combine(
+    headingFor(input, siteOrigin),
+    materializeBlocks(blocks, input.language),
+    footer,
+  );
   if (fits(single)) {
     return [
       {
@@ -347,7 +421,7 @@ export const renderDigestMessages = (
   }
 
   let assumedPartCount = 2;
-  let parts: readonly (readonly RenderedFragment[])[] = [];
+  let parts: readonly (readonly GroupedItemBlock[])[] = [];
   for (let attempt = 0; attempt <= blocks.length; attempt += 1) {
     parts = packForPartCount(input, siteOrigin, blocks, assumedPartCount);
     if (parts.length === assumedPartCount) break;
@@ -360,7 +434,7 @@ export const renderDigestMessages = (
   return parts.map((part, partIndex) => {
     const message = combine(
       headingFor(input, siteOrigin, partIndex + 1, parts.length),
-      part,
+      materializeBlocks(part, input.language),
       footer,
     );
     if (!fits(message))

@@ -3,40 +3,11 @@ import type {
   CatalogListItem,
   TechnologyKind,
 } from "@findthatproject/contracts"
+import {
+  CATALOG_CATEGORY_LABELS,
+  TECHNOLOGY_KIND_LABELS,
+} from "@findthatproject/contracts"
 import type { Locale } from "~/lib/locale"
-
-const kindLabels: Readonly<
-  Record<Locale, Readonly<Record<TechnologyKind, string>>>
-> = {
-  en: {
-    TOOL: "Tool",
-    PROJECT: "Project",
-    LIBRARY: "Library",
-    SERVICE: "Service",
-    PRODUCT: "Product",
-    FEATURE: "Feature",
-    PLUGIN: "Plugin",
-    SKILL: "Skill",
-    GUIDE: "Guide",
-    CHEAT_SHEET: "Cheat sheet",
-    PODCAST: "Podcast",
-    OTHER_TECH: "Technology",
-  },
-  ru: {
-    TOOL: "Инструмент",
-    PROJECT: "Проект",
-    LIBRARY: "Библиотека",
-    SERVICE: "Сервис",
-    PRODUCT: "Продукт",
-    FEATURE: "Функция",
-    PLUGIN: "Плагин",
-    SKILL: "Навык",
-    GUIDE: "Руководство",
-    CHEAT_SHEET: "Шпаргалка",
-    PODCAST: "Подкаст",
-    OTHER_TECH: "Технология",
-  },
-}
 
 const pluralKindLabels: Readonly<
   Record<Locale, Readonly<Record<TechnologyKind, string>>>
@@ -71,39 +42,6 @@ const pluralKindLabels: Readonly<
   },
 }
 
-const categoryLabels: Readonly<
-  Record<Locale, Readonly<Record<CatalogCategory, string>>>
-> = {
-  en: {
-    "AI development": "AI development",
-    "AI productivity": "AI productivity",
-    "Creative AI": "Creative AI",
-    "Data systems": "Data systems",
-    Design: "Design",
-    "Developer tools": "Developer tools",
-    Frontend: "Frontend",
-    Infrastructure: "Infrastructure",
-    "Learning resources": "Learning resources",
-    Operations: "Operations",
-    Security: "Security",
-    Other: "Other",
-  },
-  ru: {
-    "AI development": "Разработка с ИИ",
-    "AI productivity": "ИИ для продуктивности",
-    "Creative AI": "Творческий ИИ",
-    "Data systems": "Системы данных",
-    Design: "Дизайн",
-    "Developer tools": "Инструменты разработчика",
-    Frontend: "Фронтенд",
-    Infrastructure: "Инфраструктура",
-    "Learning resources": "Учебные материалы",
-    Operations: "Операционные процессы",
-    Security: "Безопасность",
-    Other: "Другое",
-  },
-}
-
 export type LocalizedCatalogContent = {
   readonly name: string
   readonly parentName: string | null
@@ -133,7 +71,7 @@ export function formatTechnologyKind(
   kind: TechnologyKind,
   locale: Locale = "en"
 ): string {
-  return kindLabels[locale][kind]
+  return TECHNOLOGY_KIND_LABELS[locale][kind]
 }
 
 export function formatTechnologyKindPlural(
@@ -147,5 +85,5 @@ export function formatCatalogCategory(
   category: CatalogCategory,
   locale: Locale = "en"
 ): string {
-  return categoryLabels[locale][category]
+  return CATALOG_CATEGORY_LABELS[locale][category]
 }
