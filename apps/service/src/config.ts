@@ -227,6 +227,7 @@ const digestSchema = z
       30_000,
     ).default(15_000),
     DIGEST_MAX_ATTEMPTS: boundedInteger("DIGEST_MAX_ATTEMPTS", 1, 3).default(3),
+    DIGEST_MAX_ITEMS: boundedInteger("DIGEST_MAX_ITEMS", 1, 20).default(10),
     LOG_LEVEL: z.enum(LOG_LEVELS).default("info"),
   })
   .superRefine((value, context) => {

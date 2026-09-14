@@ -1,4 +1,5 @@
 import {
+  AnalyzedPostStatus,
   WeeklyDigestDeliveryKind,
   WeeklyDigestDeliveryStatus,
   WeeklyDigestLanguage,
@@ -9,6 +10,7 @@ import {
 import { technologyKindSchema } from "@findthatproject/contracts";
 
 import { visibleCandidateWhere, visibleCatalogWhere } from "../catalog/queries";
+import { rankDigestItems } from "./ranking";
 import { renderDigestMessages } from "./renderer";
 import {
   TelegramPublishError,
@@ -29,6 +31,7 @@ export interface DigestCoordinatorConfig {
   readonly channelEn: string;
   readonly channelRu: string;
   readonly maxAttempts: number;
+  readonly maxItems: number;
 }
 
 export interface DigestCoordinatorDependencies {
@@ -42,6 +45,7 @@ export interface DigestPublishResult {
   readonly windowStart: string | null;
   readonly windowEnd: string | null;
   readonly itemCount: number;
+  readonly selectedCount: number | null;
   readonly partCounts: Readonly<Record<"EN" | "RU", number>>;
   readonly sentCounts: Readonly<Record<"EN" | "RU", number>>;
   readonly status:
@@ -133,6 +137,7 @@ const prepareRun = async (
       descriptionEn: true,
       descriptionRu: true,
       createdAt: true,
+      lastMentionedAt: true,
       presentations: {
         where: visibleCandidateWhere,
         orderBy: [{ analyzedPost: { publishedAt: "desc" } }, { id: "asc" }],
@@ -157,10 +162,65 @@ const prepareRun = async (
     return { type: "run", runId: run.id };
   }
 
-  const snapshots = items.map((item, ordinal) => ({
+  const mentionRows =
+    items.length > 0
+      ? await transaction.presentationCandidate.findMany({
+          where: {
+            catalogItemId: { in: items.map((item) => item.id) },
+            analyzedPost: {
+              ...visibleCandidateWhere.analyzedPost,
+              publishedAt: { gt: eligibilityStartAt },
+            },
+          },
+          select: {
+            catalogItemId: true,
+            analyzedPost: { select: { channelId: true } },
+          },
+        })
+      : [];
+  const mentionStats = new Map<
+    string,
+    { mentionCount: number; channels: Set<string> }
+  >();
+  for (const row of mentionRows) {
+    if (row.catalogItemId === null) continue;
+    const stats = mentionStats.get(row.catalogItemId) ?? {
+      mentionCount: 0,
+      channels: new Set<string>(),
+    };
+    stats.mentionCount += 1;
+    stats.channels.add(row.analyzedPost.channelId);
+    mentionStats.set(row.catalogItemId, stats);
+  }
+  const ranking = rankDigestItems(
+    items.map((item) => {
+      const stats = mentionStats.get(item.id);
+      return {
+        id: item.id,
+        kind: technologyKindSchema.parse(item.kind),
+        githubStars: item.githubStars,
+        lastMentionedAt: item.lastMentionedAt,
+        mentionCount: stats?.mentionCount ?? 0,
+        channelCount: stats?.channels.size ?? 0,
+      };
+    }),
+    config.maxItems,
+  );
+  const itemsById = new Map(items.map((item) => [item.id, item]));
+  const orderedItems = [...ranking.selected, ...ranking.overflow]
+    .map((ranked) => itemsById.get(ranked.id)!)
+    .map((item) => ({
+      ...item,
+      kind: technologyKindSchema.parse(item.kind),
+    }));
+
+  const snapshotFor = (
+    item: (typeof orderedItems)[number],
+    ordinal: number,
+  ) => ({
     ordinal,
     slug: item.slug,
-    kind: technologyKindSchema.parse(item.kind),
+    kind: item.kind,
     name: item.name,
     nameRu: item.nameRu,
     canonicalUrl: item.canonicalUrl,
@@ -170,18 +230,24 @@ const prepareRun = async (
     descriptionEn: item.descriptionEn,
     descriptionRu: item.descriptionRu!,
     sourceUrl: item.presentations[0]!.analyzedPost.sourceUrl,
-  }));
+  });
+  const selectedSnapshots = orderedItems
+    .slice(0, ranking.selected.length)
+    .map(snapshotFor);
+  const overflowCount = items.length - ranking.selected.length;
   const renderedEn = renderDigestMessages({
     windowStart,
     windowEnd: now,
-    items: snapshots,
+    items: selectedSnapshots,
+    overflowCount,
     language: "EN",
     siteOrigin: config.siteOrigin,
   });
   const renderedRu = renderDigestMessages({
     windowStart,
     windowEnd: now,
-    items: snapshots,
+    items: selectedSnapshots,
+    overflowCount,
     language: "RU",
     siteOrigin: config.siteOrigin,
   });
@@ -192,12 +258,13 @@ const prepareRun = async (
       windowStart,
       windowEnd: now,
       itemCount: items.length,
+      selectedCount: ranking.selected.length,
     },
     select: { id: true },
   });
   if (items.length > 0) {
     await transaction.weeklyDigestItem.createMany({
-      data: items.map((item, ordinal) => ({
+      data: orderedItems.map((item, ordinal) => ({
         digestRunId: run.id,
         catalogItemId: item.id,
         ordinal,
@@ -328,6 +395,7 @@ const aggregateRun = async (
     windowStart: run.windowStart.toISOString(),
     windowEnd: run.windowEnd.toISOString(),
     itemCount: run.itemCount,
+    selectedCount: run.selectedCount,
     partCounts: {
       EN: deliveriesFor(WeeklyDigestLanguage.EN).length,
       RU: deliveriesFor(WeeklyDigestLanguage.RU).length,
@@ -362,6 +430,7 @@ export const publishWeeklyDigest = async (
       windowStart: null,
       windowEnd: null,
       itemCount: 0,
+      selectedCount: null,
       partCounts: { EN: 0, RU: 0 },
       sentCounts: { EN: 0, RU: 0 },
       status: "NOOP",

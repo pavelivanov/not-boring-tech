@@ -3,10 +3,12 @@ import {
   catalogChannelsResponseSchema,
   catalogFacetsResponseSchema,
   catalogListResponseSchema,
+  digestRunSchema,
   type CatalogActiveFilters,
   type CatalogChannelsResponse,
   type CatalogFacetsResponse,
   type CatalogListResponse,
+  type DigestRun,
 } from "@findthatproject/contracts"
 
 const API_QUERY_KEYS = [
@@ -207,3 +209,10 @@ export const loadNextCatalogPage = (
     signal,
     options
   )
+
+export const loadDigestRun = async (
+  runId: string,
+  signal?: AbortSignal,
+  options: ApiClientOptions = {}
+): Promise<DigestRun> =>
+  requestJson(`v1/digest/${runId}`, digestRunSchema, signal, options)

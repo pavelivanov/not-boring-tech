@@ -214,6 +214,7 @@ model WeeklyDigestRun {
   windowEnd          DateTime
   status             WeeklyDigestRunStatus  @default(PENDING)
   itemCount          Int                    @default(0)
+  selectedCount      Int?
   failureClass       String?                @db.VarChar(80)
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt

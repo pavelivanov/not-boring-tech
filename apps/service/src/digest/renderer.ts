@@ -1,6 +1,5 @@
 import {
   TECHNOLOGY_KINDS,
-  TECHNOLOGY_KIND_LABELS,
   type TechnologyKind,
 } from "@findthatproject/contracts";
 
@@ -10,7 +9,9 @@ import {
 } from "../github/repository-url";
 
 export const DIGEST_VISIBLE_TEXT_LIMIT = 3_500;
-export const DIGEST_RENDERED_HTML_LIMIT = 3_900;
+// Telegram caps messages at 4096 characters; keep a small safety margin for
+// entity markup so a 10-item post with full source and main links stays whole.
+export const DIGEST_RENDERED_HTML_LIMIT = 4_000;
 
 export type DigestLanguage = "EN" | "RU";
 
@@ -35,6 +36,11 @@ export interface DigestRenderInput {
   readonly items: readonly DigestSnapshot[];
   readonly language: DigestLanguage;
   readonly siteOrigin: string;
+  /**
+   * Items ranked below the post cut; when positive, the footer links to
+   * the digest page on the site for the full list.
+   */
+  readonly overflowCount?: number;
 }
 
 export interface RenderedDigestMessage {
@@ -48,15 +54,11 @@ interface RenderedFragment {
   readonly text: string;
 }
 
-interface GroupedItemBlock {
-  readonly kind: TechnologyKind;
-  readonly item: RenderedFragment;
-}
-
 interface Labels {
   readonly heading: string;
   readonly intro: string;
   readonly catalog: string;
+  readonly allItems: (total: number) => string;
   readonly mainLink: string;
   readonly sourceLink: string;
   readonly empty: string;
@@ -69,6 +71,7 @@ const LABELS: Readonly<Record<DigestLanguage, Labels>> = {
     intro:
       "A fresh batch of projects, tools, and ideas we found this week. Everything worth opening is below.",
     catalog: "All projects on FindThatProject →",
+    allItems: (total) => `See all ${total} items from this week →`,
     mainLink: "Link",
     sourceLink: "#",
     empty: "No new items this week.",
@@ -79,6 +82,7 @@ const LABELS: Readonly<Record<DigestLanguage, Labels>> = {
     intro:
       "Свежие проекты, инструменты и идеи, которые мы нашли за неделю. Всё самое интересное — ниже.",
     catalog: "Все проекты на FindThatProject →",
+    allItems: (total) => `Все ${total} новинок недели →`,
     mainLink: "Ссылка",
     sourceLink: "#",
     empty: "На этой неделе новых проектов нет.",
@@ -175,9 +179,17 @@ const headingFor = (
 };
 
 const footerFor = (
-  language: DigestLanguage,
+  input: DigestRenderInput,
   siteOrigin: string,
-): RenderedFragment => anchor(LABELS[language].catalog, siteOrigin);
+): RenderedFragment => {
+  const labels = LABELS[input.language];
+  const overflowCount = input.overflowCount ?? 0;
+  if (overflowCount <= 0) return anchor(labels.catalog, siteOrigin);
+  return anchor(
+    labels.allItems(input.items.length + overflowCount),
+    `${siteOrigin}/digest/latest`,
+  );
+};
 
 const normalizedComparisonUrl = (value: string): string => {
   const url = new URL(safeHttpUrl(value));
@@ -209,7 +221,6 @@ const itemBlock = (
   const mainUrl = safeHttpUrl(
     item.canonicalUrl ?? item.githubUrl ?? item.sourceUrl,
   );
-  const mainLink = anchor(labels.mainLink, mainUrl);
   const sourceLink = anchor(labels.sourceLink, item.sourceUrl);
   const repositoryUrl = canonicalGitHubRepositoryUrl(
     item.githubUrl ?? item.canonicalUrl,
@@ -224,6 +235,7 @@ const itemBlock = (
       ? starsText(item.githubStars, language)
       : null;
   const linkedNumber = anchor(String(displayIndex + 1), mainUrl);
+  const mainLink = anchor(labels.mainLink, mainUrl);
   const htmlLinks = [
     sourceLink.html,
     mainLink.html,
@@ -257,33 +269,6 @@ const itemBlock = (
   return { html: htmlLines.join("\n"), text: textLines.join("\n") };
 };
 
-const kindHeading = (
-  kind: TechnologyKind,
-  language: DigestLanguage,
-): RenderedFragment => {
-  const label = TECHNOLOGY_KIND_LABELS[language === "RU" ? "ru" : "en"][kind];
-  return {
-    html: `<b>${escapeHtml(label)}</b>`,
-    text: label,
-  };
-};
-
-const materializeBlocks = (
-  blocks: readonly GroupedItemBlock[],
-  language: DigestLanguage,
-): readonly RenderedFragment[] => {
-  const fragments: RenderedFragment[] = [];
-  let previousKind: TechnologyKind | null = null;
-  for (const block of blocks) {
-    if (block.kind !== previousKind) {
-      fragments.push(kindHeading(block.kind, language));
-      previousKind = block.kind;
-    }
-    fragments.push(block.item);
-  }
-  return fragments;
-};
-
 const combine = (
   heading: RenderedFragment,
   blocks: readonly RenderedFragment[],
@@ -303,25 +288,17 @@ const fits = (fragment: RenderedFragment): boolean =>
 const packForPartCount = (
   input: DigestRenderInput,
   siteOrigin: string,
-  blocks: readonly GroupedItemBlock[],
+  blocks: readonly RenderedFragment[],
   assumedPartCount: number,
-): readonly (readonly GroupedItemBlock[])[] => {
-  const parts: GroupedItemBlock[][] = [];
-  let current: GroupedItemBlock[] = [];
+): readonly (readonly RenderedFragment[])[] => {
+  const parts: RenderedFragment[][] = [];
+  let current: RenderedFragment[] = [];
 
   for (const block of blocks) {
     const partIndex = parts.length + 1;
     const heading = headingFor(input, siteOrigin, partIndex, assumedPartCount);
-    const footer = footerFor(input.language, siteOrigin);
-    if (
-      fits(
-        combine(
-          heading,
-          materializeBlocks([...current, block], input.language),
-          footer,
-        ),
-      )
-    ) {
+    const footer = footerFor(input, siteOrigin);
+    if (fits(combine(heading, [...current, block], footer))) {
       current.push(block);
       continue;
     }
@@ -336,15 +313,7 @@ const packForPartCount = (
       parts.length + 1,
       assumedPartCount,
     );
-    if (
-      !fits(
-        combine(
-          nextHeading,
-          materializeBlocks(current, input.language),
-          footer,
-        ),
-      )
-    ) {
+    if (!fits(combine(nextHeading, current, footer))) {
       throw new DigestRendererError("DIGEST_ITEM_TOO_LARGE");
     }
   }
@@ -378,7 +347,7 @@ export const renderDigestMessages = (
 
   if (orderedItems.length === 0) {
     const heading = headingFor(input, siteOrigin);
-    const footer = footerFor(input.language, siteOrigin);
+    const footer = footerFor(input, siteOrigin);
     const empty = {
       html: escapeHtml(LABELS[input.language].empty),
       text: LABELS[input.language].empty,
@@ -395,21 +364,11 @@ export const renderDigestMessages = (
     ];
   }
 
-  const groupedItems = [...orderedItems].sort(
-    (left, right) =>
-      kindOrder.get(left.kind)! - kindOrder.get(right.kind)! ||
-      left.ordinal - right.ordinal,
+  const blocks = orderedItems.map((item, displayIndex) =>
+    itemBlock(item, input.language, displayIndex),
   );
-  const blocks = groupedItems.map((item, displayIndex) => ({
-    kind: item.kind,
-    item: itemBlock(item, input.language, displayIndex),
-  }));
-  const footer = footerFor(input.language, siteOrigin);
-  const single = combine(
-    headingFor(input, siteOrigin),
-    materializeBlocks(blocks, input.language),
-    footer,
-  );
+  const footer = footerFor(input, siteOrigin);
+  const single = combine(headingFor(input, siteOrigin), blocks, footer);
   if (fits(single)) {
     return [
       {
@@ -421,7 +380,7 @@ export const renderDigestMessages = (
   }
 
   let assumedPartCount = 2;
-  let parts: readonly (readonly GroupedItemBlock[])[] = [];
+  let parts: readonly (readonly RenderedFragment[])[] = [];
   for (let attempt = 0; attempt <= blocks.length; attempt += 1) {
     parts = packForPartCount(input, siteOrigin, blocks, assumedPartCount);
     if (parts.length === assumedPartCount) break;
@@ -434,7 +393,7 @@ export const renderDigestMessages = (
   return parts.map((part, partIndex) => {
     const message = combine(
       headingFor(input, siteOrigin, partIndex + 1, parts.length),
-      materializeBlocks(part, input.language),
+      part,
       footer,
     );
     if (!fits(message))

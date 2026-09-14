@@ -41,7 +41,6 @@ describe("renderDigestMessages", () => {
     const [message] = renderDigestMessages(input());
 
     expect(message?.renderedHtml).toContain("The weekly project drop 🎉");
-    expect(message?.renderedHtml).toContain("<b>Project</b>");
     expect(message?.renderedHtml).toContain(
       "A fresh batch of projects, tools, and ideas",
     );
@@ -63,7 +62,6 @@ describe("renderDigestMessages", () => {
 
     const [russian] = renderDigestMessages(input({ language: "RU" }));
     expect(russian?.renderedHtml).toContain("Большая недельная подборка 🎉");
-    expect(russian?.renderedHtml).toContain("<b>Проект</b>");
     expect(russian?.renderedHtml).toContain(
       '<b><a href="https://nanochat.example/">1</a></b> <b>Наночат</b>',
     );
@@ -112,8 +110,9 @@ describe("renderDigestMessages", () => {
     expect(message?.renderedHtml).toContain(
       'href="https://t.me/source_channel/42"',
     );
-    expect(message?.renderedHtml).toContain(">#</a> •");
-    expect(message?.renderedHtml).toContain(">Link</a>");
+    expect(message?.renderedHtml).toContain(
+      '<b><a href="https://t.me/source_channel/42">1</a></b>',
+    );
     expect(message?.renderedHtml).not.toContain("GitHub");
     expect(message?.renderedHtml.match(/source_channel\/42/gu)).toHaveLength(3);
   });
@@ -164,7 +163,7 @@ describe("renderDigestMessages", () => {
     }
   });
 
-  it("groups items by the website kind order with localized headings", () => {
+  it("renders items in rank order without kind headings", () => {
     const items = [
       snapshot({
         ordinal: 0,
@@ -188,28 +187,24 @@ describe("renderDigestMessages", () => {
     const [english] = renderDigestMessages(input({ items }));
     const englishHtml = english!.renderedHtml;
 
-    expect(englishHtml.indexOf("<b>Project</b>")).toBeLessThan(
+    expect(englishHtml).not.toContain("<b>Project</b>");
+    expect(englishHtml).not.toContain("<b>Service</b>");
+    expect(englishHtml.indexOf("Hosted Search")).toBeLessThan(
       englishHtml.indexOf("Model Lab"),
     );
     expect(englishHtml.indexOf("Model Lab")).toBeLessThan(
-      englishHtml.indexOf("<b>Service</b>"),
-    );
-    expect(englishHtml.indexOf("<b>Service</b>")).toBeLessThan(
-      englishHtml.indexOf("Hosted Search"),
-    );
-    expect(englishHtml.indexOf("Hosted Search")).toBeLessThan(
       englishHtml.indexOf("Code Hosting"),
     );
     expect(englishHtml).toContain(
-      '<b><a href="https://nanochat.example/">1</a></b> <b>Model Lab</b>',
+      '<b><a href="https://nanochat.example/">1</a></b> <b>Hosted Search</b>',
     );
     expect(englishHtml).toContain(
-      '<b><a href="https://nanochat.example/">2</a></b> <b>Hosted Search</b>',
+      '<b><a href="https://nanochat.example/">2</a></b> <b>Model Lab</b>',
     );
 
     const [russian] = renderDigestMessages(input({ items, language: "RU" }));
-    expect(russian?.renderedHtml).toContain("<b>Проект</b>");
-    expect(russian?.renderedHtml).toContain("<b>Сервис</b>");
+    expect(russian?.renderedHtml).not.toContain("<b>Проект</b>");
+    expect(russian?.renderedHtml).not.toContain("<b>Сервис</b>");
   });
 
   it("splits only between items and repeats the heading and site link", () => {
@@ -232,7 +227,6 @@ describe("renderDigestMessages", () => {
       expect(message.renderedHtml).toContain(
         'href="https://findthatproject.com/"',
       );
-      expect(message.renderedHtml).toContain("<b>Project</b>");
       expect(message.visibleTextLength).toBeLessThanOrEqual(
         DIGEST_VISIBLE_TEXT_LIMIT,
       );
@@ -250,5 +244,43 @@ describe("renderDigestMessages", () => {
         input({ items: [snapshot({ descriptionEn: "x".repeat(4_000) })] }),
       ),
     ).toThrowError("DIGEST_ITEM_TOO_LARGE");
+  });
+
+  it("shows only the digest page link in the footer when items overflow the post", () => {
+    const [message] = renderDigestMessages(
+      input({
+        overflowCount: 18,
+        items: [
+          snapshot(),
+          snapshot({
+            ordinal: 1,
+            slug: "other",
+            name: "Other",
+            nameRu: "Другой",
+          }),
+        ],
+      }),
+    );
+    expect(message?.renderedHtml).toContain(
+      '<a href="https://findthatproject.com/digest/latest">See all 20 items from this week →</a>',
+    );
+    expect(message?.renderedHtml).not.toContain(
+      '<a href="https://findthatproject.com/">All projects on FindThatProject →</a>',
+    );
+
+    const [russian] = renderDigestMessages(
+      input({ language: "RU", overflowCount: 18, items: [snapshot()] }),
+    );
+    expect(russian?.renderedHtml).toContain(
+      '<a href="https://findthatproject.com/digest/latest">Все 19 новинок недели →</a>',
+    );
+    expect(russian?.renderedHtml).not.toContain(
+      '<a href="https://findthatproject.com/">Все проекты на FindThatProject →</a>',
+    );
+  });
+
+  it("omits the digest page link without overflow", () => {
+    const [message] = renderDigestMessages(input());
+    expect(message?.renderedHtml).not.toContain("/digest/latest");
   });
 });

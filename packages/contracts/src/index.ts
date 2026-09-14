@@ -230,6 +230,37 @@ export const catalogChannelsResponseSchema = z
   .object({ channels: z.array(catalogChannelSchema).max(10) })
   .strict();
 
+export const digestItemSchema = z
+  .object({
+    ordinal: nonNegativeCountSchema,
+    slug: boundedText(160),
+    name: boundedText(120),
+    nameRu: boundedText(120),
+    kind: technologyKindSchema,
+    canonicalUrl: httpUrlSchema.nullable(),
+    githubUrl: httpUrlSchema.nullable(),
+    githubRepository: boundedText(201).nullable(),
+    githubStars: nonNegativeCountSchema.nullable(),
+    descriptionEn: boundedText(400),
+    descriptionRu: boundedText(400),
+    catalogCreatedAt: dateTimeSchema,
+  })
+  .strict();
+
+export const digestRunSchema = z
+  .object({
+    id: z.uuid(),
+    windowStart: dateTimeSchema,
+    windowEnd: dateTimeSchema,
+    itemCount: nonNegativeCountSchema,
+    selectedCount: nonNegativeCountSchema,
+    items: z.array(digestItemSchema).max(100),
+  })
+  .strict();
+
+export type DigestItem = z.infer<typeof digestItemSchema>;
+export type DigestRun = z.infer<typeof digestRunSchema>;
+
 export const API_ERROR_CODES = [
   "BAD_REQUEST",
   "NOT_FOUND",

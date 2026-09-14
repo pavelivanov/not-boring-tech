@@ -16,6 +16,7 @@ import {
   listCatalog,
   parseCatalogQuery,
 } from "./catalog/queries";
+import { getDigestRun } from "./catalog/digest-queries";
 import { parseServerConfig } from "./config";
 
 interface ServerOptions {
@@ -91,6 +92,30 @@ export const createServerApp = (
   app.get("/v1/facets", async (context) => {
     context.header("Cache-Control", CATALOG_METADATA_CACHE_CONTROL);
     return context.json(await getCatalogFacets(database));
+  });
+  app.get("/v1/digest/latest", async (context) => {
+    context.header("Cache-Control", CATALOG_METADATA_CACHE_CONTROL);
+    const run = await getDigestRun(database, null);
+    return run === null
+      ? safeError(
+          context,
+          404,
+          "NOT_FOUND",
+          "No published digest is available yet.",
+        )
+      : context.json(run);
+  });
+  app.get("/v1/digest/:id", async (context) => {
+    context.header("Cache-Control", CATALOG_METADATA_CACHE_CONTROL);
+    const run = await getDigestRun(database, context.req.param("id"));
+    return run === null
+      ? safeError(
+          context,
+          404,
+          "NOT_FOUND",
+          "The requested digest was not found.",
+        )
+      : context.json(run);
   });
   app.get("/v1/channels", async (context) => {
     context.header("Cache-Control", CATALOG_METADATA_CACHE_CONTROL);

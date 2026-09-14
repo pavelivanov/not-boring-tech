@@ -104,6 +104,7 @@ const config = (
   channelEn: "@digest_en",
   channelRu: "@digest_ru",
   maxAttempts: 3,
+  maxItems: 10,
   ...overrides,
 });
 
@@ -118,6 +119,7 @@ const createCatalogItem = async (
     readonly channelEnabled?: boolean;
     readonly descriptionRu?: string | null;
     readonly kind?: TechnologyKind;
+    readonly githubStars?: number | null;
   },
 ): Promise<string> => {
   seedOrdinal += 1;
@@ -144,7 +146,7 @@ const createCatalogItem = async (
       tags: ["synthetic"],
       searchText: `project ${input.slug}`,
       githubRepository: `example/${input.slug}`,
-      githubStars: 0,
+      githubStars: input.githubStars ?? 0,
       firstMentionedAt: input.createdAt,
       lastMentionedAt: input.createdAt,
       createdAt: input.createdAt,
@@ -290,8 +292,8 @@ describe.skipIf(!testDatabaseUrl)("weekly digest integration", () => {
       },
       expect.objectContaining({ kind: "TEXT", chatId: "@digest_ru" }),
     ]);
-    expect(textCalls(firstPublisher)[0]?.html).toContain("<b>Service</b>");
-    expect(textCalls(firstPublisher)[1]?.html).toContain("<b>Сервис</b>");
+    expect(textCalls(firstPublisher)[0]?.html).not.toContain("<b>Service</b>");
+    expect(textCalls(firstPublisher)[1]?.html).not.toContain("<b>Сервис</b>");
     await expect(
       database.weeklyDigestItem.findMany({
         where: { digestRunId: first.runId! },
@@ -341,13 +343,12 @@ describe.skipIf(!testDatabaseUrl)("weekly digest integration", () => {
       orderBy: { ordinal: "asc" },
       select: { catalogItemId: true },
     });
+    const afterWindowId = await database.catalogItem
+      .findUniqueOrThrow({ where: { slug: "after-window" } })
+      .then((item) => item.id);
     expect(secondSnapshots).toEqual([
+      { catalogItemId: afterWindowId },
       { catalogItemId: delayedItemId },
-      {
-        catalogItemId: await database.catalogItem
-          .findUniqueOrThrow({ where: { slug: "after-window" } })
-          .then((item) => item.id),
-      },
     ]);
     await expect(database.weeklyDigestItem.count()).resolves.toBe(3);
   });
@@ -429,7 +430,7 @@ describe.skipIf(!testDatabaseUrl)("weekly digest integration", () => {
       { messageId: 32n, attempts: 1 },
       new TelegramPublishError("TELEGRAM_SERVER", false, 1),
     ]);
-    const first = await publishWeeklyDigest(config(), {
+    const first = await publishWeeklyDigest(config({ maxItems: 100 }), {
       database,
       publisher: firstPublisher,
       now: () => new Date("2026-08-17T09:00:00.000Z"),
@@ -557,6 +558,85 @@ describe.skipIf(!testDatabaseUrl)("weekly digest integration", () => {
       telegramMessageId: 99n,
       resolvedAt: new Date("2026-08-17T11:00:00.000Z"),
     });
+  });
+
+  it("caps the post at maxItems, ranks stars first, and links the overflow page", async () => {
+    const kinds = [
+      "PROJECT",
+      "SERVICE",
+      "GUIDE",
+      "PRODUCT",
+      "TOOL",
+      "SKILL",
+      "OTHER_TECH",
+      "LIBRARY",
+      "PLUGIN",
+      "PODCAST",
+      "FEATURE",
+      "CHEAT_SHEET",
+    ] as const;
+    const ids: Record<string, string> = {};
+    let index = 0;
+    for (const kind of kinds) {
+      const slug = `cap-${kind.toLowerCase()}`;
+      ids[slug] = await createCatalogItem(database, {
+        slug,
+        createdAt: new Date(`2026-08-11T${10 + index}:00:00.000Z`),
+        kind,
+        githubStars: 0,
+      });
+      index += 1;
+    }
+    await database.catalogItem.update({
+      where: { id: ids["cap-project"]! },
+      data: { githubStars: 44_409 },
+    });
+    await database.catalogItem.update({
+      where: { id: ids["cap-service"]! },
+      data: { githubStars: 4_268 },
+    });
+    await database.catalogItem.update({
+      where: { id: ids["cap-guide"]! },
+      data: { githubStars: null },
+    });
+
+    const publisher = new ScriptedPublisher();
+    const result = await publishWeeklyDigest(config({ maxItems: 10 }), {
+      database,
+      publisher,
+      now: () => new Date("2026-08-17T09:00:00.000Z"),
+    });
+    expect(result).toMatchObject({
+      itemCount: 12,
+      selectedCount: 10,
+      status: WeeklyDigestRunStatus.SUCCEEDED,
+      partCounts: { EN: 1, RU: 1 },
+    });
+
+    const run = await database.weeklyDigestRun.findFirstOrThrow({
+      where: { status: WeeklyDigestRunStatus.SUCCEEDED },
+    });
+    const items = await database.weeklyDigestItem.findMany({
+      where: { digestRunId: run.id },
+      orderBy: { ordinal: "asc" },
+    });
+    expect(items).toHaveLength(12);
+    expect(items[0]!.slug).toBe("cap-project");
+    expect(items[1]!.slug).toBe("cap-service");
+    expect(
+      new Set(items.slice(0, 10).map((item) => item.kind)).size,
+    ).toBeGreaterThanOrEqual(10);
+
+    for (const call of textCalls(publisher)) {
+      expect(call.html).toContain(
+        call.chatId === "@digest_en"
+          ? "See all 12 items from this week"
+          : "Все 12 новинок недели",
+      );
+      expect(call.html).toContain(
+        "https://findthatproject.example/digest/latest",
+      );
+    }
   });
 
   it("marks missing Russian metadata for review without preparing deliveries", async () => {

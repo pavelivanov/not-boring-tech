@@ -101,6 +101,7 @@ const runOperationalCommand = async (
               channelEn: config.TELEGRAM_DIGEST_CHANNEL_EN,
               channelRu: config.TELEGRAM_DIGEST_CHANNEL_RU,
               maxAttempts: config.DIGEST_MAX_ATTEMPTS,
+              maxItems: config.DIGEST_MAX_ITEMS,
             },
             {
               database,
