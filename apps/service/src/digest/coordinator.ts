@@ -9,6 +9,10 @@ import {
 } from "@findthatproject/db";
 import { technologyKindSchema } from "@findthatproject/contracts";
 
+import {
+  compareCatalogDisplayCandidates,
+  refreshCatalogItems,
+} from "../catalog/projector";
 import { visibleCandidateWhere, visibleCatalogWhere } from "../catalog/queries";
 import { rankDigestItems } from "./ranking";
 import { renderDigestMessages } from "./renderer";
@@ -81,48 +85,88 @@ const prepareRun = async (
   const existing = await transaction.weeklyDigestRun.findFirst({
     where: { status: { not: WeeklyDigestRunStatus.SUCCEEDED } },
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-    select: { id: true },
+    select: {
+      id: true,
+      eligibilityStartAt: true,
+      windowStart: true,
+      windowEnd: true,
+      status: true,
+      failureClass: true,
+      _count: { select: { items: true, deliveries: true } },
+    },
   });
-  if (existing !== null) return { type: "run", runId: existing.id };
-
-  const latestSuccessful = await transaction.weeklyDigestRun.findFirst({
-    where: { status: WeeklyDigestRunStatus.SUCCEEDED },
-    orderBy: [{ windowEnd: "desc" }, { id: "desc" }],
-    select: { eligibilityStartAt: true, windowEnd: true },
-  });
-  if (
-    latestSuccessful !== null &&
-    now.getTime() - latestSuccessful.windowEnd.getTime() < MINIMUM_INTERVAL_MS
-  ) {
-    return { type: "noop" };
+  const recoverableRun =
+    existing !== null &&
+    existing.status === WeeklyDigestRunStatus.REVIEW_REQUIRED &&
+    existing.failureClass === "DIGEST_MISSING_RUSSIAN_DESCRIPTION" &&
+    existing._count.items === 0 &&
+    existing._count.deliveries === 0
+      ? existing
+      : null;
+  if (existing !== null && recoverableRun === null) {
+    return { type: "run", runId: existing.id };
   }
 
-  const initialStartAt = safeDate(
-    config.initialStartAt,
-    "DIGEST_INVALID_INITIAL_START",
-  );
-  const eligibilityStartAt =
-    latestSuccessful?.eligibilityStartAt ?? initialStartAt;
-  if (latestSuccessful === null) {
-    const lookback = now.getTime() - eligibilityStartAt.getTime();
-    if (lookback <= 0) throw new Error("DIGEST_INITIAL_START_NOT_PAST");
-    if (lookback > MAXIMUM_INITIAL_LOOKBACK_MS) {
-      throw new Error("DIGEST_INITIAL_LOOKBACK_TOO_LONG");
+  let eligibilityStartAt: Date;
+  let windowStart: Date;
+  let windowEnd: Date;
+  if (recoverableRun !== null) {
+    eligibilityStartAt = recoverableRun.eligibilityStartAt;
+    windowStart = recoverableRun.windowStart;
+    windowEnd = recoverableRun.windowEnd;
+  } else {
+    const latestSuccessful = await transaction.weeklyDigestRun.findFirst({
+      where: { status: WeeklyDigestRunStatus.SUCCEEDED },
+      orderBy: [{ windowEnd: "desc" }, { id: "desc" }],
+      select: { eligibilityStartAt: true, windowEnd: true },
+    });
+    if (
+      latestSuccessful !== null &&
+      now.getTime() - latestSuccessful.windowEnd.getTime() < MINIMUM_INTERVAL_MS
+    ) {
+      return { type: "noop" };
+    }
+
+    const initialStartAt = safeDate(
+      config.initialStartAt,
+      "DIGEST_INVALID_INITIAL_START",
+    );
+    eligibilityStartAt = latestSuccessful?.eligibilityStartAt ?? initialStartAt;
+    if (latestSuccessful === null) {
+      const lookback = now.getTime() - eligibilityStartAt.getTime();
+      if (lookback <= 0) throw new Error("DIGEST_INITIAL_START_NOT_PAST");
+      if (lookback > MAXIMUM_INITIAL_LOOKBACK_MS) {
+        throw new Error("DIGEST_INITIAL_LOOKBACK_TOO_LONG");
+      }
+    }
+    windowStart = latestSuccessful?.windowEnd ?? eligibilityStartAt;
+    windowEnd = now;
+    if (windowStart.getTime() >= windowEnd.getTime()) {
+      throw new Error("DIGEST_INVALID_WINDOW");
     }
   }
-  const windowStart = latestSuccessful?.windowEnd ?? eligibilityStartAt;
-  if (windowStart.getTime() >= now.getTime()) {
-    throw new Error("DIGEST_INVALID_WINDOW");
+
+  const eligibleWhere = {
+    AND: [
+      visibleCatalogWhere,
+      { createdAt: { gt: eligibilityStartAt, lte: windowEnd } },
+      { weeklyDigestItems: { none: {} } },
+    ],
+  };
+  const eligibleItemIds = await transaction.catalogItem.findMany({
+    where: eligibleWhere,
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    select: { id: true },
+  });
+  if (eligibleItemIds.length > 0) {
+    await refreshCatalogItems(
+      transaction,
+      eligibleItemIds.map((item) => item.id),
+    );
   }
 
   const items = await transaction.catalogItem.findMany({
-    where: {
-      AND: [
-        visibleCatalogWhere,
-        { createdAt: { gt: eligibilityStartAt, lte: now } },
-        { weeklyDigestItems: { none: {} } },
-      ],
-    },
+    where: eligibleWhere,
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     select: {
       id: true,
@@ -140,19 +184,29 @@ const prepareRun = async (
       lastMentionedAt: true,
       presentations: {
         where: visibleCandidateWhere,
-        orderBy: [{ analyzedPost: { publishedAt: "desc" } }, { id: "asc" }],
-        take: 1,
-        select: { analyzedPost: { select: { sourceUrl: true } } },
+        select: {
+          id: true,
+          descriptionRu: true,
+          confidence: true,
+          analyzedPost: { select: { publishedAt: true, sourceUrl: true } },
+        },
       },
     },
   });
 
   if (items.some((item) => item.descriptionRu === null)) {
+    if (recoverableRun !== null) {
+      await transaction.weeklyDigestRun.update({
+        where: { id: recoverableRun.id },
+        data: { itemCount: items.length },
+      });
+      return { type: "run", runId: recoverableRun.id };
+    }
     const run = await transaction.weeklyDigestRun.create({
       data: {
         eligibilityStartAt,
         windowStart,
-        windowEnd: now,
+        windowEnd,
         status: WeeklyDigestRunStatus.REVIEW_REQUIRED,
         itemCount: items.length,
         failureClass: "DIGEST_MISSING_RUSSIAN_DESCRIPTION",
@@ -217,27 +271,32 @@ const prepareRun = async (
   const snapshotFor = (
     item: (typeof orderedItems)[number],
     ordinal: number,
-  ) => ({
-    ordinal,
-    slug: item.slug,
-    kind: item.kind,
-    name: item.name,
-    nameRu: item.nameRu,
-    canonicalUrl: item.canonicalUrl,
-    githubUrl: item.githubUrl,
-    githubRepository: item.githubRepository,
-    githubStars: item.githubStars,
-    descriptionEn: item.descriptionEn,
-    descriptionRu: item.descriptionRu!,
-    sourceUrl: item.presentations[0]!.analyzedPost.sourceUrl,
-  });
+  ) => {
+    const source = [...item.presentations].sort(
+      compareCatalogDisplayCandidates,
+    )[0]!;
+    return {
+      ordinal,
+      slug: item.slug,
+      kind: item.kind,
+      name: item.name,
+      nameRu: item.nameRu,
+      canonicalUrl: item.canonicalUrl,
+      githubUrl: item.githubUrl,
+      githubRepository: item.githubRepository,
+      githubStars: item.githubStars,
+      descriptionEn: item.descriptionEn,
+      descriptionRu: item.descriptionRu!,
+      sourceUrl: source.analyzedPost.sourceUrl,
+    };
+  };
   const selectedSnapshots = orderedItems
     .slice(0, ranking.selected.length)
     .map(snapshotFor);
   const overflowCount = items.length - ranking.selected.length;
   const renderedEn = renderDigestMessages({
     windowStart,
-    windowEnd: now,
+    windowEnd,
     items: selectedSnapshots,
     overflowCount,
     language: "EN",
@@ -245,23 +304,35 @@ const prepareRun = async (
   });
   const renderedRu = renderDigestMessages({
     windowStart,
-    windowEnd: now,
+    windowEnd,
     items: selectedSnapshots,
     overflowCount,
     language: "RU",
     siteOrigin: config.siteOrigin,
   });
   const coverUrl = new URL(DIGEST_COVER_PATH, config.siteOrigin).href;
-  const run = await transaction.weeklyDigestRun.create({
-    data: {
-      eligibilityStartAt,
-      windowStart,
-      windowEnd: now,
-      itemCount: items.length,
-      selectedCount: ranking.selected.length,
-    },
-    select: { id: true },
-  });
+  const run =
+    recoverableRun === null
+      ? await transaction.weeklyDigestRun.create({
+          data: {
+            eligibilityStartAt,
+            windowStart,
+            windowEnd,
+            itemCount: items.length,
+            selectedCount: ranking.selected.length,
+          },
+          select: { id: true },
+        })
+      : await transaction.weeklyDigestRun.update({
+          where: { id: recoverableRun.id },
+          data: {
+            status: WeeklyDigestRunStatus.PENDING,
+            failureClass: null,
+            itemCount: items.length,
+            selectedCount: ranking.selected.length,
+          },
+          select: { id: true },
+        });
   if (items.length > 0) {
     await transaction.weeklyDigestItem.createMany({
       data: orderedItems.map((item, ordinal) => ({

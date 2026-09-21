@@ -36,6 +36,7 @@ interface CandidateInput {
   readonly kind?: "PROJECT" | "PRODUCT" | "FEATURE";
   readonly parentName?: string | null;
   readonly confidence?: number;
+  readonly descriptionRu?: string | null;
   readonly publishedAt?: Date;
   readonly tags?: readonly string[];
 }
@@ -81,7 +82,10 @@ const createCandidate = async (
       subjectUrl: input.subjectUrl,
       githubUrl: input.githubUrl ?? null,
       descriptionEn: `${input.name} synthetic description.`,
-      descriptionRu: `${input.name} — синтетическое описание проекта.`,
+      descriptionRu:
+        input.descriptionRu === undefined
+          ? `${input.name} — синтетическое описание проекта.`
+          : input.descriptionRu,
       tags: [...(input.tags ?? ["Synthetic"])],
       sourceLanguage: "en",
       confidence: input.confidence ?? 0.9,
@@ -200,7 +204,7 @@ describe.skipIf(!testDatabaseUrl)("catalog projection integration", () => {
     ).toBe(1);
   });
 
-  it("merges exact normalized titles across different URLs and kinds", async () => {
+  it("keeps exact normalized titles at different URLs separate", async () => {
     const first = await createCandidate(database, {
       handle: "@channel_one",
       messageId: 3n,
@@ -217,8 +221,8 @@ describe.skipIf(!testDatabaseUrl)("catalog projection integration", () => {
 
     await project(database, [first, second]);
 
-    expect(await database.catalogItem.count()).toBe(1);
-    expect(await database.catalogIdentityAlias.count()).toBe(3);
+    expect(await database.catalogItem.count()).toBe(2);
+    expect(await database.catalogIdentityAlias.count()).toBe(2);
     expect(
       new Set(
         (
@@ -227,7 +231,7 @@ describe.skipIf(!testDatabaseUrl)("catalog projection integration", () => {
           })
         ).map((candidate) => candidate.catalogItemId),
       ).size,
-    ).toBe(1);
+    ).toBe(2);
   });
 
   it("keeps same-named child features of different parents separate", async () => {
@@ -253,7 +257,7 @@ describe.skipIf(!testDatabaseUrl)("catalog projection integration", () => {
     expect(await database.catalogItem.count()).toBe(2);
   });
 
-  it("reconciles duplicate catalog rows created before aliases existed", async () => {
+  it("does not consolidate legacy rows with the same title at different URLs", async () => {
     const first = await createCandidate(database, {
       handle: "@channel_one",
       messageId: 40n,
@@ -272,8 +276,8 @@ describe.skipIf(!testDatabaseUrl)("catalog projection integration", () => {
 
     await expect(reconcileCatalogProjection(database)).resolves.toBe(2);
 
-    expect(await database.catalogItem.count()).toBe(1);
-    expect(await database.catalogIdentityAlias.count()).toBe(3);
+    expect(await database.catalogItem.count()).toBe(2);
+    expect(await database.catalogIdentityAlias.count()).toBe(2);
     expect(
       new Set(
         (
@@ -282,7 +286,36 @@ describe.skipIf(!testDatabaseUrl)("catalog projection integration", () => {
           })
         ).map((candidate) => candidate.catalogItemId),
       ).size,
-    ).toBe(1);
+    ).toBe(2);
+  });
+
+  it("prefers complete localized metadata over a higher-confidence legacy candidate", async () => {
+    const legacy = await createCandidate(database, {
+      handle: "@channel_one",
+      messageId: 42n,
+      name: "Legacy Name",
+      subjectUrl: "https://example.com/localized",
+      confidence: 0.99,
+      descriptionRu: null,
+      publishedAt: new Date("2026-08-01T10:00:00.000Z"),
+    });
+    const localized = await createCandidate(database, {
+      handle: "@channel_two",
+      messageId: 43n,
+      name: "Localized Name",
+      subjectUrl: "https://example.com/localized",
+      confidence: 0.9,
+      publishedAt: new Date("2026-08-02T10:00:00.000Z"),
+    });
+
+    await project(database, [legacy, localized]);
+
+    await expect(
+      database.catalogItem.findFirstOrThrow(),
+    ).resolves.toMatchObject({
+      name: "Localized Name",
+      descriptionRu: "Localized Name — синтетическое описание проекта.",
+    });
   });
 
   it("merges normalized fallback identities and backfills idempotently", async () => {

@@ -106,9 +106,7 @@ export const deriveCatalogIdentity = (input: {
   return {
     identityKey,
     identityKeys:
-      urlIdentityKey === null
-        ? [nameIdentityKey]
-        : [urlIdentityKey, nameIdentityKey],
+      urlIdentityKey === null ? [nameIdentityKey] : [urlIdentityKey],
     canonicalUrl,
     nameSortKey: normalizeIdentityText(input.name),
     slugBase: slugBaseForName(input.name),

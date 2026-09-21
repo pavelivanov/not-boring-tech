@@ -191,7 +191,11 @@ describe.skipIf(!testDatabaseUrl)("catalog API integration", () => {
       "/v1/catalog?q=%D1%81%D0%B8%D0%BD%D1%82%D0%B5%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9",
     );
     expect(await russianSearch.json()).toMatchObject({
-      items: [{ descriptionRu: expect.stringContaining("синтетический") }],
+      items: expect.arrayContaining([
+        expect.objectContaining({
+          descriptionRu: expect.stringContaining("синтетический"),
+        }),
+      ]),
     });
   });
 

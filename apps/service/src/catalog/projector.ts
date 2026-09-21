@@ -129,6 +129,31 @@ const visibleCandidatesForItem = (
     },
   });
 
+interface CatalogDisplayCandidate {
+  readonly id: string;
+  readonly descriptionRu: string | null;
+  readonly confidence: unknown;
+  readonly analyzedPost: { readonly publishedAt: Date };
+}
+
+export const compareCatalogDisplayCandidates = (
+  left: CatalogDisplayCandidate,
+  right: CatalogDisplayCandidate,
+): number => {
+  const completenessDifference =
+    Number(right.descriptionRu !== null) - Number(left.descriptionRu !== null);
+  if (completenessDifference !== 0) return completenessDifference;
+
+  const confidenceDifference =
+    Number(right.confidence) - Number(left.confidence);
+  if (confidenceDifference !== 0) return confidenceDifference;
+
+  const publishedDifference =
+    right.analyzedPost.publishedAt.getTime() -
+    left.analyzedPost.publishedAt.getTime();
+  return publishedDifference || left.id.localeCompare(right.id);
+};
+
 export const refreshCatalogItems = async (
   transaction: DbTransaction,
   catalogItemIds: readonly string[],
@@ -140,15 +165,7 @@ export const refreshCatalogItems = async (
     );
     if (candidates.length === 0) continue;
 
-    candidates.sort((left, right) => {
-      const confidenceDifference =
-        Number(right.confidence) - Number(left.confidence);
-      if (confidenceDifference !== 0) return confidenceDifference;
-      const publishedDifference =
-        right.analyzedPost.publishedAt.getTime() -
-        left.analyzedPost.publishedAt.getTime();
-      return publishedDifference || left.id.localeCompare(right.id);
-    });
+    candidates.sort(compareCatalogDisplayCandidates);
     const winner = candidates[0]!;
     const category: CatalogCategory = catalogCategorySchema.parse(
       winner.category,

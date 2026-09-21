@@ -657,6 +657,64 @@ describe.skipIf(!testDatabaseUrl)("weekly digest integration", () => {
     });
   });
 
+  it("repairs localized projection and resumes a metadata review run in place", async () => {
+    const itemId = await createCatalogItem(database, {
+      slug: "recovered-russian",
+      createdAt: new Date("2026-08-12T10:00:00.000Z"),
+      descriptionRu: null,
+    });
+    await makeCatalogItemVisible(
+      database,
+      itemId,
+      "recovered-russian",
+      new Date("2026-08-13T10:00:00.000Z"),
+      true,
+      "Восстановленное русское описание.",
+    );
+    await database.presentationCandidate.updateMany({
+      where: { catalogItemId: itemId, descriptionRu: null },
+      data: { confidence: 0.99 },
+    });
+    const reviewRun = await database.weeklyDigestRun.create({
+      data: {
+        eligibilityStartAt: new Date("2026-08-10T09:00:00.000Z"),
+        windowStart: new Date("2026-08-10T09:00:00.000Z"),
+        windowEnd: new Date("2026-08-17T09:00:00.000Z"),
+        status: WeeklyDigestRunStatus.REVIEW_REQUIRED,
+        itemCount: 1,
+        failureClass: "DIGEST_MISSING_RUSSIAN_DESCRIPTION",
+      },
+    });
+    const publisher = new ScriptedPublisher();
+
+    const result = await publishWeeklyDigest(config(), {
+      database,
+      publisher,
+      now: () => new Date("2026-08-18T09:00:00.000Z"),
+    });
+
+    expect(result).toMatchObject({
+      runId: reviewRun.id,
+      windowEnd: "2026-08-17T09:00:00.000Z",
+      status: WeeklyDigestRunStatus.SUCCEEDED,
+      sentCounts: { EN: 1, RU: 1 },
+    });
+    expect(publisher.calls).toHaveLength(4);
+    await expect(database.weeklyDigestRun.count()).resolves.toBe(1);
+    await expect(
+      database.catalogItem.findUniqueOrThrow({ where: { id: itemId } }),
+    ).resolves.toMatchObject({
+      descriptionRu: "Восстановленное русское описание.",
+    });
+    await expect(
+      database.weeklyDigestItem.findFirstOrThrow({
+        where: { digestRunId: reviewRun.id },
+      }),
+    ).resolves.toMatchObject({
+      descriptionRu: "Восстановленное русское описание.",
+    });
+  });
+
   it("uses a distinct PostgreSQL advisory lock for digest execution", async () => {
     const first = await acquireDigestAdvisoryLock(testDatabaseUrl!);
     expect(first.acquired).toBe(true);
