@@ -9,7 +9,6 @@ import { TelegramBotApiClient } from "../src/digest/telegram-bot-client.ts";
 const data = JSON.parse(readFileSync("/tmp/digest-test-data.json", "utf8"));
 const chatId = "@FindThatProjectTestChannel";
 const siteOrigin = "https://findthatproject.com";
-const coverUrl = `${siteOrigin}/weekly-digest-cover.png`;
 const token = process.env.TELEGRAM_DIGEST_BOT_TOKEN;
 if (!token) throw new Error("TELEGRAM_DIGEST_BOT_TOKEN is required");
 
@@ -43,7 +42,6 @@ const snapshots = [...ranking.selected, ...ranking.overflow]
       githubStars: item.githubStars,
       descriptionEn: item.descriptionEn,
       descriptionRu: item.descriptionRu,
-      sourceUrl: `${siteOrigin}/digest/latest`,
     };
   })
   .slice(0, ranking.selected.length);
@@ -68,7 +66,6 @@ console.log(
 );
 console.log("order:", snapshots.map((item) => item.slug).join(", "));
 
-await client.sendPhoto({ chatId, photoUrl: coverUrl });
 for (const language of ["EN", "RU"]) {
   const messages = renderDigestMessages({ ...input, language });
   for (const message of messages) {
@@ -76,8 +73,6 @@ for (const language of ["EN", "RU"]) {
       chatId,
       html: message.renderedHtml,
     });
-    console.log(
-      `${language} part ${message.partIndex}: message ${sent.messageId}`,
-    );
+    console.log(`${language} digest: message ${sent.messageId}`);
   }
 }

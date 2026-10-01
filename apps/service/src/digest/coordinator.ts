@@ -9,10 +9,7 @@ import {
 } from "@findthatproject/db";
 import { technologyKindSchema } from "@findthatproject/contracts";
 
-import {
-  compareCatalogDisplayCandidates,
-  refreshCatalogItems,
-} from "../catalog/projector";
+import { refreshCatalogItems } from "../catalog/projector";
 import { visibleCandidateWhere, visibleCatalogWhere } from "../catalog/queries";
 import { rankDigestItems } from "./ranking";
 import { renderDigestMessages } from "./renderer";
@@ -23,11 +20,6 @@ import {
 
 const MINIMUM_INTERVAL_MS = 144 * 60 * 60 * 1_000;
 const MAXIMUM_INITIAL_LOOKBACK_MS = 14 * 24 * 60 * 60 * 1_000;
-const DIGEST_COVER_PATH = "/weekly-digest-cover.png";
-const DIGEST_COVER_FALLBACK_HTML = {
-  EN: "<b>FindThatProject Weekly Digest</b>",
-  RU: "<b>Недельная подборка FindThatProject</b>",
-} as const;
 
 export interface DigestCoordinatorConfig {
   readonly initialStartAt: Date;
@@ -182,15 +174,6 @@ const prepareRun = async (
       descriptionRu: true,
       createdAt: true,
       lastMentionedAt: true,
-      presentations: {
-        where: visibleCandidateWhere,
-        select: {
-          id: true,
-          descriptionRu: true,
-          confidence: true,
-          analyzedPost: { select: { publishedAt: true, sourceUrl: true } },
-        },
-      },
     },
   });
 
@@ -271,25 +254,19 @@ const prepareRun = async (
   const snapshotFor = (
     item: (typeof orderedItems)[number],
     ordinal: number,
-  ) => {
-    const source = [...item.presentations].sort(
-      compareCatalogDisplayCandidates,
-    )[0]!;
-    return {
-      ordinal,
-      slug: item.slug,
-      kind: item.kind,
-      name: item.name,
-      nameRu: item.nameRu,
-      canonicalUrl: item.canonicalUrl,
-      githubUrl: item.githubUrl,
-      githubRepository: item.githubRepository,
-      githubStars: item.githubStars,
-      descriptionEn: item.descriptionEn,
-      descriptionRu: item.descriptionRu!,
-      sourceUrl: source.analyzedPost.sourceUrl,
-    };
-  };
+  ) => ({
+    ordinal,
+    slug: item.slug,
+    kind: item.kind,
+    name: item.name,
+    nameRu: item.nameRu,
+    canonicalUrl: item.canonicalUrl,
+    githubUrl: item.githubUrl,
+    githubRepository: item.githubRepository,
+    githubStars: item.githubStars,
+    descriptionEn: item.descriptionEn,
+    descriptionRu: item.descriptionRu!,
+  });
   const selectedSnapshots = orderedItems
     .slice(0, ranking.selected.length)
     .map(snapshotFor);
@@ -310,7 +287,6 @@ const prepareRun = async (
     language: "RU",
     siteOrigin: config.siteOrigin,
   });
-  const coverUrl = new URL(DIGEST_COVER_PATH, config.siteOrigin).href;
   const run =
     recoverableRun === null
       ? await transaction.weeklyDigestRun.create({
@@ -355,37 +331,19 @@ const prepareRun = async (
   }
   await transaction.weeklyDigestDelivery.createMany({
     data: [
-      {
-        digestRunId: run.id,
-        language: WeeklyDigestLanguage.EN,
-        kind: WeeklyDigestDeliveryKind.PHOTO,
-        partIndex: 0,
-        targetChatId: config.channelEn,
-        renderedHtml: DIGEST_COVER_FALLBACK_HTML.EN,
-        mediaUrl: coverUrl,
-      },
       ...renderedEn.map((message) => ({
         digestRunId: run.id,
         language: WeeklyDigestLanguage.EN,
         kind: WeeklyDigestDeliveryKind.TEXT,
-        partIndex: message.partIndex + 1,
+        partIndex: message.partIndex,
         targetChatId: config.channelEn,
         renderedHtml: message.renderedHtml,
       })),
-      {
-        digestRunId: run.id,
-        language: WeeklyDigestLanguage.RU,
-        kind: WeeklyDigestDeliveryKind.PHOTO,
-        partIndex: 0,
-        targetChatId: config.channelRu,
-        renderedHtml: DIGEST_COVER_FALLBACK_HTML.RU,
-        mediaUrl: coverUrl,
-      },
       ...renderedRu.map((message) => ({
         digestRunId: run.id,
         language: WeeklyDigestLanguage.RU,
         kind: WeeklyDigestDeliveryKind.TEXT,
-        partIndex: message.partIndex + 1,
+        partIndex: message.partIndex,
         targetChatId: config.channelRu,
         renderedHtml: message.renderedHtml,
       })),

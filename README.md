@@ -209,18 +209,19 @@ before production activation.
 The private one-shot `digest` process reads visible, never-announced catalog
 items from PostgreSQL and freezes their EN/RU text, links, and GitHub star count
 in a durable snapshot/outbox. It sends English and Russian deliveries
-independently, so a successful language or split part is never repeated merely
-because another delivery failed. An empty week still sends one localized health
-message per channel. Every part links to the FindThatProject website.
+independently, so a successful language is never repeated merely because the
+other delivery failed. An empty week still sends one localized health message
+per channel. Every digest links to the FindThatProject website.
 
-Digest posts use a short editorial introduction, localized website content-type
-headings, blue linked item numbers, and inline project/source/GitHub links.
-Types follow the website's canonical order, with chronological order inside
-each group. Each channel receives the branded
-`weekly-digest-cover.png` once as a standalone photo, followed by the text-only
-digest parts with link previews disabled. The same public asset is exposed
-through the homepage Open Graph metadata; deploy `web` together with `digest`
-when changing this presentation.
+Digest posts use a short editorial introduction followed by compact, underlined
+content-type headings. Each project is one line whose name is the project link;
+there are no item numbers or separate source/link rows. Types follow the
+website's canonical order, with ranked order inside each group. Each channel
+receives exactly one text message with link previews disabled and no standalone
+cover image. Before the outbox is created, the renderer measures the visible
+text after HTML entity parsing and rebuilds oversized drafts with shorter,
+word-safe descriptions until the complete post fits Telegram's one-message
+limit.
 
 For local configuration, copy the digest variables from `.env.example` into an
 ignored `.env`. The bot must be dedicated to outbound delivery and must be an

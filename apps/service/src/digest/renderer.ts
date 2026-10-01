@@ -1,17 +1,13 @@
 import {
   TECHNOLOGY_KINDS,
+  TECHNOLOGY_KIND_LABELS,
   type TechnologyKind,
 } from "@findthatproject/contracts";
 
-import {
-  canonicalGitHubRepositoryUrl,
-  parseGitHubRepositoryUrl,
-} from "../github/repository-url";
-
-export const DIGEST_VISIBLE_TEXT_LIMIT = 3_500;
-// Telegram caps messages at 4096 characters; keep a small safety margin for
-// entity markup so a 10-item post with full source and main links stays whole.
-export const DIGEST_RENDERED_HTML_LIMIT = 4_000;
+// Telegram accepts up to 4,096 characters after formatting entities are
+// parsed. Keep a small buffer and measure the visible text, not the HTML
+// markup or hidden link targets.
+export const DIGEST_VISIBLE_TEXT_LIMIT = 4_000;
 
 export type DigestLanguage = "EN" | "RU";
 
@@ -27,7 +23,6 @@ export interface DigestSnapshot {
   readonly githubStars: number | null;
   readonly descriptionEn: string;
   readonly descriptionRu: string;
-  readonly sourceUrl: string;
 }
 
 export interface DigestRenderInput {
@@ -59,10 +54,7 @@ interface Labels {
   readonly intro: string;
   readonly catalog: string;
   readonly allItems: (total: number) => string;
-  readonly mainLink: string;
-  readonly sourceLink: string;
   readonly empty: string;
-  readonly part: (index: number, total: number) => string;
 }
 
 const LABELS: Readonly<Record<DigestLanguage, Labels>> = {
@@ -72,10 +64,7 @@ const LABELS: Readonly<Record<DigestLanguage, Labels>> = {
       "A fresh batch of projects, tools, and ideas we found this week. Everything worth opening is below.",
     catalog: "All projects on FindThatProject →",
     allItems: (total) => `See all ${total} items from this week →`,
-    mainLink: "Link",
-    sourceLink: "#",
     empty: "No new items this week.",
-    part: (index, total) => `Part ${index}/${total}`,
   },
   RU: {
     heading: "Большая недельная подборка 🎉",
@@ -83,10 +72,7 @@ const LABELS: Readonly<Record<DigestLanguage, Labels>> = {
       "Свежие проекты, инструменты и идеи, которые мы нашли за неделю. Всё самое интересное — ниже.",
     catalog: "Все проекты на FindThatProject →",
     allItems: (total) => `Все ${total} новинок недели →`,
-    mainLink: "Ссылка",
-    sourceLink: "#",
     empty: "На этой неделе новых проектов нет.",
-    part: (index, total) => `Часть ${index}/${total}`,
   },
 };
 
@@ -159,22 +145,12 @@ const dateRange = (
   return formatter.formatRange(validateDate(start), validateDate(end));
 };
 
-const headingFor = (
-  input: DigestRenderInput,
-  siteOrigin: string,
-  partIndex?: number,
-  partCount?: number,
-): RenderedFragment => {
+const headingFor = (input: DigestRenderInput): RenderedFragment => {
   const labels = LABELS[input.language];
-  const details = [
-    dateRange(input.windowStart, input.windowEnd, input.language),
-  ];
-  if (partIndex !== undefined && partCount !== undefined) {
-    details.push(labels.part(partIndex, partCount));
-  }
+  const details = dateRange(input.windowStart, input.windowEnd, input.language);
   return {
-    html: `<b>${escapeHtml(labels.heading)}</b>\n<i>${escapeHtml(details.join(" · "))}</i>\n\n${escapeHtml(labels.intro)}`,
-    text: `${labels.heading}\n${details.join(" · ")}\n\n${labels.intro}`,
+    html: `<b>${escapeHtml(labels.heading)}</b>\n<i>${escapeHtml(details)}</i>\n\n${escapeHtml(labels.intro)}`,
+    text: `${labels.heading}\n${details}\n\n${labels.intro}`,
   };
 };
 
@@ -191,82 +167,97 @@ const footerFor = (
   );
 };
 
-const normalizedComparisonUrl = (value: string): string => {
-  const url = new URL(safeHttpUrl(value));
-  url.hash = "";
-  if (url.pathname !== "/") url.pathname = url.pathname.replace(/\/+$/u, "");
-  return url.href;
-};
+const projectUrl = (item: DigestSnapshot, siteOrigin: string): string =>
+  safeHttpUrl(
+    item.canonicalUrl ??
+      item.githubUrl ??
+      new URL(`/tools/${encodeURIComponent(item.slug)}`, siteOrigin).href,
+  );
 
-const starsText = (stars: number, language: DigestLanguage): string => {
-  if (!Number.isSafeInteger(stars) || stars < 0) {
-    throw new DigestRendererError("DIGEST_INVALID_STARS");
+const shortenText = (value: string, maximumLength: number): string => {
+  if (value.length <= maximumLength) return value;
+  if (maximumLength <= 1) return "…";
+
+  let shortened = value.slice(0, maximumLength - 1).trimEnd();
+  const finalCodeUnit = shortened.charCodeAt(shortened.length - 1);
+  if (finalCodeUnit >= 0xd800 && finalCodeUnit <= 0xdbff) {
+    shortened = shortened.slice(0, -1).trimEnd();
   }
-  return `★ ${new Intl.NumberFormat(language === "RU" ? "ru-RU" : "en-US").format(stars)}`;
+  const wordBoundary = shortened.lastIndexOf(" ");
+  if (wordBoundary >= Math.floor((maximumLength - 1) * 0.6)) {
+    shortened = shortened.slice(0, wordBoundary).trimEnd();
+  }
+  return `${shortened}…`;
 };
 
 const itemBlock = (
   item: DigestSnapshot,
   language: DigestLanguage,
-  displayIndex: number,
+  siteOrigin: string,
+  descriptionLimit: number,
 ): RenderedFragment => {
-  const labels = LABELS[language];
-  const description =
+  const fullDescription =
     language === "EN" ? item.descriptionEn.trim() : item.descriptionRu.trim();
   const name = language === "RU" ? item.nameRu.trim() : item.name.trim();
-  if (!name || !description) {
+  if (!name || !fullDescription) {
     throw new DigestRendererError("DIGEST_INVALID_SNAPSHOT");
   }
 
-  const mainUrl = safeHttpUrl(
-    item.canonicalUrl ?? item.githubUrl ?? item.sourceUrl,
-  );
-  const sourceLink = anchor(labels.sourceLink, item.sourceUrl);
-  const repositoryUrl = canonicalGitHubRepositoryUrl(
-    item.githubUrl ?? item.canonicalUrl,
-  );
-  const repository =
-    repositoryUrl === null ? null : parseGitHubRepositoryUrl(repositoryUrl);
-  const sameMainAndRepository =
-    repositoryUrl !== null &&
-    normalizedComparisonUrl(repositoryUrl) === normalizedComparisonUrl(mainUrl);
-  const mainStars =
-    sameMainAndRepository && item.githubStars !== null
-      ? starsText(item.githubStars, language)
-      : null;
-  const linkedNumber = anchor(String(displayIndex + 1), mainUrl);
-  const mainLink = anchor(labels.mainLink, mainUrl);
-  const htmlLinks = [
-    sourceLink.html,
-    mainLink.html,
-    ...(mainStars === null ? [] : [escapeHtml(mainStars)]),
-  ];
-  const textLinks = [
-    sourceLink.text,
-    mainLink.text,
-    ...(mainStars === null ? [] : [mainStars]),
-  ];
+  const linkedName = anchor(name, projectUrl(item, siteOrigin));
+  const description = shortenText(fullDescription, descriptionLimit);
+  return {
+    html: `- ${linkedName.html} — ${escapeHtml(description)}`,
+    text: `- ${linkedName.text} — ${description}`,
+  };
+};
 
-  const htmlLines = [
-    `<b>${linkedNumber.html}</b> <b>${escapeHtml(name)}</b> — ${escapeHtml(description)}`,
-  ];
-  const textLines = [`${displayIndex + 1} ${name} — ${description}`];
+const kindHeading = (
+  kind: TechnologyKind,
+  language: DigestLanguage,
+): RenderedFragment => {
+  const label = TECHNOLOGY_KIND_LABELS[language === "RU" ? "ru" : "en"][kind];
+  return {
+    html: `<u>${escapeHtml(label)}</u>`,
+    text: label,
+  };
+};
 
-  if (repositoryUrl !== null && repository !== null && !sameMainAndRepository) {
-    const repositoryLink = anchor("GitHub", repositoryUrl);
-    htmlLinks.push(repositoryLink.html);
-    textLinks.push(repositoryLink.text);
-    if (item.githubStars !== null) {
-      const stars = starsText(item.githubStars, language);
-      htmlLinks.push(escapeHtml(stars));
-      textLinks.push(stars);
+const sectionsFor = (
+  items: readonly DigestSnapshot[],
+  language: DigestLanguage,
+  siteOrigin: string,
+  descriptionLimit: number,
+  kindOrder: ReadonlyMap<TechnologyKind, number>,
+): readonly RenderedFragment[] => {
+  const groupedItems = [...items].sort(
+    (left, right) =>
+      kindOrder.get(left.kind)! - kindOrder.get(right.kind)! ||
+      left.ordinal - right.ordinal,
+  );
+  const sections: RenderedFragment[] = [];
+  let sectionKind: TechnologyKind | null = null;
+  let heading: RenderedFragment | null = null;
+  let blocks: RenderedFragment[] = [];
+
+  const flush = (): void => {
+    if (heading === null) return;
+    sections.push({
+      html: [heading.html, ...blocks.map((block) => block.html)].join("\n"),
+      text: [heading.text, ...blocks.map((block) => block.text)].join("\n"),
+    });
+  };
+
+  for (const item of groupedItems) {
+    if (item.kind !== sectionKind) {
+      flush();
+      sectionKind = item.kind;
+      heading = kindHeading(item.kind, language);
+      blocks = [];
     }
+    blocks.push(itemBlock(item, language, siteOrigin, descriptionLimit));
   }
-
-  htmlLines.push(htmlLinks.join(" • "));
-  textLines.push(textLinks.join(" • "));
-
-  return { html: htmlLines.join("\n"), text: textLines.join("\n") };
+  flush();
+  return sections;
 };
 
 const combine = (
@@ -282,43 +273,85 @@ const combine = (
 };
 
 const fits = (fragment: RenderedFragment): boolean =>
-  fragment.text.length <= DIGEST_VISIBLE_TEXT_LIMIT &&
-  fragment.html.length <= DIGEST_RENDERED_HTML_LIMIT;
+  fragment.text.length <= DIGEST_VISIBLE_TEXT_LIMIT;
 
-const packForPartCount = (
+const renderWithDescriptionLimit = (
   input: DigestRenderInput,
   siteOrigin: string,
-  blocks: readonly RenderedFragment[],
-  assumedPartCount: number,
-): readonly (readonly RenderedFragment[])[] => {
-  const parts: RenderedFragment[][] = [];
-  let current: RenderedFragment[] = [];
+  orderedItems: readonly DigestSnapshot[],
+  kindOrder: ReadonlyMap<TechnologyKind, number>,
+  descriptionLimit: number,
+): RenderedFragment =>
+  combine(
+    headingFor(input),
+    sectionsFor(
+      orderedItems,
+      input.language,
+      siteOrigin,
+      descriptionLimit,
+      kindOrder,
+    ),
+    footerFor(input, siteOrigin),
+  );
 
-  for (const block of blocks) {
-    const partIndex = parts.length + 1;
-    const heading = headingFor(input, siteOrigin, partIndex, assumedPartCount);
-    const footer = footerFor(input, siteOrigin);
-    if (fits(combine(heading, [...current, block], footer))) {
-      current.push(block);
-      continue;
-    }
-    if (current.length === 0) {
-      throw new DigestRendererError("DIGEST_ITEM_TOO_LARGE");
-    }
-    parts.push(current);
-    current = [block];
-    const nextHeading = headingFor(
+const fitSingleMessage = (
+  input: DigestRenderInput,
+  siteOrigin: string,
+  orderedItems: readonly DigestSnapshot[],
+  kindOrder: ReadonlyMap<TechnologyKind, number>,
+): RenderedFragment => {
+  const descriptions = orderedItems.map((item) =>
+    input.language === "EN"
+      ? item.descriptionEn.trim()
+      : item.descriptionRu.trim(),
+  );
+  const maximumDescriptionLength = Math.max(
+    1,
+    ...descriptions.map((description) => description.length),
+  );
+  const fullMessage = renderWithDescriptionLimit(
+    input,
+    siteOrigin,
+    orderedItems,
+    kindOrder,
+    maximumDescriptionLength,
+  );
+  if (fits(fullMessage)) return fullMessage;
+
+  const minimumMessage = renderWithDescriptionLimit(
+    input,
+    siteOrigin,
+    orderedItems,
+    kindOrder,
+    1,
+  );
+  if (!fits(minimumMessage)) {
+    throw new DigestRendererError("DIGEST_MESSAGE_TOO_LARGE");
+  }
+
+  // Rebuild the complete message with progressively tighter, equal per-item
+  // description caps. Binary search keeps as much copy as the one-message
+  // Telegram budget allows while preserving every selected project.
+  let lowerBound = 1;
+  let upperBound = maximumDescriptionLength - 1;
+  let best = minimumMessage;
+  while (lowerBound <= upperBound) {
+    const candidateLimit = Math.floor((lowerBound + upperBound) / 2);
+    const candidate = renderWithDescriptionLimit(
       input,
       siteOrigin,
-      parts.length + 1,
-      assumedPartCount,
+      orderedItems,
+      kindOrder,
+      candidateLimit,
     );
-    if (!fits(combine(nextHeading, current, footer))) {
-      throw new DigestRendererError("DIGEST_ITEM_TOO_LARGE");
+    if (fits(candidate)) {
+      best = candidate;
+      lowerBound = candidateLimit + 1;
+    } else {
+      upperBound = candidateLimit - 1;
     }
   }
-  if (current.length > 0) parts.push(current);
-  return parts;
+  return best;
 };
 
 export const renderDigestMessages = (
@@ -345,63 +378,25 @@ export const renderDigestMessages = (
     throw new DigestRendererError("DIGEST_INVALID_KIND");
   }
 
+  let message: RenderedFragment;
   if (orderedItems.length === 0) {
-    const heading = headingFor(input, siteOrigin);
-    const footer = footerFor(input, siteOrigin);
     const empty = {
       html: escapeHtml(LABELS[input.language].empty),
       text: LABELS[input.language].empty,
     };
-    const message = combine(heading, [empty], footer);
-    if (!fits(message))
+    message = combine(headingFor(input), [empty], footerFor(input, siteOrigin));
+    if (!fits(message)) {
       throw new DigestRendererError("DIGEST_MESSAGE_TOO_LARGE");
-    return [
-      {
-        partIndex: 0,
-        renderedHtml: message.html,
-        visibleTextLength: message.text.length,
-      },
-    ];
+    }
+  } else {
+    message = fitSingleMessage(input, siteOrigin, orderedItems, kindOrder);
   }
 
-  const blocks = orderedItems.map((item, displayIndex) =>
-    itemBlock(item, input.language, displayIndex),
-  );
-  const footer = footerFor(input, siteOrigin);
-  const single = combine(headingFor(input, siteOrigin), blocks, footer);
-  if (fits(single)) {
-    return [
-      {
-        partIndex: 0,
-        renderedHtml: single.html,
-        visibleTextLength: single.text.length,
-      },
-    ];
-  }
-
-  let assumedPartCount = 2;
-  let parts: readonly (readonly RenderedFragment[])[] = [];
-  for (let attempt = 0; attempt <= blocks.length; attempt += 1) {
-    parts = packForPartCount(input, siteOrigin, blocks, assumedPartCount);
-    if (parts.length === assumedPartCount) break;
-    assumedPartCount = parts.length;
-  }
-  if (parts.length !== assumedPartCount) {
-    throw new DigestRendererError("DIGEST_SPLIT_UNSTABLE");
-  }
-
-  return parts.map((part, partIndex) => {
-    const message = combine(
-      headingFor(input, siteOrigin, partIndex + 1, parts.length),
-      part,
-      footer,
-    );
-    if (!fits(message))
-      throw new DigestRendererError("DIGEST_MESSAGE_TOO_LARGE");
-    return {
-      partIndex,
+  return [
+    {
+      partIndex: 0,
       renderedHtml: message.html,
       visibleTextLength: message.text.length,
-    };
-  });
+    },
+  ];
 };

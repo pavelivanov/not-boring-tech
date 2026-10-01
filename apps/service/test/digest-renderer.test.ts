@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  DIGEST_RENDERED_HTML_LIMIT,
   DIGEST_VISIBLE_TEXT_LIMIT,
   DigestRendererError,
   renderDigestMessages,
@@ -18,10 +17,9 @@ const snapshot = (overrides: Partial<DigestSnapshot> = {}): DigestSnapshot => ({
   canonicalUrl: "https://nanochat.example/",
   githubUrl: "https://github.com/karpathy/nanochat",
   githubRepository: "karpathy/nanochat",
-  githubStars: 0,
+  githubStars: 123_456,
   descriptionEn: "A compact project for learning how chat models work.",
   descriptionRu: "Компактный проект для изучения диалоговых моделей.",
-  sourceUrl: "https://t.me/source_channel/42",
   ...overrides,
 });
 
@@ -37,41 +35,31 @@ const input = (
 });
 
 describe("renderDigestMessages", () => {
-  it("renders the localized item contract with main, repository, and zero stars", () => {
+  it("renders one clean linked-name line without numbering or link metadata", () => {
     const [message] = renderDigestMessages(input());
 
     expect(message?.renderedHtml).toContain("The weekly project drop 🎉");
     expect(message?.renderedHtml).toContain(
       "A fresh batch of projects, tools, and ideas",
     );
-    expect(message?.renderedHtml).not.toContain("/tools/nanochat");
-    expect(message?.renderedHtml).toContain('href="https://nanochat.example/"');
     expect(message?.renderedHtml).toContain(
-      '<b><a href="https://nanochat.example/">1</a></b> <b>Nanochat</b>',
+      '<u>Project</u>\n- <a href="https://nanochat.example/">Nanochat</a> — A compact project',
     );
-    expect(message?.renderedHtml).toContain(
-      '<a href="https://t.me/source_channel/42">#</a> • <a href="https://nanochat.example/">Link</a>',
-    );
-    expect(message?.renderedHtml).toContain(
-      'href="https://github.com/karpathy/nanochat"',
-    );
-    expect(message?.renderedHtml).toContain("★ 0");
-    expect(message?.renderedHtml).toContain(
-      'href="https://findthatproject.com/"',
-    );
+    expect(message?.renderedHtml).not.toContain(">1</a>");
+    expect(message?.renderedHtml).not.toContain(">#</a>");
+    expect(message?.renderedHtml).not.toContain(">Link</a>");
+    expect(message?.renderedHtml).not.toContain(">GitHub</a>");
+    expect(message?.renderedHtml).not.toContain("★");
 
     const [russian] = renderDigestMessages(input({ language: "RU" }));
     expect(russian?.renderedHtml).toContain("Большая недельная подборка 🎉");
     expect(russian?.renderedHtml).toContain(
-      '<b><a href="https://nanochat.example/">1</a></b> <b>Наночат</b>',
+      '<u>Проект</u>\n- <a href="https://nanochat.example/">Наночат</a> — Компактный проект',
     );
-    expect(russian?.renderedHtml).toContain("Компактный проект для изучения");
-    expect(russian?.renderedHtml).toContain(
-      '<a href="https://t.me/source_channel/42">#</a> • <a href="https://nanochat.example/">Ссылка</a>',
-    );
+    expect(russian?.renderedHtml).not.toContain(">Ссылка</a>");
   });
 
-  it("escapes database text and rejects an unsafe main URL", () => {
+  it("escapes database text and rejects an unsafe project URL", () => {
     const [message] = renderDigestMessages(
       input({
         items: [
@@ -93,7 +81,7 @@ describe("renderDigestMessages", () => {
     ).toThrowError(DigestRendererError);
   });
 
-  it("uses the first source as the main-link fallback", () => {
+  it("links the project name to its catalog page when external links are absent", () => {
     const [message] = renderDigestMessages(
       input({
         items: [
@@ -108,44 +96,7 @@ describe("renderDigestMessages", () => {
     );
 
     expect(message?.renderedHtml).toContain(
-      'href="https://t.me/source_channel/42"',
-    );
-    expect(message?.renderedHtml).toContain(
-      '<b><a href="https://t.me/source_channel/42">1</a></b>',
-    );
-    expect(message?.renderedHtml).not.toContain("GitHub");
-    expect(message?.renderedHtml.match(/source_channel\/42/gu)).toHaveLength(3);
-  });
-
-  it("does not duplicate a repository link that is already the main link", () => {
-    const [message] = renderDigestMessages(
-      input({
-        items: [
-          snapshot({
-            canonicalUrl: "https://github.com/karpathy/nanochat/",
-            githubUrl: "https://github.com/karpathy/nanochat",
-            githubStars: 123_456,
-          }),
-        ],
-      }),
-    );
-
-    expect(message?.renderedHtml).not.toContain(">GitHub</a>");
-    expect(message?.renderedHtml).toContain("★ 123,456");
-  });
-
-  it("omits null stars and accepts maximum bounded descriptions", () => {
-    const [message] = renderDigestMessages(
-      input({
-        items: [
-          snapshot({ githubStars: null, descriptionEn: "x".repeat(400) }),
-        ],
-      }),
-    );
-
-    expect(message?.renderedHtml).not.toContain("★");
-    expect(message?.visibleTextLength).toBeLessThanOrEqual(
-      DIGEST_VISIBLE_TEXT_LIMIT,
+      '<a href="https://findthatproject.com/tools/nanochat">Nanochat</a>',
     );
   });
 
@@ -163,7 +114,7 @@ describe("renderDigestMessages", () => {
     }
   });
 
-  it("renders items in rank order without kind headings", () => {
+  it("groups ranked items under compact underlined content-type headings", () => {
     const items = [
       snapshot({
         ordinal: 0,
@@ -187,63 +138,57 @@ describe("renderDigestMessages", () => {
     const [english] = renderDigestMessages(input({ items }));
     const englishHtml = english!.renderedHtml;
 
-    expect(englishHtml).not.toContain("<b>Project</b>");
-    expect(englishHtml).not.toContain("<b>Service</b>");
-    expect(englishHtml.indexOf("Hosted Search")).toBeLessThan(
-      englishHtml.indexOf("Model Lab"),
+    expect(englishHtml.indexOf("<u>Project</u>")).toBeLessThan(
+      englishHtml.indexOf("<u>Service</u>"),
     );
-    expect(englishHtml.indexOf("Model Lab")).toBeLessThan(
+    expect(englishHtml.indexOf("Hosted Search")).toBeLessThan(
       englishHtml.indexOf("Code Hosting"),
     );
-    expect(englishHtml).toContain(
-      '<b><a href="https://nanochat.example/">1</a></b> <b>Hosted Search</b>',
-    );
-    expect(englishHtml).toContain(
-      '<b><a href="https://nanochat.example/">2</a></b> <b>Model Lab</b>',
-    );
+    expect(englishHtml.match(/<u>Service<\/u>/gu)).toHaveLength(1);
+    expect(englishHtml).toContain("<u>Service</u>\n- <a");
+    expect(englishHtml).not.toContain("\n\n- <a");
 
     const [russian] = renderDigestMessages(input({ items, language: "RU" }));
-    expect(russian?.renderedHtml).not.toContain("<b>Проект</b>");
-    expect(russian?.renderedHtml).not.toContain("<b>Сервис</b>");
+    expect(russian?.renderedHtml).toContain("<u>Проект</u>");
+    expect(russian?.renderedHtml).toContain("<u>Сервис</u>");
   });
 
-  it("splits only between items and repeats the heading and site link", () => {
-    const items = Array.from({ length: 24 }, (_, ordinal) =>
+  it("rebuilds an oversized digest with shorter descriptions as one message", () => {
+    const items = Array.from({ length: 20 }, (_, ordinal) =>
       snapshot({
         ordinal,
         slug: `project-${ordinal}`,
         name: `Project ${ordinal}`,
-        descriptionEn: `${ordinal}: ${"bounded description ".repeat(17)}`,
+        descriptionEn: `${ordinal}: ${"bounded description ".repeat(21)}`,
       }),
     );
     const messages = renderDigestMessages(input({ items }));
 
-    expect(messages.length).toBeGreaterThan(1);
-    for (const [index, message] of messages.entries()) {
-      expect(message.partIndex).toBe(index);
-      expect(message.renderedHtml).toContain(
-        `Part ${index + 1}/${messages.length}`,
-      );
-      expect(message.renderedHtml).toContain(
-        'href="https://findthatproject.com/"',
-      );
-      expect(message.visibleTextLength).toBeLessThanOrEqual(
-        DIGEST_VISIBLE_TEXT_LIMIT,
-      );
-      expect(message.renderedHtml.length).toBeLessThanOrEqual(
-        DIGEST_RENDERED_HTML_LIMIT,
-      );
+    expect(messages).toHaveLength(1);
+    expect(messages[0]?.partIndex).toBe(0);
+    expect(messages[0]?.visibleTextLength).toBeLessThanOrEqual(
+      DIGEST_VISIBLE_TEXT_LIMIT,
+    );
+    expect(messages[0]?.renderedHtml).toContain("…");
+    for (let ordinal = 0; ordinal < items.length; ordinal += 1) {
+      expect(messages[0]?.renderedHtml).toContain(`Project ${ordinal}`);
     }
-    expect(JSON.stringify(messages).match(/Project \d+/g)).toHaveLength(24);
-    expect(renderDigestMessages(input({ items }))).toEqual(messages);
+    expect(messages[0]?.renderedHtml).not.toContain("Part ");
   });
 
-  it("fails safely when one indivisible item cannot fit", () => {
+  it("fails safely when even the linked project names cannot fit", () => {
     expect(() =>
       renderDigestMessages(
-        input({ items: [snapshot({ descriptionEn: "x".repeat(4_000) })] }),
+        input({
+          items: [
+            snapshot({
+              name: "x".repeat(DIGEST_VISIBLE_TEXT_LIMIT),
+              descriptionEn: "description",
+            }),
+          ],
+        }),
       ),
-    ).toThrowError("DIGEST_ITEM_TOO_LARGE");
+    ).toThrowError("DIGEST_MESSAGE_TOO_LARGE");
   });
 
   it("shows only the digest page link in the footer when items overflow the post", () => {
@@ -274,13 +219,5 @@ describe("renderDigestMessages", () => {
     expect(russian?.renderedHtml).toContain(
       '<a href="https://findthatproject.com/digest/latest">Все 19 новинок недели →</a>',
     );
-    expect(russian?.renderedHtml).not.toContain(
-      '<a href="https://findthatproject.com/">Все проекты на FindThatProject →</a>',
-    );
-  });
-
-  it("omits the digest page link without overflow", () => {
-    const [message] = renderDigestMessages(input());
-    expect(message?.renderedHtml).not.toContain("/digest/latest");
   });
 });

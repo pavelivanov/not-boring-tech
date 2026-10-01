@@ -279,21 +279,14 @@ describe.skipIf(!testDatabaseUrl)("weekly digest integration", () => {
       sentCounts: { EN: 1, RU: 1 },
     });
     expect(firstPublisher.calls).toEqual([
-      {
-        kind: "PHOTO",
-        chatId: "@digest_en",
-        photoUrl: "https://findthatproject.example/weekly-digest-cover.png",
-      },
       expect.objectContaining({ kind: "TEXT", chatId: "@digest_en" }),
-      {
-        kind: "PHOTO",
-        chatId: "@digest_ru",
-        photoUrl: "https://findthatproject.example/weekly-digest-cover.png",
-      },
       expect.objectContaining({ kind: "TEXT", chatId: "@digest_ru" }),
     ]);
-    expect(textCalls(firstPublisher)[0]?.html).not.toContain("<b>Service</b>");
-    expect(textCalls(firstPublisher)[1]?.html).not.toContain("<b>Сервис</b>");
+    expect(textCalls(firstPublisher)[0]?.html).toContain("<u>Service</u>");
+    expect(textCalls(firstPublisher)[1]?.html).toContain("<u>Сервис</u>");
+    expect(firstPublisher.calls.every((call) => call.kind === "TEXT")).toBe(
+      true,
+    );
     await expect(
       database.weeklyDigestItem.findMany({
         where: { digestRunId: first.runId! },
@@ -383,8 +376,6 @@ describe.skipIf(!testDatabaseUrl)("weekly digest integration", () => {
     });
     const firstPublisher = new ScriptedPublisher([
       { messageId: 11n, attempts: 1 },
-      { messageId: 12n, attempts: 1 },
-      { messageId: 13n, attempts: 1 },
       new TelegramPublishError("TELEGRAM_TARGET", false, 1),
     ]);
     const first = await publishWeeklyDigest(config(), {
@@ -416,51 +407,47 @@ describe.skipIf(!testDatabaseUrl)("weekly digest integration", () => {
     ]);
   });
 
-  it("resumes split parts without repeating an earlier sent part", async () => {
-    for (let ordinal = 0; ordinal < 60; ordinal += 1) {
-      await createCatalogItem(database, {
-        slug: `split-${ordinal.toString().padStart(2, "0")}`,
+  it("publishes a full maximum-size digest as one text message per language", async () => {
+    for (let ordinal = 0; ordinal < 20; ordinal += 1) {
+      const itemId = await createCatalogItem(database, {
+        slug: `single-${ordinal.toString().padStart(2, "0")}`,
         createdAt: new Date(
-          `2026-08-${String(11 + Math.floor(ordinal / 20)).padStart(2, "0")}T${String(ordinal % 20).padStart(2, "0")}:00:00.000Z`,
+          `2026-08-${String(11 + Math.floor(ordinal / 10)).padStart(2, "0")}T${String(ordinal % 10).padStart(2, "0")}:00:00.000Z`,
         ),
       });
+      await database.catalogItem.update({
+        where: { id: itemId },
+        data: {
+          descriptionEn: "English description ".repeat(20),
+          descriptionRu: "Русское описание ".repeat(20),
+        },
+      });
+      await database.presentationCandidate.updateMany({
+        where: { catalogItemId: itemId },
+        data: {
+          descriptionEn: "English description ".repeat(20),
+          descriptionRu: "Русское описание ".repeat(20),
+        },
+      });
     }
-    const firstPublisher = new ScriptedPublisher([
-      { messageId: 31n, attempts: 1 },
-      { messageId: 32n, attempts: 1 },
-      new TelegramPublishError("TELEGRAM_SERVER", false, 1),
-    ]);
-    const first = await publishWeeklyDigest(config({ maxItems: 100 }), {
+    const publisher = new ScriptedPublisher();
+    const result = await publishWeeklyDigest(config({ maxItems: 20 }), {
       database,
-      publisher: firstPublisher,
+      publisher,
       now: () => new Date("2026-08-17T09:00:00.000Z"),
     });
-    expect(first.partCounts.EN).toBeGreaterThan(1);
-    expect(first.sentCounts.EN).toBe(1);
-    expect(
-      firstPublisher.calls.filter(
-        (call) => call.kind === "PHOTO" && call.chatId === "@digest_en",
-      ),
-    ).toHaveLength(1);
-    const firstSentHtml = textCalls(firstPublisher)[0]?.html;
-
-    const resumePublisher = new ScriptedPublisher();
-    const resumed = await publishWeeklyDigest(config(), {
-      database,
-      publisher: resumePublisher,
-      now: () => new Date("2026-08-17T10:00:00.000Z"),
+    expect(result).toMatchObject({
+      itemCount: 20,
+      selectedCount: 20,
+      partCounts: { EN: 1, RU: 1 },
+      sentCounts: { EN: 1, RU: 1 },
+      status: WeeklyDigestRunStatus.SUCCEEDED,
     });
-    expect(resumed.status).toBe(WeeklyDigestRunStatus.SUCCEEDED);
-    expect(resumePublisher.calls).not.toHaveLength(0);
-    expect(
-      resumePublisher.calls.every((call) => call.chatId === "@digest_en"),
-    ).toBe(true);
-    expect(resumePublisher.calls.every((call) => call.kind === "TEXT")).toBe(
+    expect(publisher.calls).toHaveLength(2);
+    expect(publisher.calls.every((call) => call.kind === "TEXT")).toBe(true);
+    expect(textCalls(publisher).every((call) => call.html.includes("…"))).toBe(
       true,
     );
-    expect(
-      textCalls(resumePublisher).some((call) => call.html === firstSentHtml),
-    ).toBe(false);
   });
 
   it("requires manual resolution after an ambiguous send", async () => {
@@ -471,7 +458,6 @@ describe.skipIf(!testDatabaseUrl)("weekly digest integration", () => {
     const publisher = new ScriptedPublisher([
       { messageId: 21n, attempts: 1 },
       new Error("connection-loss-private-detail"),
-      { messageId: 22n, attempts: 1 },
     ]);
     const result = await publishWeeklyDigest(config(), {
       database,
@@ -699,7 +685,7 @@ describe.skipIf(!testDatabaseUrl)("weekly digest integration", () => {
       status: WeeklyDigestRunStatus.SUCCEEDED,
       sentCounts: { EN: 1, RU: 1 },
     });
-    expect(publisher.calls).toHaveLength(4);
+    expect(publisher.calls).toHaveLength(2);
     await expect(database.weeklyDigestRun.count()).resolves.toBe(1);
     await expect(
       database.catalogItem.findUniqueOrThrow({ where: { id: itemId } }),
