@@ -282,8 +282,14 @@ describe.skipIf(!testDatabaseUrl)("weekly digest integration", () => {
       expect.objectContaining({ kind: "TEXT", chatId: "@digest_en" }),
       expect.objectContaining({ kind: "TEXT", chatId: "@digest_ru" }),
     ]);
-    expect(textCalls(firstPublisher)[0]?.html).toContain("<u>Service</u>");
-    expect(textCalls(firstPublisher)[1]?.html).toContain("<u>Сервис</u>");
+    expect(textCalls(firstPublisher)[0]?.html).toContain(
+      ">Project first-visible</a> —",
+    );
+    expect(textCalls(firstPublisher)[1]?.html).toContain(
+      ">Проект first-visible</a> —",
+    );
+    expect(textCalls(firstPublisher)[0]?.html).not.toContain("<u>");
+    expect(textCalls(firstPublisher)[1]?.html).not.toContain("<u>");
     expect(firstPublisher.calls.every((call) => call.kind === "TEXT")).toBe(
       true,
     );

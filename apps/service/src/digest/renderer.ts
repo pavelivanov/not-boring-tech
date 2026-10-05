@@ -1,6 +1,5 @@
 import {
   TECHNOLOGY_KINDS,
-  TECHNOLOGY_KIND_LABELS,
   type TechnologyKind,
 } from "@findthatproject/contracts";
 
@@ -206,59 +205,18 @@ const itemBlock = (
   const linkedName = anchor(name, projectUrl(item, siteOrigin));
   const description = shortenText(fullDescription, descriptionLimit);
   return {
-    html: `- ${linkedName.html} — ${escapeHtml(description)}`,
-    text: `- ${linkedName.text} — ${description}`,
+    html: `${linkedName.html} — ${escapeHtml(description)}`,
+    text: `${linkedName.text} — ${description}`,
   };
 };
 
-const kindHeading = (
-  kind: TechnologyKind,
-  language: DigestLanguage,
-): RenderedFragment => {
-  const label = TECHNOLOGY_KIND_LABELS[language === "RU" ? "ru" : "en"][kind];
-  return {
-    html: `<u>${escapeHtml(label)}</u>`,
-    text: label,
-  };
-};
-
-const sectionsFor = (
+const itemBlocksFor = (
   items: readonly DigestSnapshot[],
   language: DigestLanguage,
   siteOrigin: string,
   descriptionLimit: number,
-  kindOrder: ReadonlyMap<TechnologyKind, number>,
-): readonly RenderedFragment[] => {
-  const groupedItems = [...items].sort(
-    (left, right) =>
-      kindOrder.get(left.kind)! - kindOrder.get(right.kind)! ||
-      left.ordinal - right.ordinal,
-  );
-  const sections: RenderedFragment[] = [];
-  let sectionKind: TechnologyKind | null = null;
-  let heading: RenderedFragment | null = null;
-  let blocks: RenderedFragment[] = [];
-
-  const flush = (): void => {
-    if (heading === null) return;
-    sections.push({
-      html: [heading.html, ...blocks.map((block) => block.html)].join("\n"),
-      text: [heading.text, ...blocks.map((block) => block.text)].join("\n"),
-    });
-  };
-
-  for (const item of groupedItems) {
-    if (item.kind !== sectionKind) {
-      flush();
-      sectionKind = item.kind;
-      heading = kindHeading(item.kind, language);
-      blocks = [];
-    }
-    blocks.push(itemBlock(item, language, siteOrigin, descriptionLimit));
-  }
-  flush();
-  return sections;
-};
+): readonly RenderedFragment[] =>
+  items.map((item) => itemBlock(item, language, siteOrigin, descriptionLimit));
 
 const combine = (
   heading: RenderedFragment,
@@ -279,18 +237,11 @@ const renderWithDescriptionLimit = (
   input: DigestRenderInput,
   siteOrigin: string,
   orderedItems: readonly DigestSnapshot[],
-  kindOrder: ReadonlyMap<TechnologyKind, number>,
   descriptionLimit: number,
 ): RenderedFragment =>
   combine(
     headingFor(input),
-    sectionsFor(
-      orderedItems,
-      input.language,
-      siteOrigin,
-      descriptionLimit,
-      kindOrder,
-    ),
+    itemBlocksFor(orderedItems, input.language, siteOrigin, descriptionLimit),
     footerFor(input, siteOrigin),
   );
 
@@ -298,7 +249,6 @@ const fitSingleMessage = (
   input: DigestRenderInput,
   siteOrigin: string,
   orderedItems: readonly DigestSnapshot[],
-  kindOrder: ReadonlyMap<TechnologyKind, number>,
 ): RenderedFragment => {
   const descriptions = orderedItems.map((item) =>
     input.language === "EN"
@@ -313,7 +263,6 @@ const fitSingleMessage = (
     input,
     siteOrigin,
     orderedItems,
-    kindOrder,
     maximumDescriptionLength,
   );
   if (fits(fullMessage)) return fullMessage;
@@ -322,7 +271,6 @@ const fitSingleMessage = (
     input,
     siteOrigin,
     orderedItems,
-    kindOrder,
     1,
   );
   if (!fits(minimumMessage)) {
@@ -341,7 +289,6 @@ const fitSingleMessage = (
       input,
       siteOrigin,
       orderedItems,
-      kindOrder,
       candidateLimit,
     );
     if (fits(candidate)) {
@@ -371,10 +318,8 @@ export const renderDigestMessages = (
   ) {
     throw new DigestRendererError("DIGEST_INVALID_ORDINALS");
   }
-  const kindOrder = new Map(
-    TECHNOLOGY_KINDS.map((kind, index) => [kind, index]),
-  );
-  if (orderedItems.some((item) => !kindOrder.has(item.kind))) {
+  const validKinds = new Set<TechnologyKind>(TECHNOLOGY_KINDS);
+  if (orderedItems.some((item) => !validKinds.has(item.kind))) {
     throw new DigestRendererError("DIGEST_INVALID_KIND");
   }
 
@@ -389,7 +334,7 @@ export const renderDigestMessages = (
       throw new DigestRendererError("DIGEST_MESSAGE_TOO_LARGE");
     }
   } else {
-    message = fitSingleMessage(input, siteOrigin, orderedItems, kindOrder);
+    message = fitSingleMessage(input, siteOrigin, orderedItems);
   }
 
   return [

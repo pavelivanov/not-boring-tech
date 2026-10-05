@@ -43,8 +43,10 @@ describe("renderDigestMessages", () => {
       "A fresh batch of projects, tools, and ideas",
     );
     expect(message?.renderedHtml).toContain(
-      '<u>Project</u>\n- <a href="https://nanochat.example/">Nanochat</a> — A compact project',
+      '<a href="https://nanochat.example/">Nanochat</a> — A compact project',
     );
+    expect(message?.renderedHtml).not.toContain("\n- <a");
+    expect(message?.renderedHtml).not.toContain("<u>Project</u>");
     expect(message?.renderedHtml).not.toContain(">1</a>");
     expect(message?.renderedHtml).not.toContain(">#</a>");
     expect(message?.renderedHtml).not.toContain(">Link</a>");
@@ -54,7 +56,7 @@ describe("renderDigestMessages", () => {
     const [russian] = renderDigestMessages(input({ language: "RU" }));
     expect(russian?.renderedHtml).toContain("Большая недельная подборка 🎉");
     expect(russian?.renderedHtml).toContain(
-      '<u>Проект</u>\n- <a href="https://nanochat.example/">Наночат</a> — Компактный проект',
+      '<a href="https://nanochat.example/">Наночат</a> — Компактный проект',
     );
     expect(russian?.renderedHtml).not.toContain(">Ссылка</a>");
   });
@@ -114,7 +116,7 @@ describe("renderDigestMessages", () => {
     }
   });
 
-  it("groups ranked items under compact underlined content-type headings", () => {
+  it("keeps ranked items flat with one blank line between them", () => {
     const items = [
       snapshot({
         ordinal: 0,
@@ -138,19 +140,26 @@ describe("renderDigestMessages", () => {
     const [english] = renderDigestMessages(input({ items }));
     const englishHtml = english!.renderedHtml;
 
-    expect(englishHtml.indexOf("<u>Project</u>")).toBeLessThan(
-      englishHtml.indexOf("<u>Service</u>"),
-    );
+    expect(englishHtml).not.toContain("<u>");
+    expect(englishHtml).not.toContain("\n- <a");
     expect(englishHtml.indexOf("Hosted Search")).toBeLessThan(
+      englishHtml.indexOf("Model Lab"),
+    );
+    expect(englishHtml.indexOf("Model Lab")).toBeLessThan(
       englishHtml.indexOf("Code Hosting"),
     );
-    expect(englishHtml.match(/<u>Service<\/u>/gu)).toHaveLength(1);
-    expect(englishHtml).toContain("<u>Service</u>\n- <a");
-    expect(englishHtml).not.toContain("\n\n- <a");
+    expect(englishHtml).toContain(
+      "Hosted Search</a> — A compact project for learning how chat models work.\n\n<a",
+    );
+    expect(englishHtml).toContain(
+      "Model Lab</a> — A compact project for learning how chat models work.\n\n<a",
+    );
 
     const [russian] = renderDigestMessages(input({ items, language: "RU" }));
-    expect(russian?.renderedHtml).toContain("<u>Проект</u>");
-    expect(russian?.renderedHtml).toContain("<u>Сервис</u>");
+    expect(russian?.renderedHtml).not.toContain("<u>");
+    expect(russian?.renderedHtml).toContain(
+      "Облачный поиск</a> — Компактный проект для изучения диалоговых моделей.\n\n<a",
+    );
   });
 
   it("rebuilds an oversized digest with shorter descriptions as one message", () => {

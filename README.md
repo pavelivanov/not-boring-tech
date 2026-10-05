@@ -213,10 +213,10 @@ independently, so a successful language is never repeated merely because the
 other delivery failed. An empty week still sends one localized health message
 per channel. Every digest links to the FindThatProject website.
 
-Digest posts use a short editorial introduction followed by compact, underlined
-content-type headings. Each project is one line whose name is the project link;
-there are no item numbers or separate source/link rows. Types follow the
-website's canonical order, with ranked order inside each group. Each channel
+Digest posts use a short editorial introduction followed by a flat ranked list.
+Each project starts on its own line, its name is the project link, and one blank
+line separates it from the next project. There are no item numbers, leading
+dashes, category headings, or separate source/link rows. Each channel
 receives exactly one text message with link previews disabled and no standalone
 cover image. Before the outbox is created, the renderer measures the visible
 text after HTML entity parsing and rebuilds oversized drafts with shorter,
