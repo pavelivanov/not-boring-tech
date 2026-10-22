@@ -1,0 +1,44 @@
+{
+	admin off
+	auto_https off
+	persist_config off
+	log {
+		format console
+	}
+}
+
+:{$PORT:8080} {
+	root * /srv
+	encode zstd gzip
+
+	# The build is a prerendered SPA (ssr: false), so trailing slashes are not
+	# canonical. The preview server stripped them internally; redirect instead.
+	@trailingSlash path_regexp trailing ^/(.+)/$
+	redir @trailingSlash /{re.trailing.1} 308
+
+	# Asset filenames are content-hashed, so they are safe to cache forever.
+	# Documents must not be, or a stale one can reference a deleted asset.
+	@assets path /assets/*
+	@documents not path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+	header @documents Cache-Control "no-cache"
+
+	handle / {
+		rewrite * /index.html
+		file_server
+	}
+
+	# Requests for a named file are served as-is and 404 when missing, so a
+	# stale asset URL never resolves to the SPA shell.
+	@file path_regexp \.[^/]+$
+	handle @file {
+		file_server
+	}
+
+	# Prerendered routes resolve to their own index.html. Everything else gets
+	# the route-agnostic shell, not the prerendered home page.
+	handle {
+		try_files {path}/index.html {path} /__spa-fallback.html
+		file_server
+	}
+}
