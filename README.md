@@ -140,6 +140,23 @@ The sync process additionally requires:
 Never prefix server credentials with `VITE_`, bake them into the image, pass
 them as build arguments, or commit a working `.env` or Telegram session.
 
+### Telegram user session
+
+`TELEGRAM_SESSION` is a GramJS user `StringSession`. Regenerate it when it is
+revoked, expired, or rotated after exposure:
+
+```sh
+TELEGRAM_API_ID=<api-id> TELEGRAM_API_HASH=<api-hash> npm run telegram:session
+```
+
+The script prompts for the phone number, the login code Telegram sends, and the
+two-step verification password when the account has one, then prints one
+`TELEGRAM_SESSION=` line. Copy that value into the ignored local `.env` and
+`.env.railway.parser`, then push it with `npm run railway:env -- parser`. Only
+`parser` accepts this key; `digest` publishes through the Bot API token and must
+never receive it. Revoke the previous session in Telegram under
+Settings -> Devices when rotating after exposure.
+
 ### Local database and service
 
 With `POSTGRES_PASSWORD` exported in the shell or supplied by an ignored `.env`:

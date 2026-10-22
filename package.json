@@ -18,7 +18,8 @@
     "test": "turbo run test",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build",
     "deploy:railway": "bash scripts/railway-deploy.sh",
-    "railway:env": "bash scripts/railway-env-push.sh"
+    "railway:env": "bash scripts/railway-env-push.sh",
+    "telegram:session": "node scripts/generate-telegram-session.mjs"
   },
   "devDependencies": {
     "turbo": "^2.10.7"
