@@ -1,22 +1,26 @@
-FROM node:20-alpine AS development-dependencies-env
-COPY . /app
+FROM node:22-bookworm-slim AS build
 WORKDIR /app
-RUN npm ci
 
-FROM node:20-alpine AS production-dependencies-env
-COPY ./package.json package-lock.json /app/
-WORKDIR /app
-RUN npm ci --omit=dev
+# Railway injects service variables into the build; they must be declared in
+# the stage that consumes them. Vite inlines these at build time.
+ARG VITE_API_BASE_URL
+ARG VITE_PUBLIC_SITE_ORIGIN
 
-FROM node:20-alpine AS build-env
-COPY . /app/
-COPY --from=development-dependencies-env /app/node_modules /app/node_modules
-WORKDIR /app
-RUN npm run build
+COPY package.json package-lock.json turbo.json ./
+COPY apps/web/package.json apps/web/package.json
+COPY packages/contracts/package.json packages/contracts/package.json
+COPY packages/typescript-config/package.json packages/typescript-config/package.json
+RUN npm ci --no-audit --no-fund \
+    --fetch-retries=5 \
+    --fetch-retry-mintimeout=20000 \
+    --fetch-retry-maxtimeout=120000
 
-FROM node:20-alpine
-COPY ./package.json package-lock.json /app/
-COPY --from=production-dependencies-env /app/node_modules /app/node_modules
-COPY --from=build-env /app/build /app/build
-WORKDIR /app
-CMD ["npm", "run", "start"]
+COPY apps/web apps/web
+COPY packages/contracts packages/contracts
+COPY packages/typescript-config packages/typescript-config
+RUN npm run build --workspace=@findthatproject/web
+
+FROM caddy:2.10-alpine AS runtime
+COPY apps/web/Caddyfile /etc/caddy/Caddyfile
+COPY --from=build /app/apps/web/build/client /srv
+EXPOSE 8080
